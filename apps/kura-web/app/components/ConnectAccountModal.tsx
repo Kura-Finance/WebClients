@@ -8,8 +8,14 @@ import Image from 'next/image';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAppStore } from '@/store/useAppStore';
 
-// 💡 1. 引入 Plaid Hook
 import { usePlaidLink, type PlaidLinkOnSuccessMetadata } from 'react-plaid-link';
+import {
+  BackendApiError,
+  createPlaidLinkToken,
+  exchangePlaidPublicToken,
+  loginUser,
+  registerUser,
+} from '@/lib/backendApi';
 
 interface ConnectAccountModalProps {
   isOpen: boolean;
@@ -19,74 +25,132 @@ interface ConnectAccountModalProps {
 export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountModalProps) {
   const [mounted, setMounted] = useState(false);
   const [isConnecting, setIsConnecting] = useState<'plaid' | 'walletconnect' | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [plaidError, setPlaidError] = useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isExchangingToken, setIsExchangingToken] = useState(false);
+
   const linkToken = useAppStore(state => state.plaidLinkToken);
   const setPlaidLinkToken = useAppStore(state => state.setPlaidLinkToken);
+  const authToken = useAppStore(state => state.authToken);
+  const setAuthToken = useAppStore(state => state.setAuthToken);
+  const setUserEmail = useAppStore(state => state.setUserEmail);
 
   const { open: openWalletConnect } = useWeb3Modal();
 
-  // 💡 2. 初始化時向你的後端請求 Link Token
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
-    
-    // 模擬向後端 API 獲取 Token 的過程
-    const fetchLinkToken = async () => {
-      try {
-        /* 🚧 [Production 邏輯]
-          const response = await fetch('/api/plaid/create-link-token', { method: 'POST' });
-          const data = await response.json();
-          setLinkToken(data.link_token);
-        */
-        
-        // 開發階段：我們填入一個假 Token 讓畫面不會報錯
-        setPlaidLinkToken('mock-link-token-for-ui');
-      } catch (error) {
-        console.error('Error fetching link token:', error);
-      }
-    };
-    
-    fetchLinkToken();
     return () => clearTimeout(timer);
-  }, [setPlaidLinkToken]);
+  }, []);
 
-  // 💡 3. 設定 Plaid 登入成功後的回呼函式 (Success Callback)
-  const onPlaidSuccess = useCallback((public_token: string, metadata: PlaidLinkOnSuccessMetadata) => {
-    console.log('🎉 Plaid 授權成功！');
-    console.log('Public Token (需傳回後端):', public_token);
-    console.log('綁定的銀行資訊:', metadata.institution);
-    
-    /*
-      🚧 [Production 邏輯]
-      你要在這裡把 public_token fetch() 傳回你的後端
-      後端會去跟 Plaid 換成永久的 access_token 並存入資料庫
-    */
-    
-    onClose();
-  }, [onClose]);
+  const fetchPlaidLinkToken = useCallback(
+    async (token: string) => {
+      try {
+        setPlaidError(null);
+        const result = await createPlaidLinkToken(token);
+        setPlaidLinkToken(result.link_token);
+      } catch (error) {
+        const message = error instanceof BackendApiError ? error.message : 'Failed to get Plaid link token.';
+        setPlaidError(message);
+      }
+    },
+    [setPlaidLinkToken]
+  );
 
-  // 💡 4. 初始化 Plaid SDK
+  useEffect(() => {
+    if (!isOpen || !authToken || linkToken) return;
+    void fetchPlaidLinkToken(authToken);
+  }, [authToken, fetchPlaidLinkToken, isOpen, linkToken]);
+
+  const handleAuthSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!email || !password) {
+      setAuthError('Email and password are required.');
+      return;
+    }
+
+    setIsAuthenticating(true);
+    setAuthError(null);
+
+    try {
+      const authResult =
+        authMode === 'register'
+          ? await registerUser(email.trim(), password)
+          : await loginUser(email.trim(), password);
+
+      setAuthToken(authResult.token);
+      setUserEmail(authResult.user.email);
+      await fetchPlaidLinkToken(authResult.token);
+    } catch (error) {
+      const message = error instanceof BackendApiError ? error.message : 'Authentication failed.';
+      setAuthError(message);
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const onPlaidSuccess = useCallback(
+    async (public_token: string, metadata: PlaidLinkOnSuccessMetadata) => {
+      if (!authToken) {
+        setPlaidError('Please sign in before connecting a bank account.');
+        return;
+      }
+
+      setIsExchangingToken(true);
+      setPlaidError(null);
+
+      try {
+        const result = await exchangePlaidPublicToken(authToken, {
+          public_token,
+          institution_name: metadata.institution?.name,
+        });
+
+        alert(result.message || 'Bank account connected successfully.');
+        onClose();
+      } catch (error) {
+        const message = error instanceof BackendApiError ? error.message : 'Failed to exchange Plaid token.';
+        setPlaidError(message);
+      } finally {
+        setIsExchangingToken(false);
+      }
+    },
+    [authToken, onClose]
+  );
+
   const { open: openPlaid, ready: isPlaidReady } = usePlaidLink({
-    token: linkToken || '',
-    onSuccess: onPlaidSuccess,
-    // onExit: (err, metadata) => console.log('User closed Plaid', err),
+    token: linkToken || null,
+    onSuccess: (publicToken, metadata) => {
+      void onPlaidSuccess(publicToken, metadata);
+    },
   });
 
-  // 點擊 Plaid 按鈕的處理邏輯
-  const handlePlaidConnect = () => {
+  const handlePlaidConnect = async () => {
+    setPlaidError(null);
+
+    if (!authToken) {
+      setPlaidError('Please log in or register first.');
+      return;
+    }
+
     setIsConnecting('plaid');
-    
-    if (linkToken === 'mock-link-token-for-ui') {
-      // ⚠️ 攔截假 Token：Plaid 如果收到假 token 會直接黑畫面報錯，所以我們在這裡攔截並模擬
-      setTimeout(() => {
-        alert("即將開啟 Plaid 銀行選擇畫面！\n\n(提示：由於目前缺少真實後端產生的 link_token，此處用彈窗模擬。請參考程式碼中的 🚧 註解來接上你的 API。)");
-        setIsConnecting(null);
-        onClose();
-      }, 800);
-    } else if (isPlaidReady) {
-      // 🚀 如果有真實 token 且 SDK 準備就緒，直接開啟 Plaid 視窗
+
+    if (!linkToken) {
+      await fetchPlaidLinkToken(authToken);
+      setIsConnecting(null);
+      return;
+    }
+
+    if (isPlaidReady) {
       openPlaid();
       setIsConnecting(null);
-      onClose();
+      return;
     }
+
+    setPlaidError('Plaid is still initializing. Please try again in a second.');
+    setIsConnecting(null);
   };
 
   const handleWalletConnect = () => {
@@ -135,11 +199,75 @@ export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountM
             </div>
 
             <div className="p-6 space-y-4 relative z-10">
+              {!authToken && (
+                <form onSubmit={handleAuthSubmit} className="mb-4 p-4 rounded-2xl bg-[#13131A] border border-white/10 space-y-3">
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('login')}
+                      className={`px-3 py-1.5 rounded-full border ${
+                        authMode === 'login'
+                          ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/50 text-[#C4B5FD]'
+                          : 'border-white/10 text-gray-400'
+                      }`}
+                    >
+                      Login
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAuthMode('register')}
+                      className={`px-3 py-1.5 rounded-full border ${
+                        authMode === 'register'
+                          ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/50 text-[#C4B5FD]'
+                          : 'border-white/10 text-gray-400'
+                      }`}
+                    >
+                      Register
+                    </button>
+                  </div>
+
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
+                    className="w-full rounded-xl bg-[#0B0B0F] border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6]/60"
+                  />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                    className="w-full rounded-xl bg-[#0B0B0F] border border-white/10 px-3 py-2.5 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6]/60"
+                  />
+
+                  {authError && <p className="text-xs text-red-400">{authError}</p>}
+
+                  <button
+                    type="submit"
+                    disabled={isAuthenticating}
+                    className="w-full py-2.5 rounded-xl bg-[#8B5CF6]/20 border border-[#8B5CF6]/40 text-[#C4B5FD] text-sm font-semibold hover:bg-[#8B5CF6]/30 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isAuthenticating ? 'Processing...' : authMode === 'register' ? 'Create account' : 'Sign in'}
+                  </button>
+                </form>
+              )}
+
+              {authToken && (
+                <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
+                  Authenticated. You can now connect Plaid institutions.
+                </div>
+              )}
+
+              {plaidError && (
+                <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+                  {plaidError}
+                </div>
+              )}
               
-              {/* Plaid 選項 */}
               <button 
                 onClick={handlePlaidConnect}
-                disabled={isConnecting !== null}
+                disabled={isConnecting !== null || isAuthenticating || isExchangingToken}
                 className={`w-full p-4 rounded-2xl border transition-all duration-300 flex items-center gap-4 group text-left ${
                   isConnecting === 'plaid' ? 'border-[#8B5CF6] bg-[#8B5CF6]/10' : 'border-white/5 bg-[#1A1A24] hover:border-[#8B5CF6]/50 hover:bg-white/5'
                 }`}
@@ -158,10 +286,9 @@ export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountM
                 )}
               </button>
 
-              {/* WalletConnect 選項 */}
               <button 
                 onClick={handleWalletConnect}
-                disabled={isConnecting !== null}
+                disabled={isConnecting !== null || isAuthenticating || isExchangingToken}
                 className={`w-full p-4 rounded-2xl border transition-all duration-300 flex items-center gap-4 group text-left ${
                   isConnecting === 'walletconnect' ? 'border-[#3B82F6] bg-[#3B82F6]/10' : 'border-white/5 bg-[#1A1A24] hover:border-[#3B82F6]/50 hover:bg-white/5'
                 }`}

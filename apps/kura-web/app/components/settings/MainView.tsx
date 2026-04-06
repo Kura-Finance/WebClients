@@ -13,6 +13,7 @@ interface MainViewProps {
 
 export default function MainView({ pathname, handleClose, setActiveView, variants }: MainViewProps) {
   const userProfile = useAppStore(state => state.userProfile);
+  const clearAuthSession = useAppStore(state => state.clearAuthSession);
 
   return (
     <motion.div variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className="absolute inset-0 px-6 py-6">
@@ -60,7 +61,13 @@ export default function MainView({ pathname, handleClose, setActiveView, variant
       </div>
 
       <div className="absolute bottom-6 left-6 right-6 pt-6 border-t border-white/5">
-        <button className="w-full py-3 rounded-xl bg-red-500/10 text-red-400 font-medium hover:bg-red-500/20 transition-colors border border-red-500/20">
+        <button
+          onClick={() => {
+            clearAuthSession();
+            handleClose();
+          }}
+          className="w-full py-3 rounded-xl bg-red-500/10 text-red-400 font-medium hover:bg-red-500/20 transition-colors border border-red-500/20"
+        >
           Sign Out
         </button>
       </div>

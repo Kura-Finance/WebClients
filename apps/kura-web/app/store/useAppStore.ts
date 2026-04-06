@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from '@/lib/backendApi';
 
 export type BaseCurrency = 'USD' | 'EUR' | 'TWD';
 
@@ -33,6 +34,7 @@ interface AppState {
   aiInsights: AiInsight[];
   chatMessages: AppChatMessage[];
   plaidLinkToken: string | null;
+  authToken: string | null;
 
   setDisplayName: (displayName: string) => void;
   setBaseCurrency: (currency: BaseCurrency) => void;
@@ -40,6 +42,9 @@ interface AppState {
   toggleWeeklyAiSummary: () => void;
   addChatMessage: (message: AppChatMessage) => void;
   setPlaidLinkToken: (token: string | null) => void;
+  setUserEmail: (email: string) => void;
+  setAuthToken: (token: string | null) => void;
+  clearAuthSession: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -77,6 +82,7 @@ export const useAppStore = create<AppState>((set) => ({
     },
   ],
   plaidLinkToken: null,
+  authToken: getStoredAuthToken(),
 
   setDisplayName: (displayName) =>
     set((state) => ({ userProfile: { ...state.userProfile, displayName } })),
@@ -99,4 +105,25 @@ export const useAppStore = create<AppState>((set) => ({
   addChatMessage: (message) =>
     set((state) => ({ chatMessages: [...state.chatMessages, message] })),
   setPlaidLinkToken: (plaidLinkToken) => set({ plaidLinkToken }),
+  setUserEmail: (email) =>
+    set((state) => ({ userProfile: { ...state.userProfile, email } })),
+  setAuthToken: (authToken) => {
+    if (authToken) {
+      setStoredAuthToken(authToken);
+    } else {
+      clearStoredAuthToken();
+    }
+    set({ authToken });
+  },
+  clearAuthSession: () => {
+    clearStoredAuthToken();
+    set((state) => ({
+      authToken: null,
+      plaidLinkToken: null,
+      userProfile: {
+        ...state.userProfile,
+        email: 'rick@kura.finance',
+      },
+    }));
+  },
 }));
