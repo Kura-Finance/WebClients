@@ -5,8 +5,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { useAppStore } from '@/store/useAppStore';
+import { useConnect } from 'wagmi';
 
 import { usePlaidLink, type PlaidLinkOnSuccessMetadata } from 'react-plaid-link';
 import {
@@ -37,9 +37,8 @@ export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountM
   const setPlaidLinkToken = useAppStore(state => state.setPlaidLinkToken);
   const authToken = useAppStore(state => state.authToken);
   const setAuthToken = useAppStore(state => state.setAuthToken);
-  const setUserEmail = useAppStore(state => state.setUserEmail);
-
-  const { open: openWalletConnect } = useWeb3Modal();
+  const hydrateUserProfile = useAppStore(state => state.hydrateUserProfile);
+  const { connectAsync, connectors } = useConnect();
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -82,7 +81,8 @@ export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountM
           : await loginUser(email.trim(), password);
 
       setAuthToken(authResult.token);
-      setUserEmail(authResult.user.email);
+      setPlaidLinkToken(null);
+      await hydrateUserProfile();
       await fetchPlaidLinkToken(authResult.token);
     } catch (error) {
       const message = error instanceof BackendApiError ? error.message : 'Authentication failed.';
@@ -153,15 +153,26 @@ export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountM
     setIsConnecting(null);
   };
 
-  const handleWalletConnect = () => {
+  const handleWalletConnect = async () => {
     setIsConnecting('walletconnect');
-    onClose();
-    setTimeout(() => {
-      // Force connector selection instead of the default account view when already connected.
-      openWalletConnect({ view: 'Connect' }).finally(() => {
-        setIsConnecting(null);
-      });
-    }, 300);
+
+    try {
+      const injectedConnector =
+        connectors.find((connector) => connector.type === 'injected') ||
+        connectors.find((connector) => connector.id.includes('injected'));
+
+      if (!injectedConnector) {
+        setPlaidError('No browser wallet detected. Please install MetaMask, Rabby, or Brave Wallet.');
+        return;
+      }
+
+      await connectAsync({ connector: injectedConnector });
+      onClose();
+    } catch {
+      setPlaidError('Wallet connection was cancelled or failed. Please try again.');
+    } finally {
+      setIsConnecting(null);
+    }
   };
 
   if (!mounted) return null;
@@ -228,6 +239,8 @@ export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountM
 
                   <input
                     type="email"
+                    name="email"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email"
@@ -235,6 +248,8 @@ export default function ConnectAccountModal({ isOpen, onClose }: ConnectAccountM
                   />
                   <input
                     type="password"
+                    name={authMode === 'register' ? 'new-password' : 'current-password'}
+                    autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Password"

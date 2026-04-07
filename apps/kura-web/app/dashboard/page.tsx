@@ -2,12 +2,16 @@
 "use client";
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { motion, AnimatePresence } from 'framer-motion';
 import AccountCarousel from './_components/AccountCarousel';
 import TransactionsModal from './_components/TransactionsModal';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useAppStore } from '@/store/useAppStore';
-import ConnectAccountModal from '@/components/ConnectAccountModal';
+
+const ConnectAccountModal = dynamic(() => import('@/components/ConnectAccountModal'), {
+  ssr: false,
+});
 
 export default function DashboardPage() {
   const accounts = useFinanceStore(state => state.accounts);
@@ -23,7 +27,6 @@ export default function DashboardPage() {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [inputText, setInputText] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +50,7 @@ export default function DashboardPage() {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages, isTyping, isChatOpen]);
+  }, [messages, isChatOpen]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,25 +59,16 @@ export default function DashboardPage() {
     const newUserMsg = { id: Date.now().toString(), role: 'user' as const, content: inputText };
     addChatMessage(newUserMsg);
     setInputText('');
-    setIsTyping(true);
-
-    setTimeout(() => {
-      const newAiMsg = {
-        id: (Date.now() + 1).toString(), 
-        role: 'ai' as const,
-        content: 'I can certainly help with that. Based on your current balance, shifting $500 to your Marcus Savings will optimize your APY without risking overdrafts.' 
-      };
-      addChatMessage(newAiMsg);
-      setIsTyping(false);
-    }, 1500);
   };
 
   return (
     <div className="max-w-6xl mx-auto pb-10">
-      <ConnectAccountModal
-        isOpen={isConnectModalOpen}
-        onClose={() => setIsConnectModalOpen(false)}
-      />
+      {isConnectModalOpen && (
+        <ConnectAccountModal
+          isOpen={isConnectModalOpen}
+          onClose={() => setIsConnectModalOpen(false)}
+        />
+      )}
 
       <div className="mb-4">
         <h1 className="text-3xl font-bold text-white">Dashboard</h1>
@@ -175,15 +169,21 @@ export default function DashboardPage() {
                       <h3 className="text-lg font-bold text-white">AI Analysis</h3>
                     </div>
                     <div className="space-y-6 relative z-10 flex-1 overflow-y-auto pr-2 hide-scrollbar">
-                      {aiInsights.map((insight, index) => (
-                        <React.Fragment key={insight.id}>
-                          <div>
-                            <div className="text-xs text-[#A78BFA] font-bold uppercase tracking-wider mb-2">{insight.title}</div>
-                            <p className="text-sm text-gray-300 leading-relaxed">{insight.content}</p>
-                          </div>
-                          {index < aiInsights.length - 1 && <div className="h-px w-full bg-white/5" />}
-                        </React.Fragment>
-                      ))}
+                      {aiInsights.length > 0 ? (
+                        aiInsights.map((insight, index) => (
+                          <React.Fragment key={insight.id}>
+                            <div>
+                              <div className="text-xs text-[#A78BFA] font-bold uppercase tracking-wider mb-2">{insight.title}</div>
+                              <p className="text-sm text-gray-300 leading-relaxed">{insight.content}</p>
+                            </div>
+                            {index < aiInsights.length - 1 && <div className="h-px w-full bg-white/5" />}
+                          </React.Fragment>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-gray-500">
+                          AI insights will appear here once the backend returns personalized analysis.
+                        </div>
+                      )}
                     </div>
                     <button onClick={() => setIsChatOpen(true)} className="w-full mt-6 py-3.5 rounded-xl bg-[#8B5CF6]/10 text-[#A78BFA] text-sm font-medium hover:bg-[#8B5CF6]/20 transition-colors border border-[#8B5CF6]/30 relative z-10 shrink-0">
                       Ask Kura AI
@@ -199,25 +199,22 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar relative z-10">
-                      {messages.map((msg) => (
-                        <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#8B5CF6] text-white rounded-br-sm' : 'bg-white/5 text-gray-300 border border-white/5 rounded-bl-sm'}`}>{msg.content}</div>
-                        </div>
-                      ))}
-                      {isTyping && (
-                        <div className="flex justify-start">
-                          <div className="bg-white/5 border border-white/5 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1">
-                            <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-                            <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-                            <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                      {messages.length > 0 ? (
+                        messages.map((msg) => (
+                          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#8B5CF6] text-white rounded-br-sm' : 'bg-white/5 text-gray-300 border border-white/5 rounded-bl-sm'}`}>{msg.content}</div>
                           </div>
+                        ))
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-center text-gray-500 text-sm px-6">
+                          No chat history yet. Messages will appear here after backend data is available.
                         </div>
                       )}
                     </div>
                     <div className="p-4 pt-2 shrink-0 bg-gradient-to-t from-[#0B0B0F] to-transparent z-10">
                       <form onSubmit={handleSendMessage} className="relative flex items-center">
-                        <input type="text" placeholder="Ask about your finances..." value={inputText} onChange={(e) => setInputText(e.target.value)} className="w-full bg-[#1A1A24] border border-white/10 rounded-full py-3 pl-5 pr-12 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6]/50 focus:ring-1 focus:ring-[#8B5CF6]/50 transition-all shadow-inner" />
-                        <button type="submit" disabled={!inputText.trim() || isTyping} className="absolute right-2 w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center text-white disabled:opacity-50 disabled:bg-gray-700 transition-colors">↑</button>
+                        <input type="text" name="finance-chat" autoComplete="off" placeholder="Ask about your finances..." value={inputText} onChange={(e) => setInputText(e.target.value)} className="w-full bg-[#1A1A24] border border-white/10 rounded-full py-3 pl-5 pr-12 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6]/50 focus:ring-1 focus:ring-[#8B5CF6]/50 transition-all shadow-inner" />
+                        <button type="submit" disabled={!inputText.trim()} className="absolute right-2 w-8 h-8 rounded-full bg-[#8B5CF6] flex items-center justify-center text-white disabled:opacity-50 disabled:bg-gray-700 transition-colors">↑</button>
                       </form>
                     </div>
                   </motion.div>

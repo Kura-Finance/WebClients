@@ -5,13 +5,17 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
 
 // 引入我們剛切好的四個模組
 import MainView from './settings/MainView';
 import ProfileView from './settings/ProfileView';
 import AccountsView from './settings/AccountsView';
 import PreferencesView from './settings/PreferencesView';
-import ConnectAccountModal from './ConnectAccountModal';
+
+const ConnectAccountModal = dynamic(() => import('./ConnectAccountModal'), {
+  ssr: false,
+});
 
 interface UserSettingsDrawerProps {
   isOpen: boolean;
@@ -86,7 +90,14 @@ export default function UserSettingsDrawer({ isOpen, onClose }: UserSettingsDraw
             <div className="flex-1 relative overflow-x-hidden overflow-y-auto hide-scrollbar">
               <AnimatePresence mode="wait">
                 {activeView === 'main' && (
-                  <MainView key="main" pathname={pathname} handleClose={handleClose} setActiveView={setActiveView} variants={viewVariants} />
+                  <MainView
+                    key="main"
+                    pathname={pathname}
+                    handleClose={handleClose}
+                    setActiveView={setActiveView}
+                    onConnectAccount={() => setIsConnectModalOpen(true)}
+                    variants={viewVariants}
+                  />
                 )}
                 {activeView === 'profile' && (
                   <ProfileView key="profile" variants={viewVariants} />
@@ -102,10 +113,12 @@ export default function UserSettingsDrawer({ isOpen, onClose }: UserSettingsDraw
 
           </motion.div>
 
-          <ConnectAccountModal
-            isOpen={isConnectModalOpen}
-            onClose={() => setIsConnectModalOpen(false)}
-          />
+          {isConnectModalOpen && (
+            <ConnectAccountModal
+              isOpen={isConnectModalOpen}
+              onClose={() => setIsConnectModalOpen(false)}
+            />
+          )}
         </motion.div>
       )}
     </AnimatePresence>,

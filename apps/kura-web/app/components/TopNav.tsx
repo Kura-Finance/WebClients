@@ -9,6 +9,8 @@ import { useAppStore } from '@/store/useAppStore';
 export default function TopNav() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const userProfile = useAppStore(state => state.userProfile);
+  const displayName = userProfile.displayName.trim();
+  const avatarInitial = displayName ? displayName.slice(0, 1).toUpperCase() : '?';
 
   return (
     <>
@@ -27,14 +29,20 @@ export default function TopNav() {
             onClick={() => setIsSettingsOpen(true)}
             className="w-7 h-7 rounded-full border border-[#1A1A24] overflow-hidden hover:border-[#8B5CF6] transition-colors focus:outline-none cursor-pointer"
           >
-            <Image
-              src={userProfile.avatarUrl}
-              alt={`${userProfile.displayName} Avatar`}
-              width={28}
-              height={28}
-              unoptimized
-              className="w-full h-full object-cover" 
-            />
+            {userProfile.avatarUrl ? (
+              <Image
+                src={userProfile.avatarUrl}
+                alt={`${userProfile.displayName || 'Account'} Avatar`}
+                width={28}
+                height={28}
+                unoptimized
+                className="w-full h-full object-cover" 
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-[#1A1A24] text-[10px] font-bold text-[#A78BFA]">
+                {avatarInitial}
+              </div>
+            )}
           </button>
         </div>
       </header>

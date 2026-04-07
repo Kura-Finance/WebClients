@@ -7,6 +7,17 @@ import SettingsToggle from './shared/SettingsToggle';
 export default function ProfileView({ variants }: { variants: Variants }) {
   const userProfile = useAppStore(state => state.userProfile);
   const setDisplayName = useAppStore(state => state.setDisplayName);
+  const authStatus = useAppStore(state => state.authStatus);
+
+  if (authStatus !== 'authenticated') {
+    return (
+      <motion.div variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className="absolute inset-0 px-6 py-6">
+        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-5 text-sm text-gray-400">
+          Sign in from the Account view to load profile data from the backend API.
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className="absolute inset-0 px-6 py-6 space-y-6">
@@ -14,6 +25,8 @@ export default function ProfileView({ variants }: { variants: Variants }) {
         label="Display Name"
         value={userProfile.displayName}
         onChange={setDisplayName}
+        name="displayName"
+        autoComplete="name"
       />
       <SettingsInputField
         label="Email Address"
@@ -21,6 +34,8 @@ export default function ProfileView({ variants }: { variants: Variants }) {
         value={userProfile.email}
         disabled
         helperText="Contact support to change your primary email."
+        name="email"
+        autoComplete="email"
       />
       <div className="pt-4 border-t border-white/5">
         <div className="flex justify-between items-center mb-4">

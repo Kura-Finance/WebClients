@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { clearStoredAuthToken, getStoredAuthToken, setStoredAuthToken } from '@/lib/backendApi';
+import {
+  BackendApiError,
+  clearStoredAuthToken,
+  fetchCurrentUserProfile,
+  getStoredAuthToken,
+  setStoredAuthToken,
+  updateCurrentUserProfile,
+} from '@/lib/backendApi';
 
 export type BaseCurrency = 'USD' | 'EUR' | 'TWD';
 
@@ -29,6 +36,7 @@ export interface AppChatMessage {
 }
 
 interface AppState {
+  authStatus: 'loading' | 'authenticated' | 'unauthenticated';
   userProfile: UserProfile;
   preferences: UserPreferences;
   aiInsights: AiInsight[];
@@ -36,56 +44,48 @@ interface AppState {
   plaidLinkToken: string | null;
   authToken: string | null;
 
-  setDisplayName: (displayName: string) => void;
+  setDisplayName: (displayName: string) => Promise<void>;
   setBaseCurrency: (currency: BaseCurrency) => void;
   toggleLargeTransactionAlerts: () => void;
   toggleWeeklyAiSummary: () => void;
   addChatMessage: (message: AppChatMessage) => void;
   setPlaidLinkToken: (token: string | null) => void;
-  setUserEmail: (email: string) => void;
   setAuthToken: (token: string | null) => void;
   clearAuthSession: () => void;
+  hydrateUserProfile: () => Promise<void>;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
+  authStatus: getStoredAuthToken() ? 'loading' : 'unauthenticated',
   userProfile: {
-    displayName: 'Rick Weng',
-    email: 'rick@kura.finance',
-    avatarUrl: 'https://api.dicebear.com/7.x/notionists/svg?seed=Rick&backgroundColor=e2e8f0',
-    membershipLabel: 'Kura Pro Member',
+    displayName: '',
+    email: '',
+    avatarUrl: '',
+    membershipLabel: '',
   },
   preferences: {
     baseCurrency: 'USD',
     largeTransactionAlerts: true,
     weeklyAiSummary: true,
   },
-  aiInsights: [
-    {
-      id: 'spending-alert',
-      title: 'Spending Alert',
-      content:
-        'You spent $169.50 on Dining this week, which is 15% higher than your usual average.',
-    },
-    {
-      id: 'optimization',
-      title: 'Optimization',
-      content:
-        'Consider moving $2,000 from your BofA Checking to Marcus Savings to earn an extra ~$8.50 this month in interest.',
-    },
-  ],
-  chatMessages: [
-    {
-      id: 'msg-1',
-      role: 'ai',
-      content:
-        'Hi! I noticed your dining expenses are up this week. Do you want me to analyze your recent Uber Eats orders?',
-    },
-  ],
+  aiInsights: [],
+  chatMessages: [],
   plaidLinkToken: null,
   authToken: getStoredAuthToken(),
 
-  setDisplayName: (displayName) =>
-    set((state) => ({ userProfile: { ...state.userProfile, displayName } })),
+  setDisplayName: async (displayName) => {
+    const authToken = get().authToken;
+    if (!authToken) {
+      return;
+    }
+
+    try {
+      const response = await updateCurrentUserProfile(authToken, { displayName });
+      set({ userProfile: response.user });
+    } catch (error) {
+      console.error('Failed to update profile', error);
+    }
+  },
   setBaseCurrency: (baseCurrency) =>
     set((state) => ({ preferences: { ...state.preferences, baseCurrency } })),
   toggleLargeTransactionAlerts: () =>
@@ -105,25 +105,58 @@ export const useAppStore = create<AppState>((set) => ({
   addChatMessage: (message) =>
     set((state) => ({ chatMessages: [...state.chatMessages, message] })),
   setPlaidLinkToken: (plaidLinkToken) => set({ plaidLinkToken }),
-  setUserEmail: (email) =>
-    set((state) => ({ userProfile: { ...state.userProfile, email } })),
   setAuthToken: (authToken) => {
     if (authToken) {
       setStoredAuthToken(authToken);
+      set({ authToken, authStatus: 'loading' });
     } else {
       clearStoredAuthToken();
+      set({ authToken: null, authStatus: 'unauthenticated' });
     }
-    set({ authToken });
   },
   clearAuthSession: () => {
     clearStoredAuthToken();
-    set((state) => ({
+    set(() => ({
       authToken: null,
+      authStatus: 'unauthenticated',
       plaidLinkToken: null,
       userProfile: {
-        ...state.userProfile,
-        email: 'rick@kura.finance',
+        displayName: '',
+        email: '',
+        avatarUrl: '',
+        membershipLabel: '',
       },
     }));
+  },
+  hydrateUserProfile: async () => {
+    const authToken = get().authToken;
+    if (!authToken) {
+      set({ authStatus: 'unauthenticated' });
+      return;
+    }
+
+    try {
+      const response = await fetchCurrentUserProfile(authToken);
+      set({ userProfile: response.user, authStatus: 'authenticated' });
+    } catch (error) {
+      if (error instanceof BackendApiError && (error.status === 401 || error.status === 403)) {
+        clearStoredAuthToken();
+        set(() => ({
+          authToken: null,
+          authStatus: 'unauthenticated',
+          plaidLinkToken: null,
+          userProfile: {
+            displayName: '',
+            email: '',
+            avatarUrl: '',
+            membershipLabel: '',
+          },
+        }));
+        return;
+      }
+
+      console.error('Failed to hydrate profile', error);
+      set({ authStatus: 'unauthenticated' });
+    }
   },
 }));

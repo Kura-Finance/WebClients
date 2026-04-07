@@ -6,9 +6,15 @@ export interface BackendUser {
   email: string;
 }
 
+export interface BackendUserProfile extends BackendUser {
+  displayName: string;
+  avatarUrl: string;
+  membershipLabel: string;
+}
+
 export interface AuthResponse {
   token: string;
-  user: BackendUser;
+  user: BackendUserProfile;
 }
 
 interface ApiErrorBody {
@@ -93,6 +99,24 @@ export const loginUser = (email: string, password: string): Promise<AuthResponse
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+};
+
+export const fetchCurrentUserProfile = (token: string): Promise<{ user: BackendUserProfile }> => {
+  return backendRequest<{ user: BackendUserProfile }>('/api/auth/me', { method: 'GET' }, token);
+};
+
+export const updateCurrentUserProfile = (
+  token: string,
+  payload: { displayName?: string; avatarUrl?: string }
+): Promise<{ user: BackendUserProfile }> => {
+  return backendRequest<{ user: BackendUserProfile }>(
+    '/api/auth/me',
+    {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    },
+    token
+  );
 };
 
 export const createPlaidLinkToken = (token: string): Promise<{ link_token: string }> => {

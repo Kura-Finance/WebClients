@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import TopNav from "./components/TopNav";
-import Web3ModalProvider from "@/context/Web3ModalProvider"; // 💡 引入 Web3 狀態提供者
+import Web3ModalProvider from '@/context/Web3ModalProvider';
 
 export const metadata: Metadata = {
   title: "Kura | Your Financial Nexus",

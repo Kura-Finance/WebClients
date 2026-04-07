@@ -92,6 +92,8 @@ export default function TransactionsModal({ isOpen, onClose, transactions, accou
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
                 <input 
                   type="text" 
+                  name="transaction-search"
+                  autoComplete="off"
                   placeholder="Search merchants, categories..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -133,7 +135,7 @@ export default function TransactionsModal({ isOpen, onClose, transactions, accou
                 </div>
               ) : (
                 <div className="p-12 text-center text-gray-500">
-                  No transactions found for &quot;{searchTerm}&quot;
+                  {searchTerm ? `No transactions found for "${searchTerm}"` : 'No transactions available yet.'}
                 </div>
               )}
             </div>

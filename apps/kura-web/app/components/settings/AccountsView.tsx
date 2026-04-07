@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, Variants } from 'framer-motion';
 import { useFinanceStore } from '../../store/useFinanceStore';
+import { useAppStore } from '@/store/useAppStore';
 import { useAccount, useChainId, useDisconnect } from 'wagmi';
 import AccountSection from './accounts/AccountSection';
 import DisconnectConfirmDialog from './accounts/DisconnectConfirmDialog';
@@ -12,6 +13,7 @@ interface AccountsViewProps {
 }
 
 export default function AccountsView({ variants, onConnectAccount }: AccountsViewProps) {
+  const authStatus = useAppStore(state => state.authStatus);
   const accounts = useFinanceStore(state => state.accounts);
   const investmentAccounts = useFinanceStore(state => state.investmentAccounts);
   const investments = useFinanceStore(state => state.investments);
@@ -104,6 +106,11 @@ export default function AccountsView({ variants, onConnectAccount }: AccountsVie
   return (
     <motion.div variants={variants} initial="initial" animate="animate" exit="exit" transition={{ duration: 0.2 }} className="absolute inset-0 px-6 py-6 space-y-6 overflow-y-auto">
       <p className="text-sm text-gray-400 mb-2">Manage all connected accounts across Banking, Investment, and Crypto.</p>
+      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-4 text-sm text-gray-400">
+        {authStatus === 'authenticated'
+          ? 'No accounts are connected yet.'
+          : 'Sign in to fetch connected accounts from the backend API.'}
+      </div>
 
       <div className="space-y-6">
         <AccountSection

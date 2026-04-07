@@ -82,36 +82,10 @@ const CHAIN_MARKET_META: Record<number, { coingeckoId: string; logo: string; fal
 };
 
 export const useFinanceStore = create<FinanceState>((set) => ({
-  accounts: [
-    { id: '1', name: 'BofA Checking', balance: 12450.00, type: 'checking', logo: 'https://www.google.com/s2/favicons?domain=bankofamerica.com&sz=128' },
-    { id: '2', name: 'Sapphire Preferred', balance: 4200.50, type: 'credit', logo: 'https://www.google.com/s2/favicons?domain=chase.com&sz=128' },
-    { id: '3', name: 'Marcus Savings', balance: 27849.50, type: 'saving', logo: 'https://www.google.com/s2/favicons?domain=marcus.com&sz=128' },
-  ],
-  transactions: [
-    { id: 1, accountId: '2', amount: '124.50', date: 'April 5, 2026', merchant: 'Whole Foods', category: 'Groceries', type: 'credit' },
-    { id: 2, accountId: '2', amount: '45.00', date: 'April 4, 2026', merchant: 'Uber Eats', category: 'Dining', type: 'credit' },
-    { id: 3, accountId: '2', amount: '12.99', date: 'April 3, 2026', merchant: 'Netflix', category: 'Entertainment', type: 'credit' },
-    { id: 4, accountId: '1', amount: '8.50', date: 'April 2, 2026', merchant: 'Blue Bottle Coffee', category: 'Dining', type: 'credit' },
-    { id: 5, accountId: '1', amount: '2500.00', date: 'April 1, 2026', merchant: 'Company Payroll', category: 'Income', type: 'deposit' },
-    { id: 6, accountId: '2', amount: '85.20', date: 'March 30, 2026', merchant: 'Shell Station', category: 'Transport', type: 'credit' },
-    { id: 7, accountId: '3', amount: '120.00', date: 'March 28, 2026', merchant: 'Interest Paid', category: 'Income', type: 'deposit' },
-  ],
-  
-  // 💡 3. 注入券商/錢包資料
-  investmentAccounts: [
-    { id: 'inv-acc-1', name: 'Robinhood', type: 'Broker', logo: 'https://www.google.com/s2/favicons?domain=robinhood.com&sz=128' },
-    { id: 'inv-acc-2', name: 'Coinbase', type: 'Exchange', logo: 'https://www.google.com/s2/favicons?domain=coinbase.com&sz=128' },
-    { id: 'inv-acc-3', name: 'Phantom', type: 'Web3 Wallet', logo: 'https://www.google.com/s2/favicons?domain=phantom.app&sz=128' },
-  ],
-
-  // 💡 4. 將每筆資產綁定對應的 accountId
-  investments: [
-    { id: 'inv-1', accountId: 'inv-acc-2', symbol: 'BTC', name: 'Bitcoin', holdings: 1.245, currentPrice: 84200.50, change24h: 3.24, type: 'crypto', logo: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png' },
-    { id: 'inv-2', accountId: 'inv-acc-3', symbol: 'ETH', name: 'Ethereum', holdings: 8.5, currentPrice: 3850.20, change24h: -1.15, type: 'crypto', logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' },
-    { id: 'inv-3', accountId: 'inv-acc-3', symbol: 'SOL', name: 'Solana', holdings: 145.5, currentPrice: 185.40, change24h: 8.45, type: 'crypto', logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png' },
-    { id: 'inv-4', accountId: 'inv-acc-1', symbol: 'AAPL', name: 'Apple Inc.', holdings: 50, currentPrice: 175.50, change24h: 0.85, type: 'stock', logo: 'https://www.google.com/s2/favicons?domain=apple.com&sz=128' },
-    { id: 'inv-5', accountId: 'inv-acc-1', symbol: 'NVDA', name: 'NVIDIA Corp.', holdings: 20, currentPrice: 850.75, change24h: 4.20, type: 'stock', logo: 'https://www.google.com/s2/favicons?domain=nvidia.com&sz=128' },
-  ],
+  accounts: [],
+  transactions: [],
+  investmentAccounts: [],
+  investments: [],
   
   isAiOptedIn: false,
   toggleAiOptIn: () => set((state) => ({ isAiOptedIn: !state.isAiOptedIn })),

@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth';
 import { plaidClient } from '../lib/plaid';
 import { prisma } from '../lib/prisma';
 import { CountryCode, Products } from 'plaid';
+import { appLogger } from '../lib/logger';
 
 // 1. 產生一次性 Link Token 給前端
 export const createLinkToken = async (req: AuthRequest, res: Response) => {
@@ -22,7 +23,10 @@ export const createLinkToken = async (req: AuthRequest, res: Response) => {
     const response = await plaidClient.linkTokenCreate(request);
     res.json({ link_token: response.data.link_token });
   } catch (error: any) {
-    console.error(error.response?.data || error.message);
+    appLogger.error('Create Plaid link token failed', {
+      error: error.response?.data || error.message || error,
+      userId: req.userId,
+    });
     res.status(500).json({ error: '無法產生 Plaid Link Token' });
   }
 };
@@ -50,7 +54,10 @@ export const exchangePublicToken = async (req: AuthRequest, res: Response) => {
 
     res.json({ status: 'success', message: '銀行帳戶已成功連結' });
   } catch (error: any) {
-    console.error(error);
+    appLogger.error('Exchange Plaid public token failed', {
+      error: error.response?.data || error.message || error,
+      userId: req.userId,
+    });
     res.status(500).json({ error: 'Token 交換失敗' });
   }
 };
