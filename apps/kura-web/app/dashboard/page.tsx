@@ -8,25 +8,42 @@ import AccountCarousel from './_components/AccountCarousel';
 import TransactionsModal from './_components/TransactionsModal';
 import { useFinanceStore } from '../store/useFinanceStore';
 import { useAppStore } from '@/store/useAppStore';
+import { updatePlaidAccountOrder } from '../lib/backendApi';
 
 const ConnectAccountModal = dynamic(() => import('@/components/ConnectAccountModal'), {
+  ssr: false,
+});
+const AuthModal = dynamic(() => import('@/components/AuthModal'), {
   ssr: false,
 });
 
 export default function DashboardPage() {
   const accounts = useFinanceStore(state => state.accounts);
+  const setAccounts = useFinanceStore(state => state.setAccounts);
   const transactions = useFinanceStore(state => state.transactions);
   const isAiEnabled = useFinanceStore(state => state.isAiOptedIn);
   const toggleAiOptIn = useFinanceStore(state => state.toggleAiOptIn);
   const aiInsights = useAppStore(state => state.aiInsights);
   const messages = useAppStore(state => state.chatMessages);
   const addChatMessage = useAppStore(state => state.addChatMessage);
+  const authStatus = useAppStore(state => state.authStatus);
+  const authToken = useAppStore(state => state.authToken);
 
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState<boolean>(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [inputText, setInputText] = useState('');
+
+  const openConnectFlow = () => {
+    if (authStatus === 'authenticated') {
+      setIsConnectModalOpen(true);
+      return;
+    }
+
+    setIsAuthModalOpen(true);
+  };
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +56,14 @@ export default function DashboardPage() {
   const selectedAccount = selectedAccountId === 'all' 
     ? { id: 'all', type: 'all', name: 'All Accounts' } 
     : accounts.find(a => a.id === selectedAccountId);
+
+  const transactionHeader = selectedAccount?.type === 'all'
+    ? 'Recent Transactions'
+    : selectedAccount?.type === 'credit'
+      ? 'Transaction History'
+      : selectedAccount?.type === 'saving'
+        ? 'Savings Transactions'
+        : 'Transfer Records';
 
   // 核心邏輯：根據選中的帳戶過濾交易資料
   const displayTransactions = useMemo(() => {
@@ -61,12 +86,35 @@ export default function DashboardPage() {
     setInputText('');
   };
 
+  const handleAccountsReorder = async (nextAccounts: typeof accounts) => {
+    setAccounts(nextAccounts);
+
+    if (authStatus !== 'authenticated' || !authToken) {
+      return;
+    }
+
+    try {
+      await updatePlaidAccountOrder(authToken, {
+        accountIds: nextAccounts.map((account) => account.id),
+      });
+    } catch (error) {
+      console.error('Failed to persist account order', error);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto pb-10">
       {isConnectModalOpen && (
         <ConnectAccountModal
           isOpen={isConnectModalOpen}
           onClose={() => setIsConnectModalOpen(false)}
+        />
+      )}
+      {isAuthModalOpen && (
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onAuthenticated={() => setIsConnectModalOpen(true)}
         />
       )}
 
@@ -80,7 +128,8 @@ export default function DashboardPage() {
         totalBalance={totalBalance}
         selectedId={selectedAccountId}
         onAccountSelect={(id) => setSelectedAccountId(id)}
-        onConnectAccount={() => setIsConnectModalOpen(true)}
+        onConnectAccount={openConnectFlow}
+        onAccountsReorder={(nextAccounts) => void handleAccountsReorder(nextAccounts)}
       />
 
       <div className="mt-4">
@@ -110,8 +159,7 @@ export default function DashboardPage() {
           <div className={`rounded-3xl bg-[#1A1A24] border border-white/5 p-8 ${isAiEnabled ? 'lg:col-span-2' : 'col-span-1'} flex flex-col h-[400px]`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-bold text-white">
-                {selectedAccount?.type === 'all' ? 'Recent Transactions' : 
-                 selectedAccount?.type === 'credit' ? 'Transaction History' : 'Transfer Records'}
+                {transactionHeader}
               </h3>
               <span className="text-xs font-mono text-[#A78BFA] bg-[#8B5CF6]/10 px-3 py-1 rounded-full uppercase">
                 Plaid Real-time
@@ -129,7 +177,13 @@ export default function DashboardPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="truncate text-white font-medium group-hover:text-[#A78BFA] transition-colors">{tx.merchant}</div>
-                        <div className="text-xs text-gray-500">{tx.date}</div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <span>{tx.date}</span>
+                          <span className="w-1 h-1 rounded-full bg-gray-700" />
+                          <span className={`rounded-full px-2 py-0.5 uppercase tracking-wider ${tx.accountType === 'saving' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-white/5 text-gray-400'}`}>
+                            {tx.accountType === 'saving' ? 'Savings' : tx.accountType === 'checking' ? 'Checking' : tx.accountType === 'credit' ? 'Credit' : 'Crypto'}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <div className={`shrink-0 pl-3 font-mono font-medium ${isExpense ? 'text-white' : 'text-green-400'}`}>

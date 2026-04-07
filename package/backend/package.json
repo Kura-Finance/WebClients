@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "predev": "prisma generate",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts"
   },
   "keywords": [],

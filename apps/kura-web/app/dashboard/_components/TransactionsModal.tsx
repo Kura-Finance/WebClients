@@ -123,6 +123,9 @@ export default function TransactionsModal({ isOpen, onClose, transactions, accou
                               <span className="text-gray-500">{tx.date}</span>
                               <span className="w-1 h-1 rounded-full bg-gray-700" />
                               <span className="truncate text-gray-400 bg-[#1A1A24] px-2 py-0.5 rounded-md text-xs">{tx.category}</span>
+                              <span className={`truncate px-2 py-0.5 rounded-md text-xs uppercase tracking-wider ${tx.accountType === 'saving' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-white/5 text-gray-400'}`}>
+                                {tx.accountType === 'saving' ? 'Savings' : tx.accountType === 'checking' ? 'Checking' : tx.accountType === 'credit' ? 'Credit' : 'Crypto'}
+                              </span>
                             </div>
                           </div>
                         </div>

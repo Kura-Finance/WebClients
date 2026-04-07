@@ -13,6 +13,8 @@ export interface Account {
 export interface Transaction {
   id: string | number;
   accountId: string;
+  accountName: string;
+  accountType: 'checking' | 'saving' | 'credit' | 'crypto';
   amount: string;
   date: string;
   merchant: string;

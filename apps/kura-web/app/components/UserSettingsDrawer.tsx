@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { useAppStore } from '@/store/useAppStore';
 
 // 引入我們剛切好的四個模組
 import MainView from './settings/MainView';
@@ -14,6 +15,9 @@ import AccountsView from './settings/AccountsView';
 import PreferencesView from './settings/PreferencesView';
 
 const ConnectAccountModal = dynamic(() => import('./ConnectAccountModal'), {
+  ssr: false,
+});
+const AuthModal = dynamic(() => import('./AuthModal'), {
   ssr: false,
 });
 
@@ -36,6 +40,17 @@ export default function UserSettingsDrawer({ isOpen, onClose }: UserSettingsDraw
   const pathname = usePathname() || '';
   const [activeView, setActiveView] = useState<ViewState>('main');
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const authStatus = useAppStore((state) => state.authStatus);
+
+  const openConnectFlow = () => {
+    if (authStatus === 'authenticated') {
+      setIsConnectModalOpen(true);
+      return;
+    }
+
+    setIsAuthModalOpen(true);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setMounted(true), 0);
@@ -95,7 +110,7 @@ export default function UserSettingsDrawer({ isOpen, onClose }: UserSettingsDraw
                     pathname={pathname}
                     handleClose={handleClose}
                     setActiveView={setActiveView}
-                    onConnectAccount={() => setIsConnectModalOpen(true)}
+                    onConnectAccount={openConnectFlow}
                     variants={viewVariants}
                   />
                 )}
@@ -103,7 +118,7 @@ export default function UserSettingsDrawer({ isOpen, onClose }: UserSettingsDraw
                   <ProfileView key="profile" variants={viewVariants} />
                 )}
                 {activeView === 'accounts' && (
-                  <AccountsView key="accounts" variants={viewVariants} onConnectAccount={() => setIsConnectModalOpen(true)} />
+                  <AccountsView key="accounts" variants={viewVariants} onConnectAccount={openConnectFlow} />
                 )}
                 {activeView === 'preferences' && (
                   <PreferencesView key="preferences" variants={viewVariants} />
@@ -117,6 +132,13 @@ export default function UserSettingsDrawer({ isOpen, onClose }: UserSettingsDraw
             <ConnectAccountModal
               isOpen={isConnectModalOpen}
               onClose={() => setIsConnectModalOpen(false)}
+            />
+          )}
+          {isAuthModalOpen && (
+            <AuthModal
+              isOpen={isAuthModalOpen}
+              onClose={() => setIsAuthModalOpen(false)}
+              onAuthenticated={() => setIsConnectModalOpen(true)}
             />
           )}
         </motion.div>

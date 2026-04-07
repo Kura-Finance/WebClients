@@ -29,6 +29,8 @@ export interface BackendFinanceAccount {
 export interface BackendFinanceTransaction {
   id: string;
   accountId: string;
+  accountName: string;
+  accountType: 'checking' | 'saving' | 'credit' | 'crypto';
   amount: string;
   date: string;
   merchant: string;
@@ -60,6 +62,11 @@ export interface BackendFinanceSnapshot {
   transactions: BackendFinanceTransaction[];
   investmentAccounts: BackendFinanceInvestmentAccount[];
   investments: BackendFinanceInvestment[];
+}
+
+export interface UpdatePlaidAccountOrderPayload {
+  accountIds?: string[];
+  investmentAccountIds?: string[];
 }
 
 interface ApiErrorBody {
@@ -190,6 +197,34 @@ export const fetchPlaidFinanceSnapshot = (token: string): Promise<BackendFinance
   return backendRequest<BackendFinanceSnapshot>(
     '/api/plaid/finance-snapshot',
     { method: 'GET' },
+    token
+  );
+};
+
+export const disconnectPlaidAccount = (
+  token: string,
+  accountId: string
+): Promise<{ status: string; message: string }> => {
+  return backendRequest<{ status: string; message: string }>(
+    '/api/plaid/account',
+    {
+      method: 'DELETE',
+      body: JSON.stringify({ accountId }),
+    },
+    token
+  );
+};
+
+export const updatePlaidAccountOrder = (
+  token: string,
+  payload: UpdatePlaidAccountOrderPayload
+): Promise<{ status: string; message: string }> => {
+  return backendRequest<{ status: string; message: string }>(
+    '/api/plaid/account-order',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
     token
   );
 };

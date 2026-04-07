@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
+import { Reorder } from 'framer-motion';
 import { Account } from '../../store/useFinanceStore';
 
 interface AccountCarouselProps {
@@ -8,22 +9,71 @@ interface AccountCarouselProps {
   selectedId: string;
   onAccountSelect: (id: string) => void;
   onConnectAccount: () => void;
+  onAccountsReorder: (accounts: Account[]) => void;
 }
 
-export default function AccountCarousel({ accounts, totalBalance, selectedId, onAccountSelect, onConnectAccount }: AccountCarouselProps) {
+export default function AccountCarousel({
+  accounts,
+  totalBalance,
+  selectedId,
+  onAccountSelect,
+  onConnectAccount,
+  onAccountsReorder,
+}: AccountCarouselProps) {
+  const [orderedAccountIds, setOrderedAccountIds] = useState<string[]>(accounts.map((account) => account.id));
+  const [hoveredCardId, setHoveredCardId] = useState<string | null>(null);
+  const [draggingCardId, setDraggingCardId] = useState<string | null>(null);
+  const orderedAccountIdsRef = useRef(orderedAccountIds);
   const formattedTotal = `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+
+  const accountsById = useMemo(() => new Map(accounts.map((account) => [account.id, account])), [accounts]);
+
+  const orderedAccounts = useMemo(
+    () => orderedAccountIds.map((accountId) => accountsById.get(accountId)).filter((account): account is Account => Boolean(account)),
+    [accountsById, orderedAccountIds]
+  );
+  const activeCardId = draggingCardId || hoveredCardId;
+  const baseTopZIndex = orderedAccounts.length + 3;
+  const overviewStackLevel = activeCardId === 'all' ? baseTopZIndex + 2 : 0;
+  const groupStackLevel = activeCardId && activeCardId !== 'all' ? baseTopZIndex + 1 : baseTopZIndex;
+
+  useEffect(() => {
+    const nextAccountIds = accounts.map((account) => account.id);
+    setOrderedAccountIds((currentIds) => {
+      const nextIdsInCurrentOrder = currentIds.filter((accountId) => nextAccountIds.includes(accountId));
+      const missingIds = nextAccountIds.filter((accountId) => !currentIds.includes(accountId));
+      const mergedIds = [...nextIdsInCurrentOrder, ...missingIds];
+      const nextIds = mergedIds.length === nextAccountIds.length ? mergedIds : nextAccountIds;
+      orderedAccountIdsRef.current = nextIds;
+      return nextIds;
+    });
+  }, [accounts]);
+
+  const commitOrder = () => {
+    const nextAccounts = orderedAccountIdsRef.current
+      .map((accountId) => accountsById.get(accountId))
+      .filter((account): account is Account => Boolean(account));
+
+    onAccountsReorder(nextAccounts);
+  };
 
   return (
     <div className="relative z-40 w-full mb-10 overflow-visible">
-      <div className="flex overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-10 pt-8 pl-6 pr-4 hide-scrollbar -space-x-6">
+      <div className="flex items-center gap-3 px-6 pt-2 pb-2 text-[10px] font-bold tracking-[0.3em] uppercase text-gray-500">
+        <span>Drag cards to reorder</span>
+      </div>
+      <div className="flex overflow-x-auto overflow-y-visible snap-x snap-mandatory pb-10 pt-6 pl-6 pr-4 hide-scrollbar -space-x-6">
         
         {/* 總覽卡片 */}
         <div 
           onClick={() => onAccountSelect('all')}
+          onMouseEnter={() => setHoveredCardId('all')}
+          onMouseLeave={() => setHoveredCardId((current) => (current === 'all' ? null : current))}
+          style={{ zIndex: overviewStackLevel }}
           className={`snap-start shrink-0 w-[320px] h-[180px] rounded-3xl p-6 flex flex-col justify-between transition-all duration-150 hover:-translate-y-3 hover:-translate-x-1 hover:rotate-[-2deg] cursor-pointer 
           ${selectedId === 'all' 
-            ? 'z-50 bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] shadow-[0_10px_40px_rgba(139,92,246,0.4)]' 
-            : 'z-40 bg-[#1A1A24] border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.5)]'}`}
+            ? 'bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] shadow-[0_10px_40px_rgba(139,92,246,0.4)]' 
+            : 'bg-[#1A1A24] border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.5)]'}`}
         >
           <div className="flex justify-between items-center">
             <div className={`text-xs font-bold tracking-widest uppercase ${selectedId === 'all' ? 'text-white/80' : 'text-white/50'}`}>
@@ -44,7 +94,17 @@ export default function AccountCarousel({ accounts, totalBalance, selectedId, on
         </div>
 
         {/* 個別帳戶卡片 */}
-        {accounts.map((account, index) => {
+        <Reorder.Group
+          axis="x"
+          values={orderedAccountIds}
+          onReorder={(nextAccountIds) => {
+            orderedAccountIdsRef.current = nextAccountIds;
+            setOrderedAccountIds(nextAccountIds);
+          }}
+          className="relative flex overflow-visible -space-x-6"
+          style={{ zIndex: groupStackLevel }}
+        >
+        {orderedAccounts.map((account, index) => {
           let topLabel = '';
           let displayBalance = '';
 
@@ -59,17 +119,25 @@ export default function AccountCarousel({ accounts, totalBalance, selectedId, on
             displayBalance = `$${account.balance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
           }
 
-          const stackLevel = Math.max(10, 40 - ((index + 1) * 10));
+          const stackLevel = activeCardId === account.id ? baseTopZIndex + 2 : orderedAccounts.length - index + 1;
           const defaultBg = index % 2 === 0 ? 'bg-[#1A1A24]' : 'bg-[#0B0B0F] border border-white/10';
 
           return (
-            <div 
+            <Reorder.Item
               key={account.id} 
+              value={account.id}
+              onDragStart={() => setDraggingCardId(account.id)}
+              onDragEnd={() => {
+                setDraggingCardId(null);
+                commitOrder();
+              }}
               onClick={() => onAccountSelect(account.id)}
-              style={{ zIndex: selectedId === account.id ? 50 : stackLevel }}
-                className={`snap-start shrink-0 w-[320px] h-[180px] rounded-3xl p-6 flex flex-col justify-between transition-all duration-150 hover:-translate-y-3 hover:-translate-x-1 hover:rotate-[-2deg] hover:!z-50 cursor-pointer 
+              onMouseEnter={() => setHoveredCardId(account.id)}
+              onMouseLeave={() => setHoveredCardId((current) => (current === account.id ? null : current))}
+              style={{ zIndex: stackLevel }}
+              className={`snap-start shrink-0 w-[320px] h-[180px] rounded-3xl p-6 flex flex-col justify-between transition-all duration-150 hover:-translate-y-3 hover:-translate-x-1 hover:rotate-[-2deg] cursor-grab active:cursor-grabbing select-none 
               ${selectedId === account.id 
-                ? 'z-50 bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] shadow-[0_10px_40px_rgba(139,92,246,0.4)]' 
+                ? 'bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] shadow-[0_10px_40px_rgba(139,92,246,0.4)]' 
                 : `${defaultBg} shadow-[0_10px_40px_rgba(0,0,0,0.5)]`}`}
             >
               <div className="flex justify-between items-center">
@@ -88,9 +156,10 @@ export default function AccountCarousel({ accounts, totalBalance, selectedId, on
                   {account.name}
                 </div>
               </div>
-            </div>
+            </Reorder.Item>
           );
         })}
+        </Reorder.Group>
 
         {/* Plaid 連結按鈕 */}
         <button

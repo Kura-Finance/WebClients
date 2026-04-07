@@ -5,7 +5,13 @@ import fs from 'fs';
 import https from 'https';
 import path from 'path';
 import { register, login, me, updateProfile } from './controllers/authController';
-import { createLinkToken, exchangePublicToken, getFinanceSnapshot } from './controllers/plaidController';
+import {
+  createLinkToken,
+  exchangePublicToken,
+  getFinanceSnapshot,
+  disconnectPlaidAccount,
+  updatePlaidAccountOrder,
+} from './controllers/plaidController';
 import { requireAuth } from './middleware/auth';
 import { appLogger } from './lib/logger';
 
@@ -52,6 +58,8 @@ app.patch('/api/auth/me', requireAuth, updateProfile);
 app.post('/api/plaid/create-link-token', requireAuth, createLinkToken);
 app.post('/api/plaid/exchange-public-token', requireAuth, exchangePublicToken);
 app.get('/api/plaid/finance-snapshot', requireAuth, getFinanceSnapshot);
+app.post('/api/plaid/account-order', requireAuth, updatePlaidAccountOrder);
+app.delete('/api/plaid/account', requireAuth, disconnectPlaidAccount);
 
 // 啟動 Server
 const PORT = Number(process.env.PORT || 8080);

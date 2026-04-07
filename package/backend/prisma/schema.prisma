@@ -19,6 +19,8 @@ model User {
   password  String
   name      String?  // 顯示名稱
   avatarUrl String?  // 大頭貼連結
+  bankingAccountOrder String[] @default([])
+  investmentAccountOrder String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

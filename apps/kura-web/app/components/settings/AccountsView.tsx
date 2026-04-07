@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, Variants } from 'framer-motion';
+import { BackendApiError, disconnectPlaidAccount as disconnectPlaidAccountApi } from '@/lib/backendApi';
 import { useFinanceStore } from '../../store/useFinanceStore';
 import { useAppStore } from '@/store/useAppStore';
 import { useAccount, useChainId, useDisconnect } from 'wagmi';
@@ -14,11 +15,12 @@ interface AccountsViewProps {
 
 export default function AccountsView({ variants, onConnectAccount }: AccountsViewProps) {
   const authStatus = useAppStore(state => state.authStatus);
+  const authToken = useAppStore(state => state.authToken);
   const accounts = useFinanceStore(state => state.accounts);
   const investmentAccounts = useFinanceStore(state => state.investmentAccounts);
   const investments = useFinanceStore(state => state.investments);
-  const disconnectBankingAccount = useFinanceStore(state => state.disconnectBankingAccount);
   const disconnectInvestmentAccount = useFinanceStore(state => state.disconnectInvestmentAccount);
+  const hydratePlaidFinanceData = useFinanceStore(state => state.hydratePlaidFinanceData);
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { disconnectAsync } = useDisconnect();
@@ -47,32 +49,59 @@ export default function AccountsView({ variants, onConnectAccount }: AccountsVie
     ? `wallet-${chainId}-${address.toLowerCase()}`
     : null;
 
-  const handleDisconnectBanking = (accountId: string) => {
+  const disconnectPlaidViaApi = async (accountId: string) => {
+    if (!authToken) {
+      throw new BackendApiError('Please sign in to disconnect this account.', 401);
+    }
+
+    await disconnectPlaidAccountApi(authToken, accountId);
+    await hydratePlaidFinanceData(authToken);
+  };
+
+  const handleDisconnectBanking = async (accountId: string) => {
     setDisconnectingId(accountId);
-    disconnectBankingAccount(accountId);
-    setDisconnectingId(null);
+
+    try {
+      await disconnectPlaidViaApi(accountId);
+    } catch (error) {
+      const message = error instanceof BackendApiError ? error.message : 'Failed to disconnect account.';
+      alert(message);
+    } finally {
+      setDisconnectingId(null);
+    }
   };
 
   const handleDisconnectInvestment = async (accountId: string, accountType: 'Broker' | 'Exchange' | 'Web3 Wallet') => {
     setDisconnectingId(accountId);
 
-    if (accountType === 'Web3 Wallet' && activeWalletAccountId === accountId) {
-      try {
-        await disconnectAsync();
-      } catch {
-        // Even if wallet provider disconnect fails, keep UI/store state consistent.
-      }
-    }
+    try {
+      if (accountType === 'Web3 Wallet') {
+        if (activeWalletAccountId === accountId) {
+          try {
+            await disconnectAsync();
+          } catch {
+            // Even if wallet provider disconnect fails, keep UI/store state consistent.
+          }
+        }
 
-    disconnectInvestmentAccount(accountId);
-    setDisconnectingId(null);
+        disconnectInvestmentAccount(accountId);
+        return;
+      }
+
+      await disconnectPlaidViaApi(accountId);
+    } catch (error) {
+      const message = error instanceof BackendApiError ? error.message : 'Failed to disconnect account.';
+      alert(message);
+    } finally {
+      setDisconnectingId(null);
+    }
   };
 
   const handleConfirmDisconnect = async () => {
     if (!pendingDisconnect) return;
 
     if (pendingDisconnect.category === 'banking') {
-      handleDisconnectBanking(pendingDisconnect.id);
+      await handleDisconnectBanking(pendingDisconnect.id);
     } else {
       await handleDisconnectInvestment(pendingDisconnect.id, pendingDisconnect.accountType ?? 'Exchange');
     }
