@@ -23,6 +23,26 @@ interface PlaidLinkModalProps {
  * 4. Exchanges public token for access token on success
  * 5. Loads updated financial data
  */
+
+const getErrorMessage = (errorCode: string | undefined, displayMessage: string | undefined): string => {
+  if (!errorCode && !displayMessage) {
+    return 'Connection failed. Please try again.';
+  }
+
+  const messages: Record<string, string> = {
+    'UNAUTHORIZED_INSTITUTION': 'This institution is not yet supported. Please try another bank or enable it in your Plaid Dashboard at https://dashboard.plaid.com',
+    'INVALID_CREDENTIALS': 'Invalid login credentials. Please check your username and password.',
+    'ITEM_LOGIN_REQUIRED': 'Your credentials need to be re-verified. Please log in again.',
+    'RATE_LIMIT_EXCEEDED': 'Too many attempts. Please wait a moment and try again.',
+    'MFA_NOT_SUPPORTED': 'Your bank\'s multi-factor authentication is not yet supported.',
+    'UNKNOWN_INSTITUTION': 'Institution not found. Please verify you selected the correct bank.',
+    'INSTITUTION_NOT_RESPONDING': 'The bank is currently unavailable. Please try again later.',
+    'INSUFFICIENT_CREDENTIALS': 'Not enough information provided. Some fields may be required.',
+  };
+
+  return messages[errorCode || ''] || (displayMessage || 'Connection failed. Please try again.');
+};
+
 export default function PlaidLinkModal({ 
   isVisible, 
   linkToken,
@@ -31,6 +51,7 @@ export default function PlaidLinkModal({
 }: PlaidLinkModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
 
   const confirmPlaidExchange = useAppStore((state: any) => state.confirmPlaidExchange);
 
@@ -47,6 +68,7 @@ export default function PlaidLinkModal({
       try {
         setIsLoading(true);
         setError(null);
+        setErrorCode(null);
 
         Logger.debug('PlaidLinkModal', 'Creating Plaid Link session with token', {
           token: linkToken?.substring(0, 20) + '...',
@@ -99,11 +121,16 @@ export default function PlaidLinkModal({
               });
 
               if (linkExit?.error) {
-                const errorMessage = linkExit.error.displayMessage || linkExit.error.errorCode || 'Link exited with error';
+                const code = linkExit.error.errorCode;
+                const displayMsg = linkExit.error.displayMessage;
+                const errorMessage = getErrorMessage(code, displayMsg);
+                
                 setError(errorMessage);
+                setErrorCode(code);
                 Logger.error('PlaidLinkModal', 'Plaid Link error', {
                   error: errorMessage,
-                  code: linkExit.error.errorCode,
+                  code: code,
+                  displayMessage: displayMsg,
                 });
                 setIsLoading(false);
               } else {
@@ -186,8 +213,25 @@ export default function PlaidLinkModal({
                     <Text className="text-red-300 text-sm flex-1">{error}</Text>
                   </View>
                 </View>
+
+                {/* Additional help text for specific errors */}
+                {errorCode === 'UNAUTHORIZED_INSTITUTION' && (
+                  <View className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-4">
+                    <Text className="text-blue-300 text-xs font-semibold mb-2">How to fix:</Text>
+                    <Text className="text-blue-300 text-xs">
+                      1. Visit your Plaid Dashboard{'\n'}
+                      2. Navigate to "US OAuth Institutions" or "Institutions"{'\n'}
+                      3. Find and enable your bank{'\n'}
+                      4. Try connecting again
+                    </Text>
+                  </View>
+                )}
+
                 <TouchableOpacity
-                  onPress={onClose}
+                  onPress={() => {
+                    setError(null);
+                    setErrorCode(null);
+                  }}
                   className="bg-[#8B5CF6] rounded-xl py-3 items-center mb-2"
                 >
                   <Text className="text-white font-semibold">Try Again</Text>
