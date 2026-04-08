@@ -12,9 +12,7 @@ import AppSessionHydrator from '@/components/AppSessionHydrator'
 const queryClient = new QueryClient()
 
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
-const walletMetadataUrl =
-  process.env.NEXT_PUBLIC_APP_URL ||
-  (process.env.NODE_ENV === 'production' ? 'http://localhost:3000' : 'https://localhost:3000')
+const walletMetadataUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'
 const connectors = walletConnectProjectId
   ? [
       walletConnect({
