@@ -127,16 +127,21 @@ async function exchangeRequest<T>(
 
 /**
  * Get list of supported exchanges
- * No authentication required
+ * Optional: can be called without authentication, but if token provided will be used
  */
-export async function getSupportedExchanges(): Promise<SupportedExchange[]> {
+export async function getSupportedExchanges(token?: string): Promise<SupportedExchange[]> {
   try {
     const baseUrl = getBackendBaseUrl();
     const url = `${baseUrl}/api/exchange/supported`;
 
-    Logger.debug('ExchangeAPI', 'Fetching supported exchanges:', { url });
+    Logger.debug('ExchangeAPI', 'Fetching supported exchanges:', { url, hasAuth: !!token });
 
-    const response = await fetch(url);
+    const headers = new Headers();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { headers });
     const data = (await response.json()) as { exchanges: SupportedExchange[] };
 
     if (!response.ok) {

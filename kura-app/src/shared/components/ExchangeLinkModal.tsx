@@ -59,7 +59,8 @@ export default function ExchangeLinkModal({
         setIsLoadingExchanges(true);
         Logger.debug('ExchangeLinkModal', 'Loading supported exchanges');
         
-        const exchanges = await getSupportedExchanges();
+        // Pass authToken if available (convert null to undefined)
+        const exchanges = await getSupportedExchanges(authToken ?? undefined);
         setSupportedExchanges(exchanges);
         
         Logger.info('ExchangeLinkModal', 'Supported exchanges loaded', {
@@ -79,7 +80,7 @@ export default function ExchangeLinkModal({
     if (isOpen) {
       loadSupportedExchanges();
     }
-  }, [isOpen]);
+  }, [isOpen, authToken]);
 
   const handleSelectExchange = (exchange: SupportedExchange) => {
     setSelectedExchange(exchange);
@@ -103,7 +104,7 @@ export default function ExchangeLinkModal({
 
   const handleValidateAndConnect = async () => {
     if (!selectedExchange || !authToken) {
-      setError('Missing required information');
+      setError(authToken ? 'Missing exchange information' : 'Please log in to connect an exchange');
       return;
     }
 
