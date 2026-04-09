@@ -6,8 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { I18nextProvider } from 'react-i18next';
-import './src/shared/locales/i18n'; // Initialize i18n
-import i18n from './src/shared/locales/i18n';
+import i18n from './src/shared/locales/i18n'; // Initialize i18n
 import { useAppStore } from './src/shared/store/useAppStore';
 import Logger from './src/shared/utils/Logger';
 import { getBackendBaseUrl } from './src/shared/api/authApi';
@@ -18,6 +17,7 @@ import SignupScreen from './src/features/auth/screens/SignupScreen';
 import ForgotPasswordScreen from './src/features/auth/screens/ForgotPasswordScreen';
 import { AppKitProvider, AppKit } from '@reown/appkit-react-native'
 import { appKit } from './src/shared/config/AppKitConfig';
+import { useWalletSync } from './src/shared/hooks/useWalletSync';
 
 
 // 💡 建立專屬 Kura 的深色導航主題
@@ -85,6 +85,9 @@ function AuthNavigator() {
 }
 
 function MainNavigator() {
+  // Monitor wallet connections inside AppKit provider
+  useWalletSync();
+
   return (
     <View style={{ flex: 1, backgroundColor: '#0B0B0F' }}>
       {/* Header 固定在頂部 */}

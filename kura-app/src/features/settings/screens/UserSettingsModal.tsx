@@ -1,10 +1,14 @@
 // apps/kura-app/src/features/settings/screens/UserSettingsModal.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Modal, Dimensions, TouchableWithoutFeedback, ScrollView, TouchableOpacity, Text } from 'react-native';
+import { View, Modal, Dimensions, TouchableWithoutFeedback, ScrollView, TouchableOpacity, Text, Alert } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { readAsStringAsync } from 'expo-file-system/legacy';
 import { useAppStore } from '../../../shared/store/useAppStore';
+import { useFinanceStore } from '../../../shared/store/useFinanceStore';
 import { useAppTranslation } from '../../../shared/hooks/useAppTranslation';
+import Logger from '../../../shared/utils/Logger';
 import UserProfile from '../components/UserProfile';
 import BaseCurrencySelector from '../components/BaseCurrencySelector';
 import LanguageSelector from '../components/LanguageSelector';
@@ -25,6 +29,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function UserSettingsModal({ isVisible, onClose }: UserSettingsModalProps) {
   const [showProfileSecurity, setShowProfileSecurity] = useState(false);
   const [showConnectedAccounts, setShowConnectedAccounts] = useState(false);
+  const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const animationProgress = useSharedValue(0);
   const { t } = useAppTranslation();
   const userProfile = useAppStore((state) => state.userProfile);
@@ -35,6 +40,85 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
   const toggleLargeTransactionAlerts = useAppStore((state) => state.toggleLargeTransactionAlerts);
   const toggleWeeklyAiSummary = useAppStore((state) => state.toggleWeeklyAiSummary);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
+  const updateAvatar = useAppStore((state) => state.updateAvatar);
+  
+  // Crypto price currency from Finance Store
+  const currency = useFinanceStore((state) => state.currency) as 'usd' | 'eur' | 'twd' | 'cny' | 'jpy';
+  const setCurrency = useFinanceStore((state) => state.setCurrency);
+
+  // 當法幣改變時，同時更新加密貨幣價格貨幣
+  useEffect(() => {
+    const baseCurrencyLowercase = preferences.baseCurrency.toLowerCase() as 'usd' | 'eur' | 'twd' | 'cny' | 'jpy';
+    if (currency !== baseCurrencyLowercase) {
+      setCurrency(baseCurrencyLowercase);
+    }
+  }, [preferences.baseCurrency, currency, setCurrency]);
+
+  // 頭像上傳處理
+  const handleAvatarPress = async () => {
+    try {
+      // 要求權限
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Required', 'We need permission to access your photo library');
+        return;
+      }
+
+      // 打開圖片選擇器 - 使用較低質量以減小文件大小
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'] as any,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.3, // 降低质量以减小文件大小
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setIsLoadingAvatar(true);
+        
+        try {
+          const imageUri = result.assets[0].uri;
+          Logger.debug('UserSettingsModal', 'Converting image to base64', { uri: imageUri });
+          
+          // 使用 expo-file-system legacy API 轉換為 base64
+          const base64 = await readAsStringAsync(imageUri, {
+            encoding: 'base64' as any,
+          });
+          
+          Logger.debug('UserSettingsModal', 'Base64 conversion successful', { base64Length: base64.length });
+          
+          // 檢查大小限制（最多 400KB）
+          const MAX_SIZE = 400 * 1024; // 400KB
+          if (base64.length > MAX_SIZE) {
+            const sizeInKB = Math.round(base64.length / 1024);
+            const errorMsg = `Image too large (${sizeInKB}KB). Maximum allowed size is 400KB. Please choose a smaller image.`;
+            Logger.warn('UserSettingsModal', errorMsg, { base64Length: base64.length, maxSize: MAX_SIZE });
+            Alert.alert('Image Too Large', errorMsg);
+            setIsLoadingAvatar(false);
+            return;
+          }
+          
+          // 添加 data URI 頭部
+          const dataUri = `data:image/jpeg;base64,${base64}`;
+          
+          Logger.debug('UserSettingsModal', 'Uploading avatar', { dataUriLength: dataUri.length });
+          await updateAvatar(dataUri);
+          
+          Logger.info('UserSettingsModal', 'Avatar updated successfully');
+          Alert.alert('Success', 'Avatar updated successfully');
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to process image';
+          Logger.error('UserSettingsModal', 'Failed to update avatar', { error: errorMessage });
+          Alert.alert('Error', errorMessage);
+        } finally {
+          setIsLoadingAvatar(false);
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to pick image';
+      Logger.error('UserSettingsModal', 'Failed to pick image', { error: errorMessage });
+      Alert.alert('Error', errorMessage);
+    }
+  };
 
   useEffect(() => {
     if (isVisible) {
@@ -121,6 +205,9 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
               displayName={userProfile.displayName}
               email={userProfile.email}
               membershipLabel={userProfile.membershipLabel}
+              avatarUrl={userProfile.avatarUrl}
+              onAvatarPress={handleAvatarPress}
+              isLoadingAvatar={isLoadingAvatar}
             />
 
             <SectionHeader title={t('settings.preferences')} />

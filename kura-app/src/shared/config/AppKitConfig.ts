@@ -3,7 +3,7 @@ import '@walletconnect/react-native-compat'
 
 import { createAppKit } from '@reown/appkit-react-native'
 import { EthersAdapter } from '@reown/appkit-ethers-react-native'
-import { mainnet, polygon } from 'viem/chains'
+import { mainnet, polygon, arbitrum, avalanche, bsc, fantom } from 'viem/chains'
 import { storageAdapter } from './StorageAdapter'
 
 const projectId = process.env.EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID
@@ -19,24 +19,24 @@ const ethersAdapter = new EthersAdapter()
 
 /**
  * AppKit Configuration
- * Supports EVM chains: Ethereum and Polygon
+ * Supports multiple EVM chains for wallet connection
  * Enables wallet detection and QR code connection via WalletConnect
  */
 export const appKit = createAppKit({
   projectId,
-  networks: [mainnet, polygon],
+  networks: [mainnet, polygon, arbitrum, avalanche, bsc, fantom],
   defaultNetwork: mainnet,
   adapters: [ethersAdapter],
   storage: storageAdapter,
 
   metadata: {
-    name: 'Kura Finance',
-    description: 'Web3 financial portfolio & investment tracker',
-    url: 'https://kura-finance.app',
+    name: 'Kura',
+    description: 'Your best finance partner app',
+    url: 'https://kura-web-642134687769.europe-west1.run.app',
     icons: ['https://assets.reown.com/reown-studio/b6bfe22e-dbc4-4b7e-92c4-704c99fbc51c/image-3.png'],
     redirect: {
       native: 'kura://',
-      universal: 'https://kura-finance.app'
+      universal: 'https://kura-web-642134687769.europe-west1.run.app'
     }
   }
 })

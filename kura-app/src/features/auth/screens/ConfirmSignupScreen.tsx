@@ -35,7 +35,7 @@ export default function ConfirmSignupScreen({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const confirmRegister = useAppStore((state) => state.confirmRegister);
+  const verifyEmailAndRegister = useAppStore((state) => state.verifyEmailAndRegister);
 
   // Log props on mount to verify they're passed correctly
   React.useEffect(() => {
@@ -93,10 +93,10 @@ export default function ConfirmSignupScreen({
       setIsLoading(true);
       setError(null);
 
-      Logger.debug('ConfirmSignupScreen', 'Confirming signup', { email, hasVerificationCode: !!verificationCode, hasPassword: !!password });
-      await confirmRegister(email, password, verificationCode.trim());
+      Logger.debug('ConfirmSignupScreen', 'Verifying email and registering', { email, hasVerificationCode: !!verificationCode, hasPassword: !!password });
+      await verifyEmailAndRegister(email, password, verificationCode.trim());
 
-      Logger.info('ConfirmSignupScreen', 'Signup confirmed successfully');
+      Logger.info('ConfirmSignupScreen', 'Registration verified successfully');
       Alert.alert('Success', 'Your account has been created successfully. Please sign in.', [
         {
           text: 'OK',

@@ -154,23 +154,53 @@ async function apiRequest<T>(
     return (json as T) ?? ({} as T);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     console.error('[AuthAPI] Request failed:', {
       url,
+      method: options.method || 'GET',
+      hasToken: !!token,
       error: errorMessage,
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: errorStack,
     });
     throw error;
   }
 }
 
 /**
- * 用户注册
+ * 用户注册 - 第一步：发送验证码到邮箱
  */
-export const registerUser = (email: string, password: string): Promise<AuthResponse> => {
+export const sendVerificationCode = (email: string): Promise<{ message: string }> => {
   const normalizedEmail = email.toLowerCase().trim();
-  return apiRequest<AuthResponse>('/api/auth/register', {
+  return apiRequest<{ message: string }>('/api/auth/register/send-code', {
     method: 'POST',
-    body: JSON.stringify({ email: normalizedEmail, password }),
+    body: JSON.stringify({ email: normalizedEmail }),
+  });
+};
+
+/**
+ * 用户注册 - 第二步：验证码 + 密码完成注册
+ */
+export const verifyEmailAndRegister = (
+  email: string,
+  password: string,
+  verificationCode: string
+): Promise<AuthResponse> => {
+  const normalizedEmail = email.toLowerCase().trim();
+  return apiRequest<AuthResponse>('/api/auth/register/verify', {
+    method: 'POST',
+    body: JSON.stringify({ email: normalizedEmail, password, code: verificationCode }),
+  });
+};
+
+/**
+ * 用户注册 - 重新发送验证码
+ */
+export const resendVerificationCode = (email: string): Promise<{ message: string }> => {
+  const normalizedEmail = email.toLowerCase().trim();
+  return apiRequest<{ message: string }>('/api/auth/register/resend-code', {
+    method: 'POST',
+    body: JSON.stringify({ email: normalizedEmail }),
   });
 };
 
@@ -197,7 +227,7 @@ export const fetchCurrentUserProfile = (token: string): Promise<{ user: BackendU
  */
 export const updateCurrentUserProfile = (
   token: string,
-  payload: { displayName?: string; avatarUrl?: string }
+  payload: { displayName?: string; avatarUrl?: string; email?: string }
 ): Promise<{ user: BackendUserProfile }> => {
   return apiRequest<{ user: BackendUserProfile }>(
     '/api/auth/me',
@@ -207,6 +237,67 @@ export const updateCurrentUserProfile = (
     },
     token
   );
+};
+
+/**
+ * 更新用戶頭像
+ */
+export const updateAvatar = (
+  token: string,
+  avatarUrl: string
+): Promise<{ user: BackendUserProfile }> => {
+  return apiRequest<{ user: BackendUserProfile }>(
+    '/api/auth/me/avatar',
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ avatarUrl }),
+    },
+    token
+  );
+};
+
+/**
+ * 更新顯示名稱
+ */
+export const updateDisplayName = (
+  token: string,
+  displayName: string
+): Promise<{ user: BackendUserProfile }> => {
+  return apiRequest<{ user: BackendUserProfile }>(
+    '/api/auth/me/display-name',
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ displayName }),
+    },
+    token
+  );
+};
+
+/**
+ * 修改邮箱 - 第一步：请求修改邮箱（发送验证码到新邮箱）
+ */
+export const requestEmailChange = (
+  token: string,
+  newEmail: string
+): Promise<{ message: string }> => {
+  const normalizedEmail = newEmail.toLowerCase().trim();
+  return apiRequest<{ message: string }>('/api/auth/me/email/request-change', {
+    method: 'POST',
+    body: JSON.stringify({ email: normalizedEmail }),
+  }, token);
+};
+
+/**
+ * 修改邮箱 - 第二步：确认修改邮箱（验证码验证）
+ */
+export const confirmEmailChange = (
+  token: string,
+  verificationCode: string
+): Promise<{ user: BackendUserProfile }> => {
+  return apiRequest<{ user: BackendUserProfile }>('/api/auth/me/email/verify-change', {
+    method: 'POST',
+    body: JSON.stringify({ code: verificationCode }),
+  }, token);
 };
 
 /**
@@ -228,87 +319,40 @@ export const changePassword = (
 };
 
 /**
- * 忘记密码 - 请求重置
+ * 密码重置 - 第一步：发送重置码到邮箱
  */
-export const requestPasswordReset = (email: string): Promise<{ message: string; resetToken?: string }> => {
-  // Normalize email: lowercase and trim
+export const requestPasswordReset = (email: string): Promise<{ message: string }> => {
   const normalizedEmail = email.toLowerCase().trim();
-  
-  return apiRequest<{ message: string; resetToken?: string }>('/api/auth/request-reset', {
+  return apiRequest<{ message: string }>('/api/auth/password-reset/send-code', {
     method: 'POST',
     body: JSON.stringify({ email: normalizedEmail }),
   });
 };
 
 /**
- * 忘记密码 - 重置密码
+ * 密码重置 - 第二步：验证码 + 新密码完成重置
  */
 export const resetPassword = (
-  resetToken: string,
+  email: string,
+  verificationCode: string,
   newPassword: string
 ): Promise<{ message: string }> => {
-  return apiRequest<{ message: string }>('/api/auth/reset-password', {
+  const normalizedEmail = email.toLowerCase().trim();
+  return apiRequest<{ message: string }>('/api/auth/password-reset/verify', {
     method: 'POST',
-    body: JSON.stringify({ resetToken, newPassword }),
+    body: JSON.stringify({ email: normalizedEmail, code: verificationCode, newPassword }),
   });
 };
 
-/**
- * 用户注册 - 第一步：请求注册令牌
- */
-export const requestRegisterToken = (email: string): Promise<{ message: string; expiresIn?: number }> => {
-  const normalizedEmail = email.toLowerCase().trim();
-  return apiRequest<{ message: string; expiresIn?: number }>('/api/auth/register/request-token', {
-    method: 'POST',
-    body: JSON.stringify({ email: normalizedEmail }),
-  });
-};
 
-/**
- * 用户注册 - 第二步：确认注册
- */
-export const confirmRegister = (
-  email: string,
-  password: string,
-  verificationCode: string
-): Promise<AuthResponse> => {
-  const normalizedEmail = email.toLowerCase().trim();
-  
-  // Validate all required fields
-  if (!normalizedEmail || !password || !verificationCode) {
-    const missing = [
-      !normalizedEmail && 'email',
-      !password && 'password',
-      !verificationCode && 'verificationCode',
-    ].filter(Boolean);
-    
-    const error = `Missing required fields: ${missing.join(', ')}`;
-    Logger.error('AuthAPI', error);
-    throw new AuthApiError(error, 400);
-  }
-  
-  const payload = { email: normalizedEmail, password, registerToken: verificationCode };
-  Logger.debug('AuthAPI', 'confirmRegister request body', { email: normalizedEmail, password: '***', registerToken: verificationCode });
-  
-  return apiRequest<AuthResponse>('/api/auth/register/confirm', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
-};
 
 /**
  * 删除用户账户
  */
 export const deleteAccount = (
-  authToken: string,
-  password: string
+  token: string
 ): Promise<{ message: string }> => {
   return apiRequest<{ message: string }>('/api/auth/me', {
     method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ password }),
-  });
+  }, token);
 };

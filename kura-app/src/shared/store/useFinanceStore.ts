@@ -90,6 +90,7 @@ interface FinanceState {
   isAiOptedIn: boolean;
   selectedTimeRange: '1M' | '3M' | '6M' | '1Y' | 'All';
   chartDataByTimeRange: Record<string, number[]>;
+  currency: 'usd' | 'eur' | 'twd' | 'cny' | 'jpy'; // 用戶選擇的貨幣
   
   // Asset Performance Tracking
   assetHistory: AssetSnapshot[]; // 历史资产快照
@@ -108,6 +109,7 @@ interface FinanceState {
   setInvestmentAccounts: (accounts: InvestmentAccount[]) => void;
   setInvestments: (investments: Investment[]) => void;
   setSelectedTimeRange: (timeRange: '1M' | '3M' | '6M' | '1Y' | 'All') => void;
+  setCurrency: (currency: 'usd' | 'eur' | 'twd' | 'cny' | 'jpy') => void; // 設定貨幣
   
   // Plaid Operations
   hydratePlaidFinanceData: (token: string) => Promise<void>;
@@ -147,9 +149,124 @@ const CHAIN_MARKET_META: Record<number, { coingeckoId: string; logo: string; fal
   42161: {
     coingeckoId: 'ethereum',
     logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png',
-    fallbackName: 'Ethereum',
+    fallbackName: 'Arbitrum ETH',
+  },
+  43114: {
+    coingeckoId: 'avalanche-2',
+    logo: 'https://assets.coingecko.com/coins/images/12559/large/avalanche-horizontal-red.png',
+    fallbackName: 'Avalanche',
+  },
+  56: {
+    coingeckoId: 'binancecoin',
+    logo: 'https://assets.coingecko.com/coins/images/825/large/binance-coin-logo.png',
+    fallbackName: 'Binance Smart Chain',
+  },
+  250: {
+    coingeckoId: 'fantom',
+    logo: 'https://assets.coingecko.com/coins/images/4001/large/Fantom.png',
+    fallbackName: 'Fantom',
   },
 };
+
+// 價格快取 - 減少 API 請求
+const PRICE_CACHE: Record<string, { prices: Record<string, number>; changes: Record<string, number>; timestamp: number }> = {};
+const CACHE_DURATION = 300000; // 5 分鐘
+
+// 支援的貨幣
+const SUPPORTED_CURRENCIES = ['usd', 'eur', 'twd', 'cny', 'jpy'];
+
+/**
+ * 從快取或 CoinGecko 獲取多種貨幣的價格
+ */
+async function getCoinPrice(
+  coingeckoId: string, 
+  currency: string = 'usd'
+): Promise<{ price: number; change24h: number }> {
+  const now = Date.now();
+  const cacheKey = coingeckoId;
+  
+  // 檢查快取
+  const cached = PRICE_CACHE[cacheKey];
+  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+    if (cached.prices[currency]) {
+      Logger.info('FinanceStore', `💰 Price from cache: ${cached.prices[currency].toFixed(2)} ${currency.toUpperCase()}`, { 
+        coingeckoId,
+        currency,
+        age: `${((now - cached.timestamp) / 1000).toFixed(0)}s`,
+      });
+      return { 
+        price: cached.prices[currency], 
+        change24h: cached.changes[currency] ?? 0 
+      };
+    }
+  }
+
+  // 從 CoinGecko 獲取價格（帶重試）
+  const maxRetries = 3;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // 一次請求所有貨幣
+      const currencyList = SUPPORTED_CURRENCIES.join(',');
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=${currencyList}&include_24hr_change=true`;
+      
+      const response = await fetch(url);
+
+      if (response.status === 429) {
+        // 限流 - 等待後重試
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // 指數退避，最多 10s
+        Logger.info('FinanceStore', `⏳ Rate limited, retry in ${delay}ms (attempt ${attempt}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      if (response.ok) {
+        const json = (await response.json()) as Record<string, Record<string, number>>;
+        const market = json[coingeckoId];
+        
+        if (market) {
+          // 提取所有貨幣的價格和變化
+          const prices: Record<string, number> = {};
+          const changes: Record<string, number> = {};
+          
+          SUPPORTED_CURRENCIES.forEach(curr => {
+            prices[curr] = market[curr] ?? 0;
+            changes[curr] = market[`${curr}_24h_change`] ?? 0;
+          });
+
+          // 快取所有貨幣的數據
+          PRICE_CACHE[cacheKey] = { prices, changes, timestamp: now };
+
+          const targetPrice = prices[currency] ?? 0;
+          const targetChange = changes[currency] ?? 0;
+          
+          Logger.info('FinanceStore', `✅ Price: ${targetPrice.toFixed(2)} ${currency.toUpperCase()}`, { 
+            coingeckoId,
+            currency,
+            change24h: `${targetChange.toFixed(2)}%`,
+            cached: `all (${SUPPORTED_CURRENCIES.length} currencies)`,
+          });
+
+          return { price: targetPrice, change24h: targetChange };
+        }
+      }
+
+      Logger.warn('FinanceStore', `⚠️ CoinGecko HTTP ${response.status}`);
+      break;
+    } catch (err) {
+      if (attempt === maxRetries) {
+        Logger.error('FinanceStore', '❌ Price fetch failed', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      } else {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
+        Logger.info('FinanceStore', `🔄 Retry in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  return { price: 0, change24h: 0 };
+}
 
 // Mock data removed - now using real data from backend via Plaid
 
@@ -170,6 +287,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     '1Y': [],
     'All': [],
   },
+  currency: 'usd', // 預設使用 USD
   isLoadingPlaidData: false,
   plaidError: null,
   isLoadingExchangeData: {},
@@ -184,6 +302,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   setInvestmentAccounts: (investmentAccounts) => set({ investmentAccounts }),
   setInvestments: (investments) => set({ investments }),
   setSelectedTimeRange: (timeRange) => set({ selectedTimeRange: timeRange }),
+  setCurrency: (currency) => set({ currency }),
   
   // Plaid Data Hydration
   hydratePlaidFinanceData: async (token: string) => {
@@ -305,29 +424,27 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     const assetId = `wallet-native-${chainId}-${normalizedAddress}`;
     const chainMeta = CHAIN_MARKET_META[chainId];
 
-    Logger.debug('FinanceStore', 'Syncing wallet position', { address: normalizedAddress, chainId });
+    Logger.info('FinanceStore', '📥 syncConnectedWalletPosition called with:', {
+      address: normalizedAddress.substring(0, 6) + '...',
+      chainId,
+      chainName,
+      nativeSymbol,
+      nativeBalance,
+      accountId,
+      assetId,
+      chainMetaExists: !!chainMeta,
+    });
 
     let currentPrice = 0;
     let change24h = 0;
 
     if (chainMeta) {
-      try {
-        const response = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${chainMeta.coingeckoId}&vs_currencies=usd&include_24hr_change=true`
-        );
-
-        if (response.ok) {
-          const json = (await response.json()) as Record<string, { usd?: number; usd_24h_change?: number }>;
-          const market = json[chainMeta.coingeckoId];
-          currentPrice = market?.usd ?? 0;
-          change24h = market?.usd_24h_change ?? 0;
-          Logger.debug('FinanceStore', 'Fetched market data', { currentPrice, change24h });
-        }
-      } catch (err) {
-        Logger.warn('FinanceStore', 'Failed to fetch market data', err);
-        currentPrice = 0;
-        change24h = 0;
-      }
+      const preferredCurrency = get().currency;
+      const priceData = await getCoinPrice(chainMeta.coingeckoId, preferredCurrency);
+      currentPrice = priceData.price;
+      change24h = priceData.change24h;
+    } else {
+      Logger.warn('FinanceStore', `⚠️ No chainMeta for chainId ${chainId}`);
     }
 
     const walletAccount: InvestmentAccount = {
@@ -349,15 +466,39 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       logo: chainMeta?.logo ?? 'https://www.google.com/s2/favicons?domain=ethereum.org&sz=128',
     };
 
-    set((state) => ({
-      investmentAccounts: [
+    Logger.info('FinanceStore', '� Created wallet objects:', {
+      walletAccount: JSON.stringify(walletAccount),
+      walletAsset: JSON.stringify(walletAsset),
+    });
+
+    set((state) => {
+      const updatedAccounts = [
         ...state.investmentAccounts.filter((account) => account.id !== accountId),
         walletAccount,
-      ],
-      investments: [...state.investments.filter((investment) => investment.id !== assetId), walletAsset],
-    }));
+      ];
+      const updatedInvestments = [
+        ...state.investments.filter((investment) => investment.id !== assetId),
+        walletAsset,
+      ];
+
+      Logger.info('FinanceStore', '✅ Updating store state with wallet data:', {
+        accountsCount: updatedAccounts.length,
+        investmentsCount: updatedInvestments.length,
+        accountIds: updatedAccounts.map(a => a.id),
+        investmentIds: updatedInvestments.map(i => i.id),
+      });
+
+      return {
+        investmentAccounts: updatedAccounts,
+        investments: updatedInvestments,
+      };
+    });
     
-    Logger.info('FinanceStore', 'Wallet position synced', { address: normalizedAddress, balance: nativeBalance });
+    Logger.info('FinanceStore', '✅ Wallet position synced to store', { 
+      address: normalizedAddress.substring(0, 6) + '...', 
+      balance: nativeBalance,
+      accountId,
+    });
   },
   
   removeConnectedWalletPosition: (address, chainId) => {
@@ -475,7 +616,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   // Exchange Operations
   addExchangeAccount: (account: ExchangeAccount) => {
     Logger.debug('FinanceStore', 'Adding exchange account', {
-      exchangeName: account.exchangeName,
+      exchange: account.exchange,
       accountId: account.id,
     });
     
@@ -498,7 +639,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     });
     
     Logger.info('FinanceStore', 'Exchange account added', {
-      exchangeName: account.exchangeName,
+      exchange: account.exchange,
     });
   },
   

@@ -27,11 +27,10 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showConfirmSignup, setShowConfirmSignup] = useState(false);
-  const [registerToken, setRegisterToken] = useState('');
 
-  const requestRegisterToken = useAppStore((state) => state.requestRegisterToken);
+  const sendVerificationCode = useAppStore((state) => state.sendVerificationCode);
 
-  const handleRequestRegisterToken = async () => {
+  const handleSendVerificationCode = async () => {
     try {
       // Validate form
       if (!email.trim()) {
@@ -47,18 +46,17 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
       setIsLoading(true);
       setError(null);
 
-      Logger.debug('SignupScreen', 'Requesting register token', { email });
-      await requestRegisterToken(email);
+      Logger.debug('SignupScreen', 'Sending verification code', { email });
+      await sendVerificationCode(email);
 
       setIsSubmitted(true);
-      setRegisterToken(''); // Reset registerToken as it's no longer needed
       
       Alert.alert('Check Your Email', 'We sent a verification code to your email address.');
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to send verification email. Please try again.';
       setError(errorMessage);
-      Logger.error('SignupScreen', 'Register token request failed', { error: errorMessage });
+      Logger.error('SignupScreen', 'Send verification code failed', { error: errorMessage });
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +119,7 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
                 marginBottom: 32,
               }}
             >
-              Click the link in the email to verify and complete your registration. The link will expire in 24 hours.
+              Enter the verification code in the email to complete your registration. The code will expire in 15 minutes.
             </Text>
 
             {/* Actions */}
@@ -301,7 +299,7 @@ export default function SignupScreen({ onNavigateToLogin, onSignupSuccess }: Sig
 
             {/* Verify Button */}
             <TouchableOpacity
-              onPress={handleRequestRegisterToken}
+              onPress={handleSendVerificationCode}
               disabled={isLoading}
               style={{
                 paddingVertical: 14,

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, View, Text, TouchableOpacity, ActivityIndicator, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Logger from '../utils/Logger';
-import { useAppKitModal } from '../hooks/useAppKitModal';
+import { useWalletSync } from '../hooks/useWalletSync';
 
 interface ConnectAccountModalProps {
   isOpen: boolean;
@@ -19,7 +19,7 @@ export default function ConnectAccountModal({
   onWeb3Press,
   onExchangePress,
 }: ConnectAccountModalProps) {
-  const { openWallet } = useAppKitModal();
+  const { openWallet } = useWalletSync();
   const [isConnecting, setIsConnecting] = useState<'plaid' | 'web3' | 'exchange' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -51,13 +51,21 @@ export default function ConnectAccountModal({
       onClose();
       
       // Small delay to ensure modal closes smoothly
-      setTimeout(() => {
-        // Use AppKitModal hook to open wallet
-        openWallet();
-        setIsConnecting(null);
-        
-        // Also notify parent component if callback provided
-        onWeb3Press?.();
+      setTimeout(async () => {
+        try {
+          // Use WalletSync hook to open wallet - this is async
+          await openWallet();
+          Logger.info('ConnectAccountModal', 'Wallet modal opened successfully');
+          setIsConnecting(null);
+          
+          // Also notify parent component if callback provided
+          onWeb3Press?.();
+        } catch (err) {
+          const errorMsg = err instanceof Error ? err.message : 'Failed to open Web3 wallet';
+          Logger.error('ConnectAccountModal', 'Error opening wallet', { error: errorMsg });
+          setError(errorMsg);
+          setIsConnecting(null);
+        }
       }, 200);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to open Web3 wallet';

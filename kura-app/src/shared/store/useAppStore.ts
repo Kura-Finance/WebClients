@@ -4,14 +4,17 @@ import {
   clearStoredAuthToken,
   getStoredAuthToken,
   fetchCurrentUserProfile,
-  updateCurrentUserProfile,
+  updateAvatar as updateAvatarApi,
+  updateDisplayName as updateDisplayNameApi,
+  requestEmailChange,
+  confirmEmailChange,
   loginUser,
-  registerUser,
+  sendVerificationCode,
+  verifyEmailAndRegister,
+  resendVerificationCode,
   changePassword as changePasswordApi,
   requestPasswordReset as requestPasswordResetApi,
   resetPassword as resetPasswordApi,
-  requestRegisterToken as requestRegisterTokenApi,
-  confirmRegister as confirmRegisterApi,
   deleteAccount as deleteAccountApi,
 } from '../api/authApi';
 import {
@@ -70,16 +73,25 @@ interface AppState {
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  deleteAccount: (password: string) => Promise<void>;
+  deleteAccount: () => Promise<void>;
   changePassword: (oldPassword: string, newPassword: string) => Promise<void>;
-  requestPasswordReset: (email: string) => Promise<{ resetToken?: string }>;
-  resetPassword: (resetToken: string, newPassword: string) => Promise<void>;
-  requestRegisterToken: (email: string) => Promise<void>;
-  confirmRegister: (email: string, password: string, verificationCode: string) => Promise<void>;
+  
+  // Registration flow (new)
+  sendVerificationCode: (email: string) => Promise<void>;
+  verifyEmailAndRegister: (email: string, password: string, verificationCode: string) => Promise<void>;
+  resendVerificationCode: (email: string) => Promise<void>;
+  
+  // Password reset flow (updated)
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (email: string, verificationCode: string, newPassword: string) => Promise<void>;
+  
   hydrateFromStorage: () => Promise<void>;
   
   // User methods
   setDisplayName: (displayName: string) => Promise<void>;
+  requestEmailChange: (newEmail: string) => Promise<void>;
+  confirmEmailChange: (verificationCode: string) => Promise<void>;
+  updateAvatar: (avatarUrl: string) => Promise<void>;
   setBaseCurrency: (currency: BaseCurrency) => void;
   setLanguage: (language: Language) => void;
   toggleLargeTransactionAlerts: () => void;
@@ -189,7 +201,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       Logger.debug('AppStore', 'Attempting signup', { email: normalizedEmail });
       set({ authStatus: 'loading', authError: null });
 
-      const response = await registerUser(normalizedEmail, password);
+      const response = await verifyEmailAndRegister(normalizedEmail, password, '');
       await setStoredAuthToken(response.token);
 
       Logger.info('AppStore', 'Signup successful', { email: normalizedEmail });
@@ -269,7 +281,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  deleteAccount: async (password: string) => {
+  deleteAccount: async () => {
     try {
       const authToken = get().authToken;
       if (!authToken) {
@@ -277,7 +289,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
 
       Logger.info('AppStore', 'Deleting account');
-      await deleteAccountApi(authToken, password);
+      await deleteAccountApi(authToken);
       
       // Clear auth token and reset state
       await clearStoredAuthToken();
@@ -331,9 +343,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   requestPasswordReset: async (email: string) => {
     try {
       Logger.debug('AppStore', 'Requesting password reset', { email });
-      const response = await requestPasswordResetApi(email);
-      Logger.info('AppStore', 'Password reset email sent', { resetToken: response.resetToken });
-      return { resetToken: response.resetToken };
+      await requestPasswordResetApi(email);
+      Logger.info('AppStore', 'Password reset code sent', { email });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Password reset request failed';
       Logger.error('AppStore', 'Password reset request failed', { error: errorMessage });
@@ -341,10 +352,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  resetPassword: async (resetToken: string, newPassword: string) => {
+  resetPassword: async (email: string, verificationCode: string, newPassword: string) => {
     try {
-      Logger.debug('AppStore', 'Resetting password with token');
-      await resetPasswordApi(resetToken, newPassword);
+      Logger.debug('AppStore', 'Resetting password', { email });
+      await resetPasswordApi(email, verificationCode, newPassword);
       Logger.info('AppStore', 'Password reset successfully');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Password reset failed';
@@ -353,25 +364,27 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  requestRegisterToken: async (email: string) => {
+  sendVerificationCode: async (email: string) => {
     try {
-      Logger.debug('AppStore', 'Requesting register token', { email });
-      const response = await requestRegisterTokenApi(email);
-      Logger.info('AppStore', 'Register token email sent', { message: response.message, expiresIn: response.expiresIn });
+      const normalizedEmail = email.toLowerCase().trim();
+      Logger.debug('AppStore', 'Sending verification code', { email: normalizedEmail });
+      await sendVerificationCode(normalizedEmail);
+      Logger.info('AppStore', 'Verification code sent', { email: normalizedEmail });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Register token request failed';
-      Logger.error('AppStore', 'Register token request failed', { error: errorMessage });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send verification code';
+      Logger.error('AppStore', 'Send verification code failed', { error: errorMessage });
       throw error;
     }
   },
 
-  confirmRegister: async (email: string, password: string, verificationCode: string) => {
+  verifyEmailAndRegister: async (email: string, password: string, verificationCode: string) => {
     try {
-      Logger.debug('AppStore', 'Confirming registration', { email });
-      const response = await confirmRegisterApi(email, password, verificationCode);
+      const normalizedEmail = email.toLowerCase().trim();
+      Logger.debug('AppStore', 'Verifying email and registering', { email: normalizedEmail });
+      const response = await verifyEmailAndRegister(normalizedEmail, password, verificationCode);
       await setStoredAuthToken(response.token);
 
-      Logger.info('AppStore', 'Registration confirmed successfully');
+      Logger.info('AppStore', 'Registration verified successfully');
       set({
         authToken: response.token,
         authStatus: 'authenticated',
@@ -393,28 +406,41 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       // Auto-load Plaid data from backend
       try {
-        Logger.debug('AppStore', 'Auto-loading Plaid finance data after registration confirmation');
+        Logger.debug('AppStore', 'Auto-loading Plaid finance data after registration');
         const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
         await hydratePlaidFinanceData(response.token);
-        Logger.info('AppStore', 'Plaid finance data auto-loaded after registration confirmation');
+        Logger.info('AppStore', 'Plaid finance data auto-loaded after registration');
         
         // Record asset snapshot for performance tracking
         const recordAssetSnapshot = useFinanceStore.getState().recordAssetSnapshot;
         recordAssetSnapshot();
       } catch (plaidError) {
         // Plaid data loading is optional - don't fail the registration if it fails
-        Logger.warn('AppStore', 'Failed to auto-load Plaid data after registration confirmation', plaidError);
+        Logger.warn('AppStore', 'Failed to auto-load Plaid data after registration', plaidError);
       }
 
       // Load exchange rates
       try {
         await get().loadExchangeRates();
       } catch (rateError) {
-        Logger.warn('AppStore', 'Failed to load exchange rates after registration confirmation', rateError);
+        Logger.warn('AppStore', 'Failed to load exchange rates after registration', rateError);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Registration confirmation failed';
-      Logger.error('AppStore', 'Registration confirmation failed', { error: errorMessage });
+      const errorMessage = error instanceof Error ? error.message : 'Registration verification failed';
+      Logger.error('AppStore', 'Registration verification failed', { error: errorMessage });
+      throw error;
+    }
+  },
+
+  resendVerificationCode: async (email: string) => {
+    try {
+      const normalizedEmail = email.toLowerCase().trim();
+      Logger.debug('AppStore', 'Resending verification code', { email: normalizedEmail });
+      await resendVerificationCode(normalizedEmail);
+      Logger.info('AppStore', 'Verification code resent', { email: normalizedEmail });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend verification code';
+      Logger.error('AppStore', 'Resend verification code failed', { error: errorMessage });
       throw error;
     }
   },
@@ -485,12 +511,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       const authToken = get().authToken;
       if (!authToken) {
-        return;
+        throw new Error('Not authenticated');
       }
 
       Logger.debug('AppStore', 'Updating display name', { displayName });
-      const response = await updateCurrentUserProfile(authToken, { displayName });
-      Logger.info('AppStore', 'Display name updated');
+      const response = await updateDisplayNameApi(authToken, displayName);
+      
+      if (!response || !response.user || !response.user.displayName) {
+        Logger.warn('AppStore', 'Display name API response missing expected structure', { response });
+        throw new Error('Invalid response from display name update endpoint');
+      }
+
+      Logger.info('AppStore', 'Display name updated successfully', { displayName: response.user.displayName });
       
       set((state) => ({
         userProfile: {
@@ -499,7 +531,84 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       }));
     } catch (error) {
-      Logger.error('AppStore', 'Failed to update display name', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update display name';
+      Logger.error('AppStore', 'Failed to update display name', { error: errorMessage });
+      throw error;
+    }
+  },
+  requestEmailChange: async (newEmail: string) => {
+    try {
+      const authToken = get().authToken;
+      if (!authToken) {
+        throw new Error('Not authenticated');
+      }
+
+      Logger.debug('AppStore', 'Requesting email change', { newEmail });
+      await requestEmailChange(authToken, newEmail);
+      Logger.info('AppStore', 'Email change requested, verification code sent');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to request email change';
+      Logger.error('AppStore', 'Email change request failed', { error: errorMessage });
+      throw error;
+    }
+  },
+
+  confirmEmailChange: async (verificationCode: string) => {
+    try {
+      const authToken = get().authToken;
+      if (!authToken) {
+        throw new Error('Not authenticated');
+      }
+
+      Logger.debug('AppStore', 'Confirming email change');
+      const response = await confirmEmailChange(authToken, verificationCode);
+      
+      if (!response || !response.user || !response.user.email) {
+        Logger.warn('AppStore', 'Email change API response missing expected structure', { response });
+        throw new Error('Invalid response from email change confirmation endpoint');
+      }
+
+      Logger.info('AppStore', 'Email changed successfully', { newEmail: response.user.email });
+      
+      set((state) => ({
+        userProfile: {
+          ...state.userProfile,
+          email: response.user.email,
+        },
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to confirm email change';
+      Logger.error('AppStore', 'Email change confirmation failed', { error: errorMessage });
+      throw error;
+    }
+  },
+  updateAvatar: async (avatarUrl) => {
+    try {
+      const authToken = get().authToken;
+      if (!authToken) {
+        throw new Error('Not authenticated');
+      }
+
+      Logger.debug('AppStore', 'Updating avatar', { avatarUrl: avatarUrl.substring(0, 50) + '...' });
+      const response = await updateAvatarApi(authToken, avatarUrl);
+      
+      if (!response || !response.user || !response.user.avatarUrl) {
+        Logger.warn('AppStore', 'Avatar API response missing expected structure', { response });
+        throw new Error('Invalid response from avatar upload endpoint');
+      }
+
+      Logger.info('AppStore', 'Avatar updated successfully', { newAvatarUrl: response.user.avatarUrl.substring(0, 50) + '...' });
+      
+      set((state) => ({
+        userProfile: {
+          ...state.userProfile,
+          avatarUrl: response.user.avatarUrl,
+        },
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update avatar';
+      Logger.error('AppStore', 'Failed to update avatar', { error: errorMessage });
+      throw error;
     }
   },
   setBaseCurrency: (baseCurrency) => set((state) => ({ preferences: { ...state.preferences, baseCurrency } })),

@@ -3,7 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../../shared/store/useAppStore';
 import EditDisplayNameScreen from './EditDisplayNameScreen';
-import ChangePasswordScreen from './ChangePasswordScreen';
+import EditEmailScreen from './EditEmailScreen';
+import ResetPasswordScreen from './ResetPasswordScreen';
 import { DeleteAccountConfirmModal } from '../../../components/DeleteAccountConfirmModal';
 
 interface ProfileSecurityScreenProps {
@@ -12,7 +13,8 @@ interface ProfileSecurityScreenProps {
 
 export default function ProfileSecurityScreen({ onClose }: ProfileSecurityScreenProps) {
   const [showEditDisplay, setShowEditDisplay] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showEditEmail, setShowEditEmail] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const userProfile = useAppStore((state) => state.userProfile);
   const logout = useAppStore((state) => state.logout);
@@ -21,8 +23,12 @@ export default function ProfileSecurityScreen({ onClose }: ProfileSecurityScreen
     return <EditDisplayNameScreen onClose={() => setShowEditDisplay(false)} />;
   }
 
-  if (showChangePassword) {
-    return <ChangePasswordScreen onClose={() => setShowChangePassword(false)} />;
+  if (showEditEmail) {
+    return <EditEmailScreen onClose={() => setShowEditEmail(false)} />;
+  }
+
+  if (showResetPassword) {
+    return <ResetPasswordScreen onClose={() => setShowResetPassword(false)} />;
   }
 
   const handleDeleteSuccess = async () => {
@@ -59,24 +65,27 @@ export default function ProfileSecurityScreen({ onClose }: ProfileSecurityScreen
           <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
         </TouchableOpacity>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#1A1A24', borderRadius: 12, marginBottom: 32, borderWidth: 1, borderColor: 'rgba(139, 92, 246, 0.2)' }}>
+        <TouchableOpacity
+          onPress={() => setShowEditEmail(true)}
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#1A1A24', borderRadius: 12, marginBottom: 32, borderWidth: 1, borderColor: 'rgba(139, 92, 246, 0.2)' }}
+        >
           <View>
             <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>Email Address</Text>
             <Text style={{ fontSize: 12, color: '#999999', marginTop: 2 }}>{userProfile.email || 'Not set'}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-        </View>
+        </TouchableOpacity>
 
         {/* Security Settings */}
         <Text style={{ color: '#999999', fontSize: 12, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 16 }}>Security Settings</Text>
 
         <TouchableOpacity
-          onPress={() => setShowChangePassword(true)}
+          onPress={() => setShowResetPassword(true)}
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#1A1A24', borderRadius: 12, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(139, 92, 246, 0.2)' }}
         >
           <View>
-            <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>Change Password</Text>
-            <Text style={{ fontSize: 12, color: '#999999', marginTop: 2 }}>Update your password regularly</Text>
+            <Text style={{ color: '#FFFFFF', fontWeight: '500' }}>Reset Password</Text>
+            <Text style={{ fontSize: 12, color: '#999999', marginTop: 2 }}>Reset your password securely</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
         </TouchableOpacity>

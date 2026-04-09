@@ -1,18 +1,42 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface UserProfileProps {
   displayName: string;
   email: string;
   membershipLabel: string;
+  avatarUrl?: string;
+  onAvatarPress?: () => void;
+  isLoadingAvatar?: boolean;
 }
 
-export default function UserProfile({ displayName, email, membershipLabel }: UserProfileProps) {
+export default function UserProfile({ displayName, email, membershipLabel, avatarUrl, onAvatarPress, isLoadingAvatar }: UserProfileProps) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 40 }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#8B5CF6', alignItems: 'center', justifyContent: 'center', marginRight: 16, borderWidth: 2, borderColor: '#1A1A24' }}>
-        <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>{displayName.trim() ? displayName.trim().slice(0, 1).toUpperCase() : '?'}</Text>
-      </View>
+      <TouchableOpacity 
+        onPress={onAvatarPress}
+        disabled={isLoadingAvatar}
+        style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#8B5CF6', alignItems: 'center', justifyContent: 'center', marginRight: 16, borderWidth: 2, borderColor: '#1A1A24', overflow: 'hidden', position: 'relative' }}
+      >
+        {avatarUrl ? (
+          <Image 
+            source={{ uri: avatarUrl }} 
+            style={{ width: '100%', height: '100%' }}
+          />
+        ) : (
+          <Text style={{ color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' }}>{displayName.trim() ? displayName.trim().slice(0, 1).toUpperCase() : '?'}</Text>
+        )}
+        {isLoadingAvatar ? (
+          <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}>
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          </View>
+        ) : (
+          <View style={{ position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0)', alignItems: 'center', justifyContent: 'center' }}>
+            <Ionicons name="camera" size={16} color="#FFFFFF" style={{ opacity: 0 }} />
+          </View>
+        )}
+      </TouchableOpacity>
       <View style={{ flex: 1 }}>
         <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 18 }}>{displayName || 'Signed out'}</Text>
         <Text style={{ color: '#999999', fontSize: 14, marginTop: 2 }}>{email || 'No email available'}</Text>
