@@ -163,19 +163,25 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       });
 
       set((state) => {
-        // Preserve Web3 Wallet accounts and investments (not managed by Plaid)
-        const walletAccounts = state.investmentAccounts.filter(
-          (account) => account.type === 'Web3 Wallet'
+        // Preserve Web3 Wallet and Exchange accounts (not managed by Plaid)
+        // Web3 Wallet Store 和 Exchange Store 現在獨立管理，但舊的混合數據需要保留
+        const nonPlaidAccounts = state.investmentAccounts.filter(
+          (account) => account.type === 'Web3 Wallet' || account.type === 'Exchange'
         );
-        const walletInvestments = state.investments.filter((investment) =>
-          walletAccounts.some((account) => account.id === investment.accountId)
+        const nonPlaidInvestments = state.investments.filter((investment) =>
+          nonPlaidAccounts.some((account) => account.id === investment.accountId)
         );
+
+        console.debug('[FinanceStore] Preserving non-Plaid data', {
+          nonPlaidAccountsCount: nonPlaidAccounts.length,
+          nonPlaidInvestmentsCount: nonPlaidInvestments.length,
+        });
 
         return {
           accounts: snapshot.accounts,
           transactions: snapshot.transactions,
-          investmentAccounts: [...snapshot.investmentAccounts, ...walletAccounts],
-          investments: [...snapshot.investments, ...walletInvestments],
+          investmentAccounts: [...snapshot.investmentAccounts, ...nonPlaidAccounts],
+          investments: [...snapshot.investments, ...nonPlaidInvestments],
           isLoadingPlaidData: false,
         };
       });
@@ -189,12 +195,28 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   
   clearPlaidFinanceData: () => {
     console.info('[FinanceStore] Clearing Plaid finance data');
-    set({
-      accounts: [],
-      transactions: [],
-      investmentAccounts: [],
-      investments: [],
-      plaidError: null,
+    
+    set((state) => {
+      // Only clear Plaid data, preserve Web3 Wallet and Exchange accounts
+      const nonPlaidAccounts = state.investmentAccounts.filter(
+        (account) => account.type === 'Web3 Wallet' || account.type === 'Exchange'
+      );
+      const nonPlaidInvestments = state.investments.filter((investment) =>
+        nonPlaidAccounts.some((account) => account.id === investment.accountId)
+      );
+
+      console.debug('[FinanceStore] Cleared Plaid data, preserved non-Plaid accounts', {
+        preservedAccountsCount: nonPlaidAccounts.length,
+        preservedInvestmentsCount: nonPlaidInvestments.length,
+      });
+
+      return {
+        accounts: [],
+        transactions: [],
+        investmentAccounts: nonPlaidAccounts,
+        investments: nonPlaidInvestments,
+        plaidError: null,
+      };
     });
   },
   

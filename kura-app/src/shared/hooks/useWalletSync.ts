@@ -4,6 +4,7 @@ import { AppState, AppStateStatus } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
 import { useFinanceStore } from '../store/useFinanceStore';
+import { useWeb3WalletStore } from '../store/useWeb3WalletStore';
 import Logger from '../utils/Logger';
 
 const CHAIN_NAMES: Record<number, string> = {
@@ -170,11 +171,23 @@ export function useWalletSync() {
   useEffect(() => {
     const syncWalletToStore = async () => {
       const { address, chainId } = accountState;
+      const addWalletPosition = useWeb3WalletStore.getState().addWalletPosition;
+      const removeWalletPosition = useWeb3WalletStore.getState().removeWalletPosition;
+      const clearWeb3Store = useWeb3WalletStore.getState().clearAll;
 
       // 監聽斷連：如果之前連接（address 存在），現在斷連（accountState 為空）
       if (prevStateRef.current.address && !address) {
-        Logger.warn('useWalletSync', '🔌 Wallet disconnected, clearing store');
-        removeConnectedWalletPosition(prevStateRef.current.address, prevStateRef.current.chainId || 1);
+        Logger.warn('useWalletSync', '🔌 Wallet disconnected');
+        
+        const prevAddress = prevStateRef.current.address;
+        const prevChainId = prevStateRef.current.chainId || 1;
+        const accountId = `wallet-${prevChainId}-${prevAddress.toLowerCase()}`;
+        const investmentId = `wallet-native-${prevChainId}-${prevAddress.toLowerCase()}`;
+        
+        // Clear from both stores
+        removeConnectedWalletPosition(prevAddress, prevChainId);
+        clearWeb3Store();
+        
         prevStateRef.current = {};
         return;
       }
@@ -207,6 +220,7 @@ export function useWalletSync() {
         // Fetch the actual native balance
         const nativeBalance = await fetchNativeBalance(address, chainId);
 
+        // Sync to finance store (for backward compatibility)
         await syncConnectedWalletPosition({
           address,
           chainId,
@@ -215,7 +229,33 @@ export function useWalletSync() {
           nativeBalance,
         });
 
-        Logger.info('useWalletSync', '✅ Synced: ' + nativeSymbol, {
+        // Also sync to dedicated Web3 wallet store
+        const normalizedAddress = address.toLowerCase();
+        const accountId = `wallet-${chainId}-${normalizedAddress}`;
+        const investmentId = `wallet-native-${chainId}-${normalizedAddress}`;
+        
+        const walletAccount = {
+          id: accountId,
+          name: `${chainName} Wallet`,
+          type: 'Web3 Wallet' as const,
+          logo: 'https://www.google.com/s2/favicons?domain=walletconnect.com&sz=128',
+        };
+
+        const walletInvestment = {
+          id: investmentId,
+          accountId,
+          symbol: nativeSymbol,
+          name: chainName,
+          holdings: nativeBalance,
+          currentPrice: 0, // Will be fetched by finance store
+          change24h: 0,
+          type: 'crypto' as const,
+          logo: 'https://www.google.com/s2/favicons?domain=ethereum.org&sz=128',
+        };
+
+        addWalletPosition(walletAccount, walletInvestment);
+
+        Logger.info('useWalletSync', '✅ Synced to Web3 Wallet Store: ' + nativeSymbol, {
           balance: nativeBalance,
         });
       } catch (err) {

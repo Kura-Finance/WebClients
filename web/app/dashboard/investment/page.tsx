@@ -3,6 +3,8 @@
 
 import React, { useMemo, useRef, useState, useEffect } from 'react';
 import { useFinanceStore } from '@/store/useFinanceStore';
+import { useWeb3WalletStore } from '@/store/useWeb3WalletStore';
+import { useExchangeStore } from '@/store/useExchangeStore';
 import Image from 'next/image';
 import ConnectAccountModal from '@/components/ConnectAccountModal'; // 💡 引入連線 Modal
 import { useAccount, useBalance, useChainId, useChains } from 'wagmi';
@@ -11,10 +13,34 @@ import { formatUnits } from 'viem';
 const CHART_COLORS = ['#8B5CF6', '#6366F1', '#EC4899', '#3B82F6', '#A855F7', '#14B8A6'];
 
 export default function InvestmentPage() {
-  const investmentAccounts = useFinanceStore(state => state.investmentAccounts);
-  const investments = useFinanceStore(state => state.investments);
+  // Finance Store (Plaid/Broker/Exchange)
+  const financeInvestmentAccounts = useFinanceStore(state => state.investmentAccounts);
+  const financeInvestments = useFinanceStore(state => state.investments);
   const syncConnectedWalletPosition = useFinanceStore(state => state.syncConnectedWalletPosition);
   const removeConnectedWalletPosition = useFinanceStore(state => state.removeConnectedWalletPosition);
+
+  // Web3 Wallet Store
+  const walletAccounts = useWeb3WalletStore(state => state.walletAccounts);
+  const walletInvestments = useWeb3WalletStore(state => state.walletInvestments);
+  const clearWeb3Wallet = useWeb3WalletStore(state => state.clearAll);
+  const addWalletPosition = useWeb3WalletStore(state => state.addWalletPosition);
+
+  // Exchange Store
+  const exchangeInvestmentAccounts = useExchangeStore(state => state.exchangeInvestmentAccounts);
+  const exchangeInvestments = useExchangeStore(state => state.exchangeInvestments);
+  const removeExchangeAccount = useExchangeStore(state => state.removeExchangeAccount);
+
+  // Combine data from all three stores
+  const investmentAccounts = useMemo(
+    () => [...financeInvestmentAccounts, ...walletAccounts, ...exchangeInvestmentAccounts],
+    [financeInvestmentAccounts, walletAccounts, exchangeInvestmentAccounts]
+  );
+
+  const investments = useMemo(
+    () => [...financeInvestments, ...walletInvestments, ...exchangeInvestments],
+    [financeInvestments, walletInvestments, exchangeInvestments]
+  );
+
   const chains = useChains();
   const chainId = useChainId();
   const { address, isConnected } = useAccount();
@@ -46,6 +72,32 @@ export default function InvestmentPage() {
       nativeBalance,
     });
 
+    // Also sync to Web3 Wallet Store
+    const normalizedAddress = address.toLowerCase();
+    const accountId = `wallet-${chainId}-${normalizedAddress}`;
+    const investmentId = `wallet-native-${chainId}-${normalizedAddress}`;
+    
+    const walletAccount = {
+      id: accountId,
+      name: `${activeChainName} Wallet`,
+      type: 'Web3 Wallet' as const,
+      logo: 'https://www.google.com/s2/favicons?domain=walletconnect.com&sz=128',
+    };
+
+    const walletInvestment = {
+      id: investmentId,
+      accountId,
+      symbol: nativeBalanceData.symbol,
+      name: activeChainName,
+      holdings: nativeBalance,
+      currentPrice: 0, // Will be fetched by finance store
+      change24h: 0,
+      type: 'crypto' as const,
+      logo: 'https://www.google.com/s2/favicons?domain=ethereum.org&sz=128',
+    };
+
+    addWalletPosition(walletAccount, walletInvestment);
+
     lastConnectedWalletRef.current = { address, chainId };
   }, [
     address,
@@ -54,6 +106,7 @@ export default function InvestmentPage() {
     isConnected,
     nativeBalanceData,
     syncConnectedWalletPosition,
+    addWalletPosition,
   ]);
 
   useEffect(() => {
@@ -63,8 +116,9 @@ export default function InvestmentPage() {
     if (!last) return;
 
     removeConnectedWalletPosition(last.address, last.chainId);
+    clearWeb3Wallet();
     lastConnectedWalletRef.current = null;
-  }, [isConnected, removeConnectedWalletPosition]);
+  }, [isConnected, removeConnectedWalletPosition, clearWeb3Wallet]);
 
   // 1. 計算每個投資帳戶 (Broker/Wallet) 的總餘額
   const brokersWithBalances = useMemo(() => {

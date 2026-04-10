@@ -457,8 +457,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         return;
       }
 
+      // Fetch profile with 10-second timeout
       Logger.debug('AppStore', 'Found stored token, fetching profile');
-      const response = await fetchCurrentUserProfile(storedToken);
+      const profilePromise = fetchCurrentUserProfile(storedToken);
+      const profileTimeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+      );
+      const response = await Promise.race([profilePromise, profileTimeout]);
 
       Logger.info('AppStore', 'Profile fetched successfully');
       set({
@@ -480,11 +485,15 @@ export const useAppStore = create<AppState>((set, get) => ({
         aiInsights: [],
       });
 
-      // Auto-load Plaid data from backend if Access Token was previously saved
+      // Auto-load Plaid data with 8-second timeout (optional, don't block main flow)
       try {
         Logger.debug('AppStore', 'Auto-loading Plaid finance data');
         const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
-        await hydratePlaidFinanceData(storedToken);
+        const plaidPromise = hydratePlaidFinanceData(storedToken);
+        const plaidTimeout = new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('Plaid data load timeout')), 8000)
+        );
+        await Promise.race([plaidPromise, plaidTimeout]);
         Logger.info('AppStore', 'Plaid finance data auto-loaded successfully');
         
         // Record asset snapshot for performance tracking
@@ -495,9 +504,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         Logger.warn('AppStore', 'Failed to auto-load Plaid data', plaidError);
       }
 
-      // Load exchange rates
+      // Load exchange rates with 5-second timeout (optional)
       try {
-        await get().loadExchangeRates();
+        Logger.debug('AppStore', 'Loading exchange rates');
+        const ratesPromise = get().loadExchangeRates();
+        const ratesTimeout = new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('Exchange rates timeout')), 5000)
+        );
+        await Promise.race([ratesPromise, ratesTimeout]);
       } catch (rateError) {
         Logger.warn('AppStore', 'Failed to load exchange rates during hydration', rateError);
       }

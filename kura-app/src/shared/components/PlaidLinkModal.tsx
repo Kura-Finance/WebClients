@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Modal, View, ActivityIndicator, Text, TouchableOpacity, Keyboard, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { create, open, destroy } from 'react-native-plaid-link-sdk';
+import { useNetInfo } from '@react-native-community/netinfo';
 import { useAppStore } from '../store/useAppStore';
 import Logger from '../utils/Logger';
 import Constants from 'expo-constants';
@@ -24,18 +25,19 @@ export default function PlaidLinkModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [networkError, setNetworkError] = useState<string | null>(null);
 
   const sessionRef = useRef<boolean>(false);
   const exitTimeoutRef = useRef<number | null>(null);
   const hasExitedRef = useRef(false);
   const tokenRequestAttemptRef = useRef(false);
+  const tokenRefreshingRef = useRef(false); // Prevent duplicate token refresh requests
 
-  // Detect if running on simulator
-  const isSimulator = Constants.expoConfig?.plugins?.some((p: any) => 
-    typeof p === 'object' && p[0] === 'expo-build-properties'
-  );
-  const isIOSSimulator = Platform.OS === 'ios' && !Platform.isPad && 
-    (__DEV__ || isSimulator);
+  // Network monitoring
+  const { isConnected } = useNetInfo();
+
+  // Detect if running on simulator - simplified approach
+  const isIOSSimulator = Platform.OS === 'ios' && __DEV__;
 
   // Log environment info for debugging
   useEffect(() => {
@@ -44,9 +46,20 @@ export default function PlaidLinkModal({
         platform: Platform.OS,
         isSimulator: isIOSSimulator,
         devMode: __DEV__,
+        networkConnected: isConnected,
       });
     }
-  }, [isVisible, isIOSSimulator]);
+  }, [isVisible, isIOSSimulator, isConnected]);
+
+  // Monitor network connectivity
+  useEffect(() => {
+    if (isVisible && !isConnected) {
+      setNetworkError('Network connection lost. Please check your connection and try again.');
+      Logger.warn('PlaidLinkModal', 'Network disconnected during Plaid session');
+    } else if (isConnected) {
+      setNetworkError(null);
+    }
+  }, [isConnected, isVisible]);
 
   const confirmPlaidExchange = useAppStore((state: any) => state.confirmPlaidExchange);
   const requestPlaidLinkToken = useAppStore((state: any) => state.requestPlaidLinkToken);
@@ -299,12 +312,32 @@ export default function PlaidLinkModal({
     // Only initialize if we have a valid token
     if (linkToken && !isTokenExpired()) {
       initializePlaid();
-    } else if (linkToken && isTokenExpired()) {
+    } else if (linkToken && isTokenExpired() && !tokenRefreshingRef.current) {
+      // Prevent multiple simultaneous token refresh requests
+      tokenRefreshingRef.current = true;
+      tokenRequestAttemptRef.current = true;
       setError('Token expired. Requesting new one...');
-      requestPlaidLinkToken().catch((err: any) => {
-        const msg = err instanceof Error ? err.message : 'Failed to refresh token';
-        if (isMounted) setError(msg);
+      Logger.info('PlaidLinkModal', 'Token expired, requesting refresh', { 
+        isMounted, 
+        previousAttempt: tokenRequestAttemptRef.current 
       });
+      requestPlaidLinkToken()
+        .then(() => {
+          Logger.info('PlaidLinkModal', 'Token refreshed successfully');
+          if (isMounted) {
+            setError(null);
+          }
+        })
+        .catch((err: any) => {
+          const msg = err instanceof Error ? err.message : 'Failed to refresh token';
+          if (isMounted) {
+            setError(msg);
+            Logger.error('PlaidLinkModal', 'Token refresh failed', { error: msg });
+          }
+        })
+        .finally(() => {
+          tokenRefreshingRef.current = false;
+        });
     }
 
     return () => {
@@ -401,20 +434,22 @@ export default function PlaidLinkModal({
                   Setting up secure connection
                 </Text>
               </View>
-            ) : error ? (
+            ) : networkError || error ? (
               <View>
                 <View className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-4">
                   <View className="flex-row items-start">
                     <Ionicons name="alert-circle" size={16} color="#FCA5A5" style={{ marginRight: 8, marginTop: 2 }} />
-                    <Text className="text-red-300 text-sm flex-1">{error}</Text>
+                    <Text className="text-red-300 text-sm flex-1">{networkError || error}</Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  onPress={handleRetry}
-                  className="bg-[#8B5CF6] rounded-xl py-3 items-center mb-2"
-                >
-                  <Text className="text-white font-semibold">Try Again</Text>
-                </TouchableOpacity>
+                {!networkError && (
+                  <TouchableOpacity
+                    onPress={handleRetry}
+                    className="bg-[#8B5CF6] rounded-xl py-3 items-center mb-2"
+                  >
+                    <Text className="text-white font-semibold">Try Again</Text>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   onPress={onClose}
                   className="border border-white/10 rounded-xl py-3 items-center"

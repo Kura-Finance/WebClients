@@ -5,8 +5,11 @@
 
 import { handleFetchError, handleResponseError, logResponse, logSuccess, extractErrorMessage } from './errorHandler';
 
-// Default backend URL - production environment
-const DEFAULT_BACKEND_URL = 'https://kura-backend-642134687769.us-central1.run.app';
+// Default backend URL - will use environment variable or fallback to localhost
+const DEFAULT_BACKEND_URL =
+  process.env.NODE_ENV === 'production'
+    ? 'https://kura-backend-642134687769.us-central1.run.app'
+    : 'https://localhost:8080';
 const AUTH_TOKEN_KEY = 'kura.auth.token';
 
 export interface BackendUser {
@@ -41,8 +44,8 @@ export class AuthApiError extends Error {
 }
 
 export const getBackendBaseUrl = (): string => {
-  // 总是使用生産URL，确保不会被错误的环境变量覆盖
-  return DEFAULT_BACKEND_URL;
+  // Use environment variable if available, otherwise use default
+  return process.env.NEXT_PUBLIC_BACKEND_URL || DEFAULT_BACKEND_URL;
 };
 
 export const getStoredAuthToken = (): string | null => {

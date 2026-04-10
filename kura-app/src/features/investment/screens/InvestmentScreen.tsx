@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { View, ScrollView } from 'react-native';
 import { useFinanceStore } from '../../../shared/store/useFinanceStore';
+import { useWeb3WalletStore } from '../../../shared/store/useWeb3WalletStore';
+import { useExchangeStore } from '../../../shared/store/useExchangeStore';
 import { useAppStore } from '../../../shared/store/useAppStore';
 import PerformanceSummary from '../components/PerformanceSummary';
 import WaveChart from '../components/WaveChart';
@@ -11,15 +13,43 @@ import PlaidLinkModal from '../../../shared/components/PlaidLinkModal';
 import ExchangeLinkModal from '../../../shared/components/ExchangeLinkModal';
 
 export default function InvestmentScreen() {
-  const investmentAccounts = useFinanceStore((state) => state.investmentAccounts);
-  const investments = useFinanceStore((state) => state.investments);
+  // Finance Store (Plaid/Broker/Exchange)
+  const financeInvestmentAccounts = useFinanceStore((state) => state.investmentAccounts);
+  const financeInvestments = useFinanceStore((state) => state.investments);
   const selectedTimeRange = useFinanceStore((state) => state.selectedTimeRange);
   const setSelectedTimeRange = useFinanceStore((state) => state.setSelectedTimeRange);
+
+  // Web3 Wallet Store
+  const walletAccounts = useWeb3WalletStore((state) => state.walletAccounts);
+  const walletInvestments = useWeb3WalletStore((state) => state.walletInvestments);
+
+  // Exchange Store
+  const exchangeInvestmentAccounts = useExchangeStore((state) => state.exchangeInvestmentAccounts);
+  const exchangeInvestments = useExchangeStore((state) => state.exchangeInvestments);
+
+  // Combine data from all three stores
+  const investmentAccounts = useMemo(
+    () => [...financeInvestmentAccounts, ...walletAccounts, ...exchangeInvestmentAccounts],
+    [financeInvestmentAccounts, walletAccounts, exchangeInvestmentAccounts]
+  );
+
+  const investments = useMemo(
+    () => [...financeInvestments, ...walletInvestments, ...exchangeInvestments],
+    [financeInvestments, walletInvestments, exchangeInvestments]
+  );
+
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showPlaidModal, setShowPlaidModal] = useState(false);
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const plaidLinkToken = useAppStore((state: any) => state.plaidLinkToken);
+
+  // Clear selected account if it no longer exists
+  useEffect(() => {
+    if (selectedAccountId && !investmentAccounts.find(acc => acc.id === selectedAccountId)) {
+      setSelectedAccountId(null);
+    }
+  }, [investmentAccounts, selectedAccountId]);
 
   const displayedInvestments = useMemo(() => {
     if (selectedAccountId) {
