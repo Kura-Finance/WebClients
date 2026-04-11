@@ -1,16 +1,25 @@
 import React, { useMemo, useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Text, RefreshControl } from 'react-native';
 import { useFinanceStore } from '../../../shared/store/useFinanceStore';
 import AccountsList from '../components/AccountsList';
 import ActivityContainer from '../components/ActivityContainer';
 import TransactionsDetailModal from '../components/TransactionsDetailModal';
+import { useInitializePlaidData } from '../../../shared/hooks/useInitializePlaidData';
+import { useRefreshDashboardData } from '../hooks/useRefreshDashboardData';
 
 export default function DashboardScreen() {
+  // State Management - UI control
+  const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
+  const [showTransactionsDetail, setShowTransactionsDetail] = useState(false);
+
+  // Data Management - from Zustand stores
   const accounts = useFinanceStore((state) => state.accounts);
   const transactions = useFinanceStore((state) => state.transactions);
   const isAiOptedIn = useFinanceStore((state) => state.isAiOptedIn);
-  const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
-  const [showTransactionsDetail, setShowTransactionsDetail] = useState(false);
+
+  // Data Refresh - custom hooks handling all logic
+  useInitializePlaidData(); // Load data on first mount
+  const { refreshing, handleRefresh } = useRefreshDashboardData(); // Pull-to-refresh
 
   const totalBalance = useMemo(() => {
     return accounts.reduce((sum, account) => {
@@ -41,7 +50,17 @@ export default function DashboardScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: '#0B0B0F' }}>
       {/* 帳戶卡片容器 + 交易容器 包裹 */}
-      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#8B5CF6"
+          />
+        }
+      >
         <View style={{ marginTop: 30 }}>
           <AccountsList 
             accounts={accounts}

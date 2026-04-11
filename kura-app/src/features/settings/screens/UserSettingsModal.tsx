@@ -57,14 +57,20 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
   // 頭像上傳處理
   const handleAvatarPress = async () => {
     try {
+      Logger.info('UserSettingsModal', 'Avatar upload started');
+      
       // 要求權限
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      Logger.debug('UserSettingsModal', 'Media library permission', { status });
+      
       if (status !== 'granted') {
+        Logger.warn('UserSettingsModal', 'Permission not granted');
         Alert.alert('Permission Required', 'We need permission to access your photo library');
         return;
       }
 
       // 打開圖片選擇器 - 使用較低質量以減小文件大小
+      Logger.debug('UserSettingsModal', 'Opening image picker');
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'] as any,
         allowsEditing: true,
@@ -72,26 +78,39 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
         quality: 0.3, // 降低质量以减小文件大小
       });
 
+      Logger.debug('UserSettingsModal', 'Image picker result', { canceled: result.canceled, assetsCount: result.assets?.length });
+
       if (!result.canceled && result.assets[0]) {
         setIsLoadingAvatar(true);
         
         try {
           const imageUri = result.assets[0].uri;
-          Logger.debug('UserSettingsModal', 'Converting image to base64', { uri: imageUri });
+          Logger.info('UserSettingsModal', 'Image selected', { uri: imageUri, fileName: result.assets[0].filename });
           
           // 使用 expo-file-system legacy API 轉換為 base64
+          Logger.debug('UserSettingsModal', 'Starting base64 conversion');
           const base64 = await readAsStringAsync(imageUri, {
             encoding: 'base64' as any,
           });
           
-          Logger.debug('UserSettingsModal', 'Base64 conversion successful', { base64Length: base64.length });
+          Logger.info('UserSettingsModal', 'Base64 conversion successful', { base64Length: base64.length });
+          Logger.debug('UserSettingsModal', 'Base64 first 50 chars', { preview: base64.substring(0, 50) });
+          
+          // 檢查是否為空
+          if (!base64 || base64.trim().length === 0) {
+            const errorMsg = 'Image data is empty. Please select a valid image.';
+            Logger.error('UserSettingsModal', errorMsg, { base64: base64 });
+            Alert.alert('Invalid Image', errorMsg);
+            setIsLoadingAvatar(false);
+            return;
+          }
           
           // 檢查大小限制（最多 400KB）
           const MAX_SIZE = 400 * 1024; // 400KB
           if (base64.length > MAX_SIZE) {
             const sizeInKB = Math.round(base64.length / 1024);
             const errorMsg = `Image too large (${sizeInKB}KB). Maximum allowed size is 400KB. Please choose a smaller image.`;
-            Logger.warn('UserSettingsModal', errorMsg, { base64Length: base64.length, maxSize: MAX_SIZE });
+            Logger.warn('UserSettingsModal', 'Image size exceed limit', { base64Length: base64.length, maxSize: MAX_SIZE, sizeKB: sizeInKB });
             Alert.alert('Image Too Large', errorMsg);
             setIsLoadingAvatar(false);
             return;
@@ -99,23 +118,27 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
           
           // 添加 data URI 頭部
           const dataUri = `data:image/jpeg;base64,${base64}`;
+          Logger.info('UserSettingsModal', 'Data URI created', { totalLength: dataUri.length, prefix: dataUri.substring(0, 80) });
           
-          Logger.debug('UserSettingsModal', 'Uploading avatar', { dataUriLength: dataUri.length });
+          Logger.debug('UserSettingsModal', 'Starting avatar upload');
           await updateAvatar(dataUri);
           
-          Logger.info('UserSettingsModal', 'Avatar updated successfully');
+          Logger.info('UserSettingsModal', 'Avatar updated successfully in store');
           Alert.alert('Success', 'Avatar updated successfully');
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to process image';
-          Logger.error('UserSettingsModal', 'Failed to update avatar', { error: errorMessage });
+          Logger.error('UserSettingsModal', 'Failed to update avatar', { error: errorMessage, fullError: error });
           Alert.alert('Error', errorMessage);
         } finally {
           setIsLoadingAvatar(false);
+          Logger.debug('UserSettingsModal', 'Avatar upload process finished');
         }
+      } else {
+        Logger.debug('UserSettingsModal', 'Image picker cancelled');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to pick image';
-      Logger.error('UserSettingsModal', 'Failed to pick image', { error: errorMessage });
+      Logger.error('UserSettingsModal', 'Failed to pick image', { error: errorMessage, fullError: error });
       Alert.alert('Error', errorMessage);
     }
   };

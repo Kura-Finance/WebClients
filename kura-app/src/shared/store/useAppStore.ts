@@ -25,8 +25,7 @@ import {
 import { fetchExchangeRates, isCacheValid, type ExchangeRates } from '../api/exchangeRateApi';
 import { useFinanceStore } from './useFinanceStore';
 import { type Currency } from '../utils/currencyFormatter';
-import Logger from '../utils/Logger';
-
+import Logger from '../utils/Logger';import { waitForWebhookCompletion } from '../utils/webhookWait';
 export type BaseCurrency = Currency;
 export type Language = 'en' | 'zh-TW';
 
@@ -426,24 +425,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         aiInsights: [],
       });
 
-      // Auto-load Plaid data with 8-second timeout (optional, don't block main flow)
-      try {
-        Logger.debug('AppStore', 'Auto-loading Plaid finance data');
-        const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
-        const plaidPromise = hydratePlaidFinanceData(storedToken);
-        const plaidTimeout = new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('Plaid data load timeout')), 8000)
-        );
-        await Promise.race([plaidPromise, plaidTimeout]);
-        Logger.info('AppStore', 'Plaid finance data auto-loaded successfully');
-        
-        // Record asset snapshot for performance tracking
-        const recordAssetSnapshot = useFinanceStore.getState().recordAssetSnapshot;
-        recordAssetSnapshot();
-      } catch (plaidError) {
-        // Plaid data loading is optional - don't fail the login if it fails
-        Logger.warn('AppStore', 'Failed to auto-load Plaid data', plaidError);
-      }
+      // Note: Plaid data is now managed by Webhook model
+      // Frontend will pull data when user opens Investment/Dashboard screens
+      // Removed auto-load on App startup to avoid redundant API calls
 
       // Load exchange rates with 5-second timeout (optional)
       try {
@@ -554,29 +538,54 @@ export const useAppStore = create<AppState>((set, get) => ({
   updateAvatar: async (avatarUrl) => {
     try {
       const authToken = get().authToken;
+      Logger.info('AppStore.updateAvatar', 'Starting update process', {
+        hasAuthToken: !!authToken,
+        avatarUrlLength: avatarUrl?.length || 0,
+        avatarUrlPrefix: avatarUrl?.substring(0, 80) || 'N/A'
+      });
+
       if (!authToken) {
         throw new Error('Not authenticated');
       }
 
-      Logger.debug('AppStore', 'Updating avatar', { avatarUrl: avatarUrl.substring(0, 50) + '...' });
+      Logger.debug('AppStore.updateAvatar', 'Calling updateAvatarApi', { avatarLength: avatarUrl.length });
       const response = await updateAvatarApi(authToken, avatarUrl);
       
+      Logger.info('AppStore.updateAvatar', 'API response received', {
+        hasResponse: !!response,
+        hasUser: !!response?.user,
+        hasAvatarUrl: !!response?.user?.avatarUrl,
+        newAvatarLength: response?.user?.avatarUrl?.length || 0,
+        newAvatarPrefix: response?.user?.avatarUrl?.substring(0, 80) || 'N/A'
+      });
+
       if (!response || !response.user || !response.user.avatarUrl) {
-        Logger.warn('AppStore', 'Avatar API response missing expected structure', { response });
+        Logger.error('AppStore.updateAvatar', 'Avatar API response missing structure', { 
+          response,
+          hasUser: !!response?.user,
+          hasAvatarUrl: !!response?.user?.avatarUrl
+        });
         throw new Error('Invalid response from avatar upload endpoint');
       }
 
-      Logger.info('AppStore', 'Avatar updated successfully', { newAvatarUrl: response.user.avatarUrl.substring(0, 50) + '...' });
-      
+      Logger.info('AppStore.updateAvatar', 'Updating local state');
       set((state) => ({
         userProfile: {
           ...state.userProfile,
           avatarUrl: response.user.avatarUrl,
         },
       }));
+
+      Logger.info('AppStore.updateAvatar', 'Avatar update completed successfully', {
+        newAvatarUrl: response.user.avatarUrl.substring(0, 80)
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update avatar';
-      Logger.error('AppStore', 'Failed to update avatar', { error: errorMessage });
+      Logger.error('AppStore.updateAvatar', 'Avatar update failed', { 
+        error: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        fullError: error
+      });
       throw error;
     }
   },
@@ -727,6 +736,9 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       Logger.info('AppStore', 'Plaid token exchanged successfully', { result });
 
+      // Wait for webhook to complete after connect
+      await waitForWebhookCompletion('connect');
+
       // Load the updated finance data
       const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
       await hydratePlaidFinanceData(authToken);
@@ -761,9 +773,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       const disconnectBankingAccount = useFinanceStore.getState().disconnectBankingAccount;
       await disconnectBankingAccount(accountId);
 
+      // Wait for webhook to complete after disconnect
+      await waitForWebhookCompletion('disconnect');
+
       // Reload the updated finance data
       const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
       await hydratePlaidFinanceData(authToken);
+
+      Logger.info('AppStore', 'Finance data reloaded after Plaid account disconnect');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to disconnect Plaid account';
       Logger.error('AppStore', 'Failed to disconnect Plaid account', { error: errorMessage });

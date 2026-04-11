@@ -251,14 +251,63 @@ export const updateAvatar = (
   token: string,
   avatarUrl: string
 ): Promise<{ user: BackendUserProfile }> => {
+  Logger.info('authApi.updateAvatar', 'Validate avatarUrl input', { 
+    hasToken: !!token,
+    urlType: typeof avatarUrl,
+    urlLength: avatarUrl?.length || 0,
+    urlPrefix: avatarUrl?.substring(0, 80) || 'N/A'
+  });
+
+  // Validate avatarUrl
+  if (!avatarUrl || typeof avatarUrl !== 'string') {
+    const errorMsg = 'Avatar URL must be a valid string';
+    Logger.error('authApi.updateAvatar', errorMsg, { avatarUrl, type: typeof avatarUrl });
+    return Promise.reject(new Error(errorMsg));
+  }
+  
+  const trimmedUrl = avatarUrl.trim();
+  Logger.debug('authApi.updateAvatar', 'After trim', { trimmedLength: trimmedUrl.length });
+  
+  if (trimmedUrl.length === 0) {
+    const errorMsg = 'Avatar URL cannot be empty';
+    Logger.error('authApi.updateAvatar', errorMsg, { trimmedUrl });
+    return Promise.reject(new Error(errorMsg));
+  }
+  
+  // Check if it's a valid data URL or URL
+  if (!trimmedUrl.startsWith('data:') && !trimmedUrl.startsWith('http')) {
+    const errorMsg = 'Avatar must be a valid data URL or web URL';
+    Logger.error('authApi.updateAvatar', errorMsg, { urlStart: trimmedUrl.substring(0, 20) });
+    return Promise.reject(new Error(errorMsg));
+  }
+
+  Logger.info('authApi.updateAvatar', 'Validation passed, making API request', { 
+    urlLength: trimmedUrl.length, 
+    urlPrefix: trimmedUrl.substring(0, 80)
+  });
+
   return apiRequest<{ user: BackendUserProfile }>(
     '/api/auth/me/avatar',
     {
       method: 'PATCH',
-      body: JSON.stringify({ avatarUrl }),
+      body: JSON.stringify({ avatar: trimmedUrl }),
     },
     token
-  );
+  ).then(response => {
+    Logger.info('authApi.updateAvatar', 'API response received', {
+      hasUser: !!response?.user,
+      hasAvatarUrl: !!response?.user?.avatarUrl,
+      avatarUrlLength: response?.user?.avatarUrl?.length || 0
+    });
+    return response;
+  }).catch(error => {
+    Logger.error('authApi.updateAvatar', 'API request failed', {
+      errorMessage: error?.message,
+      errorStatus: error?.status,
+      fullError: error
+    });
+    throw error;
+  });
 };
 
 /**
@@ -288,7 +337,7 @@ export const requestEmailChange = (
   const normalizedEmail = newEmail.toLowerCase().trim();
   return apiRequest<{ message: string }>('/api/auth/me/email/request-change', {
     method: 'POST',
-    body: JSON.stringify({ email: normalizedEmail }),
+    body: JSON.stringify({ newEmail: normalizedEmail }),
   }, token);
 };
 

@@ -10,6 +10,7 @@ interface Investment {
   currentPrice: number;
   change24h: number;
   type: 'crypto' | 'stock' | 'etf';
+  value?: number; // USD value from exchange data
 }
 
 type AssetClassFilter = 'All' | 'Stock' | 'ETF' | 'Crypto';
@@ -31,14 +32,18 @@ export default function HoldingsList({ investments, selectedAccountId }: Holding
       if (selectedFilter === 'Crypto') return inv.type === 'crypto';
       return true;
     })
-    // Sort by total value (holdings * currentPrice) in descending order
+    // Sort by total value in descending order
     .sort((a, b) => {
-      const valueA = a.holdings * a.currentPrice;
-      const valueB = b.holdings * b.currentPrice;
+      const valueA = a.value ?? (a.holdings * a.currentPrice);
+      const valueB = b.value ?? (b.holdings * b.currentPrice);
       return valueB - valueA;
     });
+  
   // Calculate total portfolio value
-  const totalValue = investments.reduce((sum, inv) => sum + inv.holdings * inv.currentPrice, 0);
+  const totalValue = investments.reduce((sum, inv) => {
+    const invValue = inv.value ?? (inv.holdings * inv.currentPrice);
+    return sum + invValue;
+  }, 0);
 
   const filterTabs: AssetClassFilter[] = ['All', 'Stock', 'ETF', 'Crypto'];
 

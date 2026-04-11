@@ -12,7 +12,7 @@ interface UpdateAvatarScreenProps {
 export default function UpdateAvatarScreen({ onClose }: UpdateAvatarScreenProps) {
   const userProfile = useAppStore((state) => state.userProfile);
   const updateAvatar = useAppStore((state) => state.updateAvatar);
-  const [selectedImage, setSelectedImage] = useState<string | null>(userProfile.avatarUrl || null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePickImage = async () => {
@@ -66,42 +66,90 @@ export default function UpdateAvatarScreen({ onClose }: UpdateAvatarScreenProps)
 
   const handleSave = async () => {
     if (!selectedImage) {
+      Logger.warn('UpdateAvatarScreen', 'No image selected');
       Alert.alert('Error', 'Please select an image');
       return;
     }
 
+    setIsLoading(true);
+    Logger.info('UpdateAvatarScreen', 'Starting avatar save process', { selectedImage });
+    
     try {
-      setIsLoading(true);
-      
       // Convert image to base64 for upload
+      Logger.debug('UpdateAvatarScreen', 'Fetching image from URI');
       const response = await fetch(selectedImage);
+      Logger.debug('UpdateAvatarScreen', 'Fetch completed', { status: response.status, statusText: response.statusText });
+      
       const blob = await response.blob();
-      const reader = new FileReader();
+      Logger.info('UpdateAvatarScreen', 'Blob created', { size: blob.size, type: blob.type });
       
-      reader.onloadend = async () => {
-        try {
-          const base64 = reader.result as string;
-          
-          // Upload to server via updateAvatar
-          await updateAvatar(base64);
-          Logger.info('UpdateAvatarScreen', 'Avatar updated successfully');
-          
-          Alert.alert('Success', 'Avatar updated successfully', [
-            { text: 'OK', onPress: onClose }
-          ]);
-        } catch (error) {
-          Logger.error('UpdateAvatarScreen', 'Failed to update avatar', error);
-          Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update avatar');
-        } finally {
-          setIsLoading(false);
-        }
-      };
+      // Validate blob
+      if (!blob || blob.size === 0) {
+        const errorMsg = 'Image data is empty. Please select a valid image.';
+        Logger.error('UpdateAvatarScreen', errorMsg, { blobSize: blob?.size });
+        throw new Error(errorMsg);
+      }
       
-      reader.readAsDataURL(blob);
+      Logger.debug('UpdateAvatarScreen', 'Starting FileReader conversion');
+      
+      // Use Promise wrapper for FileReader
+      const base64String = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onloadend = () => {
+          try {
+            const result = reader.result as string;
+            Logger.debug('UpdateAvatarScreen', 'FileReader onloadend triggered', { resultLength: result?.length || 0 });
+            
+            // Validate base64 string
+            if (!result || result.length === 0) {
+              const errorMsg = 'Failed to convert image to base64';
+              Logger.error('UpdateAvatarScreen', errorMsg, { result });
+              reject(new Error(errorMsg));
+              return;
+            }
+            
+            Logger.info('UpdateAvatarScreen', 'Base64 conversion successful', { 
+              length: result.length,
+              prefix: result.substring(0, 80)
+            });
+            resolve(result);
+          } catch (error) {
+            Logger.error('UpdateAvatarScreen', 'Error in reader.onloadend', { error });
+            reject(error);
+          }
+        };
+        
+        reader.onerror = () => {
+          const errorMsg = 'Failed to read file';
+          Logger.error('UpdateAvatarScreen', errorMsg, { readerError: reader.error });
+          reject(new Error(errorMsg));
+        };
+        
+        Logger.debug('UpdateAvatarScreen', 'Calling readAsDataURL');
+        reader.readAsDataURL(blob);
+      });
+      
+      Logger.info('UpdateAvatarScreen', 'About to upload avatar', { base64Length: base64String.length });
+      
+      // Upload to server via updateAvatar
+      await updateAvatar(base64String);
+      Logger.info('UpdateAvatarScreen', 'Avatar updated successfully');
+      
+      Alert.alert('Success', 'Avatar updated successfully', [
+        { text: 'OK', onPress: onClose }
+      ]);
     } catch (error) {
-      Logger.error('UpdateAvatarScreen', 'Failed to process image', error);
-      Alert.alert('Error', 'Failed to process image');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update avatar';
+      Logger.error('UpdateAvatarScreen', 'Failed to update avatar', { 
+        error: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        fullError: error
+      });
+      Alert.alert('Error', errorMessage);
+    } finally {
       setIsLoading(false);
+      Logger.debug('UpdateAvatarScreen', 'Avatar save process finished');
     }
   };
 
@@ -123,6 +171,11 @@ export default function UpdateAvatarScreen({ onClose }: UpdateAvatarScreenProps)
           {selectedImage ? (
             <Image 
               source={{ uri: selectedImage }} 
+              style={{ width: '100%', height: '100%' }}
+            />
+          ) : userProfile.avatarUrl ? (
+            <Image 
+              source={{ uri: userProfile.avatarUrl }} 
               style={{ width: '100%', height: '100%' }}
             />
           ) : (

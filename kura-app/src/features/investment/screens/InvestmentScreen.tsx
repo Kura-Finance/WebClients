@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, ScrollView, Text } from 'react-native';
+import { View, ScrollView, Text, RefreshControl } from 'react-native';
 import { useFinanceStore } from '../../../shared/store/useFinanceStore';
 import { useExchangeStore } from '../../../shared/store/useExchangeStore';
 import { useAppStore } from '../../../shared/store/useAppStore';
@@ -10,98 +10,88 @@ import HoldingsList from '../components/HoldingsList';
 import ConnectAccountModal from '../../../shared/components/ConnectAccountModal';
 import PlaidLinkModal from '../../../shared/components/PlaidLinkModal';
 import ExchangeLinkModal from '../../../shared/components/ExchangeLinkModal';
+import { useInitializePlaidData } from '../../../shared/hooks/useInitializePlaidData';
+import { useRefreshInvestmentData } from '../hooks/useRefreshInvestmentData';
 
 export default function InvestmentScreen() {
-  // Finance Store (Plaid/Broker/Web3)
+  // State Management - UI control
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [showPlaidModal, setShowPlaidModal] = useState(false);
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
+
+  // Data Management - Finance (Plaid/Broker/Web3)
   const financeInvestmentAccounts = useFinanceStore((state) => state.investmentAccounts);
   const financeInvestments = useFinanceStore((state) => state.investments);
   const selectedTimeRange = useFinanceStore((state) => state.selectedTimeRange);
   const setSelectedTimeRange = useFinanceStore((state) => state.setSelectedTimeRange);
 
-  // Exchange Store (交易所專用數據)
+  // Data Management - Exchange (交易所)
   const exchangeAccounts = useExchangeStore((state) => state.exchangeAccounts);
   const exchangeInvestmentAccounts = useExchangeStore((state) => state.exchangeInvestmentAccounts);
   const exchangeInvestments = useExchangeStore((state) => state.exchangeInvestments);
-  const exchangeIsLoading = useExchangeStore((state) => state.isLoading);
   const exchangeError = useExchangeStore((state) => state.error);
 
+  // App Store - auth info
+  const plaidLinkToken = useAppStore((state: any) => state.plaidLinkToken);
+
+  // Data Refresh - custom hooks handling all logic
+  useInitializePlaidData(); // Load Plaid data on first mount
+  const { refreshing, handleRefresh } = useRefreshInvestmentData(); // Pull-to-refresh for both Plaid + Exchange
 
 
-  // Combine data from all sources
-  // 展開所有帳戶，並保留 type 字段用於胶囊标签
+
+  // Combine data from all sources - Plaid + Exchange accounts
   const investmentAccounts = useMemo(() => {
-    const combined = [
-      ...financeInvestmentAccounts.map(acc => ({
+    return [
+      ...financeInvestmentAccounts.map((acc) => ({
         ...acc,
-        type: (acc.type || 'Broker') as 'Broker' | 'Exchange' | 'Web3 Wallet' // 為 financeInvestmentAccounts 設定默認類型
+        type: (acc.type || 'Broker') as 'Broker' | 'Exchange' | 'Web3 Wallet',
       })),
-      ...exchangeInvestmentAccounts.map(acc => ({
+      ...exchangeInvestmentAccounts.map((acc) => ({
         ...acc,
-        type: 'Exchange' as const // 交易所帳戶明確標示為 Exchange
-      }))
+        type: 'Exchange' as const,
+      })),
     ];
-    const logData = {
-      total: combined.length,
-      finance: financeInvestmentAccounts.length,
-      exchange: exchangeInvestmentAccounts.length,
-      combined: combined.map(a => ({ id: a.id, name: a.name, type: a.type, logo: a.logo }))
-    };
-    console.log('📊 [InvestmentScreen] Combined Investment Accounts:', JSON.stringify(logData, null, 2));
-    return combined;
   }, [financeInvestmentAccounts, exchangeInvestmentAccounts]);
 
+  // Combine all investments - Plaid + Exchange holdings
   const investments = useMemo(
     () => [...financeInvestments, ...exchangeInvestments],
     [financeInvestments, exchangeInvestments]
   );
 
-  // Check if any exchange account is loading
-  const isAnyExchangeLoading = useMemo(
-    () => Object.values(exchangeIsLoading).some((loading) => loading),
-    [exchangeIsLoading]
-  );
-
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [showConnectModal, setShowConnectModal] = useState(false);
-  const [showPlaidModal, setShowPlaidModal] = useState(false);
-  const [showExchangeModal, setShowExchangeModal] = useState(false);
-  const plaidLinkToken = useAppStore((state: any) => state.plaidLinkToken);
-  const authToken = useAppStore((state: any) => state.authToken);
-
-  // 🔄 自動獲取交易所餘額數據（只在首次獲取，之後不重複）
+  // Auto-fetch exchange balances on first load (single-fetch pattern)
   useEffect(() => {
-    const fetchExchangeData = async () => {
-      // 只在交易所投資數據為空且有新帳戶時才獲取
-      if (exchangeAccounts.length === 0 || !authToken) {
+    const initializeExchangeData = async () => {
+      if (exchangeAccounts.length === 0 || exchangeInvestments.length > 0) {
         return;
       }
 
-      // 如果已經有交易所投資數據，就不再重複獲取
-      if (exchangeInvestments.length > 0) {
-        return;
-      }
+      const authToken = useAppStore.getState().authToken;
+      if (!authToken) return;
 
       const fetchExchangeBalances = useExchangeStore.getState().fetchExchangeBalances;
-      
       for (const account of exchangeAccounts) {
         try {
           await fetchExchangeBalances(account.id, authToken);
         } catch {
-          // Silently handle errors
+          // Silently handle errors on initial load
         }
       }
     };
 
-    fetchExchangeData();
-  }, [exchangeAccounts, authToken, exchangeInvestments.length]);
+    initializeExchangeData();
+  }, [exchangeAccounts, exchangeInvestments.length]);
 
   // Clear selected account if it no longer exists
   useEffect(() => {
-    if (selectedAccountId && !investmentAccounts.find(acc => acc.id === selectedAccountId)) {
+    if (selectedAccountId && !investmentAccounts.find((acc) => acc.id === selectedAccountId)) {
       setSelectedAccountId(null);
     }
   }, [investmentAccounts, selectedAccountId]);
 
+  // Filter investments based on selected account
   const displayedInvestments = useMemo(() => {
     if (selectedAccountId) {
       return investments.filter((investment) => investment.accountId === selectedAccountId);
@@ -109,36 +99,28 @@ export default function InvestmentScreen() {
     return investments;
   }, [investments, selectedAccountId]);
 
+  // Event handlers
   const handleAddAccount = () => {
     setShowConnectModal(true);
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#0B0B0F' }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ paddingBottom: 32 }} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#8B5CF6"
+          />
+        }
+      >
         <PerformanceSummary timeRange={selectedTimeRange} />
         <WaveChart selectedTimeRange={selectedTimeRange} onTimeRangeChange={setSelectedTimeRange} />
         
-        {/* 顯示交易所加載狀態 */}
-        {isAnyExchangeLoading && (
-          <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
-            <View
-              style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 8,
-                backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                borderWidth: 1,
-                borderColor: 'rgba(139, 92, 246, 0.3)',
-              }}
-            >
-              <Text style={{ color: '#8B5CF6', fontSize: 12, fontWeight: '500' }}>
-                🔄 同步中... （交易所帳戶）
-              </Text>
-            </View>
-          </View>
-        )}
-
         {/* 顯示交易所錯誤 */}
         {exchangeError && (
           <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>

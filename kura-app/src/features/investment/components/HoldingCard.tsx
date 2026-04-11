@@ -9,6 +9,7 @@ interface Investment {
   holdings: number;
   currentPrice: number;
   change24h: number;
+  value?: number; // USD value from exchange data
 }
 
 interface HoldingCardProps {
@@ -17,7 +18,8 @@ interface HoldingCardProps {
 }
 
 export default function HoldingCard({ investment, totalValue }: HoldingCardProps) {
-  const positionValue = investment.holdings * investment.currentPrice;
+  // Use value from exchange data if available, otherwise calculate it
+  const positionValue = investment.value ?? (investment.holdings * investment.currentPrice);
   const percentageOfTotal = totalValue > 0 ? (positionValue / totalValue) * 100 : 0;
   const isPositive = investment.change24h >= 0;
 

@@ -10,7 +10,7 @@ interface EditEmailScreenProps {
 
 export default function EditEmailScreen({ onClose }: EditEmailScreenProps) {
   const userProfile = useAppStore((state) => state.userProfile);
-  const setEmail = useAppStore((state) => state.setEmail);
+  const requestEmailChange = useAppStore((state) => state.requestEmailChange);
   const [email, setEmailState] = useState(userProfile.email);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -34,14 +34,14 @@ export default function EditEmailScreen({ onClose }: EditEmailScreenProps) {
 
     try {
       setIsLoading(true);
-      await setEmail(email);
-      Logger.info('EditEmailScreen', 'Email updated successfully');
-      Alert.alert('Success', 'Email updated successfully', [
+      await requestEmailChange(email);
+      Logger.info('EditEmailScreen', 'Email change request sent successfully');
+      Alert.alert('Success', 'Verification code sent to your new email address', [
         { text: 'OK', onPress: onClose }
       ]);
     } catch (error) {
-      Logger.error('EditEmailScreen', 'Failed to update email', error);
-      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to update email');
+      Logger.error('EditEmailScreen', 'Failed to request email change', error);
+      Alert.alert('Error', error instanceof Error ? error.message : 'Failed to request email change');
     } finally {
       setIsLoading(false);
     }
