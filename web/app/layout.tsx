@@ -6,8 +6,8 @@ import TopNav from "./components/TopNav";
 import Web3ModalProvider from '@/context/Web3ModalProvider';
 
 export const metadata: Metadata = {
-  title: "Kura | Your Financial Nexus",
-  description: "Track your cross-border fiat and web3 assets.",
+  title: "Kura | One app to manage your all financial from tradfi to crypto.",
+  description: "Kura | One app to manage your all financial from tradfi to crypto.",
   keywords: ["finance", "web3", "crypto", "assets", "dashboard"],
   authors: [{ name: "Kura" }],
   manifest: "/manifest.json",
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Kura | Your Financial Nexus",
-    description: "Track your cross-border fiat and web3 assets.",
-    url: "https://app.kura.com",
+    title: "Kura | One app to manage your all financial from tradfi to crypto.",
+    description: "Kura | One app to manage your all financial from tradfi to crypto.",
+    url: "https://kura-finance.com",
     siteName: "Kura",
     images: [
       {
@@ -47,8 +47,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Kura | Your Financial Nexus",
-    description: "Track your cross-border fiat and web3 assets.",
+    title: "Kura | One app to manage your all financial from tradfi to crypto.",
+    description: "Kura | One app to manage your all financial from tradfi to crypto.",
     images: '/ios/AppIcon.appiconset/icon-1024.png',
   },
 };

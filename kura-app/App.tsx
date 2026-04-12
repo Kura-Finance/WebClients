@@ -12,6 +12,8 @@ import Logger from './src/shared/utils/Logger';
 import { getBackendBaseUrl } from './src/shared/api/authApi';
 import Header from './src/components/Header';
 import TabNavigator from './src/components/TabNavigator';
+import NotificationScreen from './src/features/notifications/screens/NotificationScreen';
+import NotificationSettingsScreen from './src/features/notifications/screens/NotificationSettingsScreen';
 import LoginScreen from './src/features/auth/screens/LoginScreen';
 import SignupScreen from './src/features/auth/screens/SignupScreen';
 import ForgotPasswordScreen from './src/features/auth/screens/ForgotPasswordScreen';
@@ -31,6 +33,7 @@ const KuraDarkTheme = {
 };
 
 const Stack = createNativeStackNavigator();
+const MainStack = createNativeStackNavigator();
 
 function AuthNavigator() {
   const [activeScreen, setActiveScreen] = useState<'login' | 'signup' | 'forgotPassword'>('login');
@@ -84,7 +87,7 @@ function AuthNavigator() {
   );
 }
 
-function MainNavigator() {
+function HomeScreen() {
   // Monitor wallet connections inside AppKit provider
   useWalletSync();
 
@@ -101,6 +104,32 @@ function MainNavigator() {
         <AppKit />
       </View>
     </View>
+  );
+}
+
+function MainNavigator() {
+  return (
+    <MainStack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <MainStack.Screen name="Home" component={HomeScreen} />
+      <MainStack.Screen 
+        name="Notifications" 
+        component={NotificationScreen}
+        options={{
+          animationEnabled: true,
+        }}
+      />
+      <MainStack.Screen 
+        name="NotificationSettings" 
+        component={NotificationSettingsScreen}
+        options={{
+          animationEnabled: true,
+        }}
+      />
+    </MainStack.Navigator>
   );
 }
 

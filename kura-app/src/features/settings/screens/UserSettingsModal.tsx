@@ -18,6 +18,7 @@ import SettingsList from '../components/SettingsList';
 import SignOutButton from '../components/SignOutButton';
 import ProfileSecurityScreen from '../components/ProfileSecurityScreen';
 import ConnectedAccountsScreen from '../components/ConnectedAccountsScreen';
+import MembershipScreen from './MembershipScreen';
 
 interface UserSettingsModalProps {
   isVisible: boolean;
@@ -29,6 +30,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function UserSettingsModal({ isVisible, onClose }: UserSettingsModalProps) {
   const [showProfileSecurity, setShowProfileSecurity] = useState(false);
   const [showConnectedAccounts, setShowConnectedAccounts] = useState(false);
+  const [showMembership, setShowMembership] = useState(false);
   const [isLoadingAvatar, setIsLoadingAvatar] = useState(false);
   const animationProgress = useSharedValue(0);
   const { t } = useAppTranslation();
@@ -37,8 +39,6 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
   const preferences = useAppStore((state) => state.preferences);
   const setBaseCurrency = useAppStore((state) => state.setBaseCurrency);
   const setLanguage = useAppStore((state) => state.setLanguage);
-  const toggleLargeTransactionAlerts = useAppStore((state) => state.toggleLargeTransactionAlerts);
-  const toggleWeeklyAiSummary = useAppStore((state) => state.toggleWeeklyAiSummary);
   const clearAuthSession = useAppStore((state) => state.clearAuthSession);
   const updateAvatar = useAppStore((state) => state.updateAvatar);
   
@@ -208,6 +208,27 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
     );
   }
 
+  // If Membership is shown, render it instead
+  if (showMembership) {
+    return (
+      <Modal visible={isVisible} transparent animationType="none">
+        <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-start' }}>
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <Animated.View style={[{ position: 'absolute', width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)' }, { opacity: animationProgress.value }]} />
+          </TouchableWithoutFeedback>
+
+          <Animated.View style={[{ width: '100%', height: '100%', backgroundColor: '#0B0B0F' }, { transform: [{ translateX: (1 - animationProgress.value) * SCREEN_WIDTH }] }]}>
+            <MembershipScreen 
+              navigation={{
+                goBack: () => setShowMembership(false)
+              }}
+            />
+          </Animated.View>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
     <Modal visible={isVisible} transparent animationType="none">
       <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'flex-start' }}>
@@ -243,25 +264,44 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
                 selectedLanguage={preferences.language}
                 onSelectLanguage={setLanguage}
               />
-              <PreferenceToggle
-                label={t('settings.largeTransactions')}
-                description={t('settings.largeTransactionsDescription')}
-                value={preferences.largeTransactionAlerts}
-                onValueChange={toggleLargeTransactionAlerts}
-              />
-              <PreferenceToggle
-                label={t('settings.weeklyAiSummary')}
-                description={t('settings.weeklyAiSummaryDescription')}
-                value={preferences.weeklyAiSummary}
-                onValueChange={toggleWeeklyAiSummary}
-              />
             </View>
 
             <SectionHeader title={t('settings.general')} />
-            <SettingsList 
-              onProfileSecurityPress={() => setShowProfileSecurity(true)}
-              onConnectedAccountsPress={() => setShowConnectedAccounts(true)}
-            />
+            <View style={{ marginBottom: 32 }}>
+              <SettingsList 
+                onProfileSecurityPress={() => setShowProfileSecurity(true)}
+                onConnectedAccountsPress={() => setShowConnectedAccounts(true)}
+              />
+            </View>
+
+            <SectionHeader title={t('settings.advanced')} />
+            {/* Membership Tier Button */}
+            <View style={{ marginBottom: 32 }}>
+              <TouchableOpacity
+                onPress={() => setShowMembership(true)}
+                style={{
+                  paddingVertical: 16,
+                  paddingHorizontal: 16,
+                  backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#8B5CF6',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#8B5CF6', fontSize: 14, fontWeight: '600', marginBottom: 4 }}>
+                    {userProfile.membershipLabel || t('common.appName')}
+                  </Text>
+                  <Text style={{ color: '#999999', fontSize: 12 }}>
+                    {t('membership.unlockFeatures')}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#8B5CF6" />
+              </TouchableOpacity>
+            </View>
 
             {authStatus === 'authenticated' && (
               <SignOutButton onPress={handleSignOut} />

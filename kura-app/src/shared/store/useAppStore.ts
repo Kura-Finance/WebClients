@@ -39,7 +39,6 @@ export interface UserProfile {
 export interface UserPreferences {
   baseCurrency: BaseCurrency;
   language: Language;
-  largeTransactionAlerts: boolean;
   weeklyAiSummary: boolean;
 }
 
@@ -92,7 +91,6 @@ interface AppState {
   updateAvatar: (avatarUrl: string) => Promise<void>;
   setBaseCurrency: (currency: BaseCurrency) => void;
   setLanguage: (language: Language) => void;
-  toggleLargeTransactionAlerts: () => void;
   toggleWeeklyAiSummary: () => void;
   addChatMessage: (message: AppChatMessage) => void;
   setPlaidLinkToken: (token: string | null) => void;
@@ -122,7 +120,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   preferences: {
     baseCurrency: 'USD',
     language: 'en',
-    largeTransactionAlerts: false,
     weeklyAiSummary: false,
   },
   aiInsights: [],
@@ -158,7 +155,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         preferences: {
           baseCurrency: 'USD',
           language: 'en',
-          largeTransactionAlerts: false,
+
           weeklyAiSummary: false,
         },
         aiInsights: [],
@@ -338,7 +335,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         preferences: {
           baseCurrency: 'USD',
           language: 'en',
-          largeTransactionAlerts: false,
           weeklyAiSummary: false,
         },
         aiInsights: [],
@@ -419,7 +415,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         preferences: {
           baseCurrency: 'USD',
           language: 'en',
-          largeTransactionAlerts: false,
           weeklyAiSummary: false,
         },
         aiInsights: [],
@@ -592,13 +587,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
   setBaseCurrency: (baseCurrency) => set((state) => ({ preferences: { ...state.preferences, baseCurrency } })),
   setLanguage: (language) => set((state) => ({ preferences: { ...state.preferences, language } })),
-  toggleLargeTransactionAlerts: () =>
-    set((state) => ({
-      preferences: {
-        ...state.preferences,
-        largeTransactionAlerts: !state.preferences.largeTransactionAlerts,
-      },
-    })),
   toggleWeeklyAiSummary: () =>
     set((state) => ({
       preferences: {

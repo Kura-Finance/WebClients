@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import UserSettingsModal from '../features/settings/screens/UserSettingsModal';
 import LoggerDebugPanel from '../shared/components/LoggerDebugPanel';
 import { useAppStore } from '../shared/store/useAppStore';
+import { useNotificationStore } from '../shared/store/notification';
 
 export default function Header() {
   const [isModalVisible, setModalVisible] = useState(false);
@@ -14,9 +15,9 @@ export default function Header() {
   const logoClickCount = useRef(0);
   const logoClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userProfile = useAppStore((state) => state.userProfile);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const unreadCount = useNotificationStore((state) => state.unreadCount);
 
   // 缓存计算的值，避免每次渲染都重新计算
   const { avatarInitial } = useMemo(() => {
@@ -58,9 +59,18 @@ export default function Header() {
         </TouchableOpacity>
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity style={{ width: 40, height: 40, backgroundColor: '#1A1A24', borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('Notifications')}
+            style={{ width: 40, height: 40, backgroundColor: '#1A1A24', borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}
+          >
             <Ionicons name="notifications-outline" size={20} color="#9CA3AF" />
-            <View style={{ position: 'absolute', top: 8, right: 8, width: 8, height: 8, backgroundColor: '#EF4444', borderRadius: 4, borderWidth: 1, borderColor: '#1A1A24' }} />
+            {unreadCount > 0 && (
+              <View style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, backgroundColor: '#EF4444', borderRadius: 9, borderWidth: 2, borderColor: '#0B0B0F', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: 'bold' }}>
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity 
