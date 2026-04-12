@@ -70,7 +70,7 @@ export default function Header() {
             {userProfile.avatarUrl ? (
               <Image 
                 source={{ uri: userProfile.avatarUrl }} 
-                style={{ width: '100%', height: '100%' }}
+                style={{ width: 40, height: 40, borderRadius: 20 }}
                 resizeMode="cover"
               />
             ) : (
