@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { FiArrowLeft } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import TopNav from '@/components/TopNav';
 
 export default function AboutPage() {
   const containerVariants = {
@@ -29,28 +30,29 @@ export default function AboutPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0B0F] text-white">
-      {/* Header with back button */}
-      <header className="fixed top-0 w-full border-b border-[#1A1A24] bg-[#0B0B0F]/80 backdrop-blur-md z-40">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center gap-4">
-          <Link
-            href="/"
-            className="p-2 hover:bg-[#1A1A24] rounded-lg transition-colors"
-          >
-            <FiArrowLeft className="w-6 h-6" />
-          </Link>
-          <h1 className="text-2xl font-bold">About Kura</h1>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#0B0B0F] text-white flex flex-col">
+      {/* TopNav */}
+      <TopNav />
 
-      {/* Main content */}
+      {/* Breadcrumb / Back button */}
+      <div className="px-6 py-3 border-b border-[#1A1A24] bg-[#0B0B0F]/50">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors w-fit"
+        >
+          <FiArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Back to Home</span>
+        </Link>
+      </div>
+
+      {/* Main content - centered */}
       <motion.main
-        className="pt-24 pb-16"
+        className="flex-1 flex items-center justify-center px-6 py-16"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="w-full max-w-4xl">
           {/* Hero Section */}
           <motion.section
             className="mb-20"
@@ -61,7 +63,7 @@ export default function AboutPage() {
                 Your Financial Nexus
               </h2>
               <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
-                Kura is revolutionizing personal finance by seamlessly bridging traditional and decentralized finance. Manage all your financial assets in one powerful, intuitive platform.
+                Kura is revolutionizing personal finance by providing a unified, read-only dashboard. Track your entire net worth across traditional and decentralized finance in one powerful, intuitive platform.
               </p>
             </div>
           </motion.section>
@@ -75,14 +77,14 @@ export default function AboutPage() {
               <div className="rounded-2xl border border-[#1A1A24] bg-gradient-to-br from-[#1A1A24]/40 to-[#0B0B0F]/40 backdrop-blur-xl p-8">
                 <h3 className="text-2xl font-bold mb-4 text-[#8B5CF6]">Our Mission</h3>
                 <p className="text-gray-400 leading-relaxed">
-                  We believe that managing your finances shouldn&apos;t require juggling multiple apps and platforms. Our mission is to create a unified ecosystem where you can seamlessly manage, track, and grow your wealth—whether it&apos;s traditional investments, cryptocurrencies, or decentralized finance protocols.
+                  We believe that understanding your wealth shouldn&apos;t be complicated. Our mission is to create a unified ecosystem where you can seamlessly visualize and track your assets—whether it&apos;s fiat accounts, cryptocurrencies, or DeFi protocols—without ever compromising custody.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-[#1A1A24] bg-gradient-to-br from-[#1A1A24]/40 to-[#0B0B0F]/40 backdrop-blur-xl p-8">
                 <h3 className="text-2xl font-bold mb-4 text-[#A78BFA]">Our Vision</h3>
                 <p className="text-gray-400 leading-relaxed">
-                  We envision a future where financial freedom is accessible to everyone. By combining the stability of traditional finance with the innovation of Web3, we&apos;re building the financial operating system for the next generation of users.
+                  We envision a future where financial clarity is accessible to everyone. By providing crystal-clear data visualization and insights, we empower you to take control of your financial journey with complete confidence and security.
                 </p>
               </div>
             </div>
@@ -98,32 +100,32 @@ export default function AboutPage() {
               {[
                 {
                   title: 'Unified Dashboard',
-                  description: 'View all your financial assets in one place—stocks, crypto, savings, and more.',
+                  description: 'View your scattered financial data in one place—strictly read-only and highly visual.',
                   icon: '📊',
                 },
                 {
-                  title: 'Smart Analytics',
-                  description: 'Get AI-powered insights and recommendations to optimize your financial strategy.',
-                  icon: '🧠',
+                  title: 'Historical Analytics',
+                  description: 'Understand your spending habits and net-worth trends with intuitive data charts.',
+                  icon: '📈',
                 },
                 {
-                  title: 'Cross-Chain Support',
-                  description: 'Seamlessly manage assets across multiple blockchains and traditional financial networks.',
+                  title: 'Cross-Chain Tracking',
+                  description: 'Seamlessly track asset balances across multiple blockchains and fiat accounts.',
                   icon: '🔗',
                 },
                 {
-                  title: 'Bank-Level Security',
-                  description: 'Your assets are protected with enterprise-grade encryption and security protocols.',
-                  icon: '🔒',
+                  title: 'Zero-Custody',
+                  description: 'We never hold, transmit, or touch your funds. Your assets remain safely with you.',
+                  icon: '🛡️',
                 },
                 {
-                  title: 'Real-Time Tracking',
-                  description: 'Monitor your portfolio performance and market movements in real-time.',
+                  title: 'Real-Time Updates',
+                  description: 'Monitor your portfolio value and market movements in real-time.',
                   icon: '⚡',
                 },
                 {
-                  title: 'Easy Integration',
-                  description: 'Connect your existing investment accounts and wallets with just a few clicks.',
+                  title: 'Read-Only APIs',
+                  description: 'Connect accounts securely using bank-grade read-only APIs and public blockchain addresses.',
                   icon: '🔌',
                 },
               ].map((feature, index) => (
@@ -149,12 +151,12 @@ export default function AboutPage() {
               <h3 className="text-2xl font-bold mb-6 text-[#8B5CF6]">Built With Modern Tech</h3>
               <div className="grid md:grid-cols-2 gap-6 text-gray-400">
                 <div>
-                  <p className="font-semibold text-white mb-2">Frontend & Web3</p>
-                  <p className="text-sm">Next.js 16, React 19, Wagmi, Web3Modal, Tailwind CSS, Framer Motion</p>
+                  <p className="font-semibold text-white mb-2">Frontend Architecture</p>
+                  <p className="text-sm">Next.js 16, React 19, Tailwind CSS, Framer Motion for fluid UI experiences</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-white mb-2">Backend & Infrastructure</p>
-                  <p className="text-sm">Firebase, Cloud Run, Plaid API, Ethereum & Multi-Chain Support</p>
+                  <p className="font-semibold text-white mb-2">Backend & Data</p>
+                  <p className="text-sm">Cloud Run, Plaid API for TradFi, Web3 APIs for read-only on-chain tracking</p>
                 </div>
               </div>
             </div>
@@ -166,9 +168,9 @@ export default function AboutPage() {
             variants={itemVariants}
           >
             <div className="rounded-3xl border border-[#8B5CF6]/30 bg-gradient-to-br from-[#8B5CF6]/10 to-[#0B0B0F]/40 backdrop-blur-xl p-12 text-center">
-              <h3 className="text-3xl font-bold mb-4">Ready to Take Control?</h3>
+              <h3 className="text-3xl font-bold mb-4">Ready to See the Big Picture?</h3>
               <p className="text-gray-400 mb-8 max-w-2xl mx-auto">
-                Join thousands of users who are already managing their complete financial portfolio with Kura.
+                Join users who are already tracking their complete financial portfolio safely with Kura.
               </p>
               <div className="flex gap-4 justify-center">
                 <Link
@@ -192,7 +194,7 @@ export default function AboutPage() {
             className="pt-12 border-t border-[#1A1A24] text-center text-gray-500 text-sm"
             variants={itemVariants}
           >
-            <p>© 2026 Kura Finance. All rights reserved. Bridging TradFi and DeFi.</p>
+            <p>© 2026 Kura Finance LLC. The Ultimate Read-Only Personal Finance Dashboard.</p>
           </motion.footer>
         </div>
       </motion.main>
