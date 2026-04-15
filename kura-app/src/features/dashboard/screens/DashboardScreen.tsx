@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Text, RefreshControl } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useNavigation } from '@react-navigation/native';
 import { useFinanceStore } from '../../../shared/store/useFinanceStore';
 import AccountsList from '../components/AccountsList';
 import ActivityContainer from '../components/ActivityContainer';
@@ -10,6 +11,7 @@ import { useRefreshDashboardData } from '../hooks/useRefreshDashboardData';
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
+  const navigation = useNavigation<any>();
   // State Management - UI control
   const [selectedAccountId, setSelectedAccountId] = useState<string>('all');
   const [showTransactionsDetail, setShowTransactionsDetail] = useState(false);
@@ -73,7 +75,7 @@ export default function DashboardScreen() {
         </View>
         
         {/* 交易容器 - 在 ScrollView 內部，可跟隨滾動 */}
-        <View style={{ marginTop: 16 }}>
+        <View style={{ marginTop: 32 }}>
           <ActivityContainer 
             transactions={displayTransactions}
             transactionHeader={transactionHeader}
@@ -86,6 +88,7 @@ export default function DashboardScreen() {
         {/* Budget 入口卡片 */}
         <TouchableOpacity
           activeOpacity={0.8}
+          onPress={() => navigation.navigate('Budget')}
           style={{
             marginHorizontal: 24,
             marginTop: 16,

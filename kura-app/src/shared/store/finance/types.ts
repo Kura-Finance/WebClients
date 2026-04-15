@@ -25,14 +25,22 @@ export interface Account {
 
 export interface Transaction {
   id: string | number;
-  accountId: string;
-  accountName: string;
-  accountType: 'checking' | 'saving' | 'credit' | 'crypto';
+  accountId?: string;
+  accountName?: string;
+  accountType?: 'checking' | 'saving' | 'credit' | 'crypto';
   amount: string;
   date: string;
   merchant: string;
   category: string;
   type: 'credit' | 'deposit' | 'transfer';
+  logo?: string; // Merchant logo URL from backend
+  // Enhanced fields
+  personalFinanceCategory?: string;
+  isRecurring?: boolean;
+  recurringFrequency?: string;
+  isSubscription?: boolean;
+  enrichedMerchantName?: string;
+  isPending?: boolean;
 }
 
 export interface InvestmentAccount {
@@ -44,13 +52,12 @@ export interface InvestmentAccount {
 
 export interface Investment {
   id: string;
-  accountId: string;
+  accountId?: string;
   symbol: string;
   name: string;
   holdings: number;
   currentPrice: number;
-  change24h: number; // 24小時價格變化百分比
-  usdValue: number; // 持倉總USD價值 (holdings * currentPrice)
+  change24h: number; // Can be percentage or absolute value depending on type
   type: 'crypto' | 'stock' | 'etf';
   logo: string;
 }

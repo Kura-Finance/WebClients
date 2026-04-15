@@ -207,10 +207,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   logout: async () => {
     try {
       Logger.info('AppStore', 'Logging out');
+      // Clear auth token (but keep preferences in storage)
       await clearStoredAuthToken();
-      await clearStoredPreferences();
       
-      // Clear all finance store data
+      Logger.debug('AppStore', 'Auth token cleared from storage, preserving user preferences');
+      
+      // Clear all in-memory data
       useFinanceStore.getState().clearPlaidFinanceData();
       useFinanceStore.getState().clearAssetHistory();
       
@@ -225,6 +227,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         plaidLinkToken: null,
         authError: null,
+        // Keep preferences in memory (retained from storage)
+        aiInsights: [],
+        chatMessages: [],
+        exchangeRates: null,
+        isLoadingExchangeRates: false,
+        plaidLinkTokenTimestamp: null,
       });
       Logger.info('AppStore', 'Logout successful');
     } catch (error) {
@@ -243,8 +251,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       Logger.info('AppStore', 'Deleting account');
       await deleteAccountApi(authToken, password);
       
-      // Clear auth token and reset state
+      // Clear auth token and preferences from storage
       await clearStoredAuthToken();
+      await clearStoredPreferences();
+      
+      Logger.debug('AppStore', 'Auth token and preferences cleared from storage');
+      
       set({
         authToken: null,
         authStatus: 'unauthenticated',
@@ -257,6 +269,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         plaidLinkToken: null,
         plaidLinkTokenTimestamp: null,
         authError: null,
+        // Reset preferences to defaults
+        preferences: {
+          baseCurrency: 'USD',
+          language: 'en',
+          weeklyAiSummary: false,
+        },
+        // Clear all in-memory data
+        aiInsights: [],
+        chatMessages: [],
+        exchangeRates: null,
+        isLoadingExchangeRates: false,
       });
 
       // Clear finance store data
@@ -450,35 +473,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         aiInsights: [],
       });
 
-      // Note: Plaid data is now managed by Webhook model
+      // Note: Plaid data is now managed by Webhook model and stored only in memory
       // Frontend will pull data when user opens Investment/Dashboard screens
-      // Removed auto-load on App startup to avoid redundant API calls
-
-      // Load exchange rates with 5-second timeout (optional)
-      try {
-        Logger.debug('AppStore', 'Loading exchange rates');
-        const ratesPromise = get().loadExchangeRates();
-        const ratesTimeout = new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('Exchange rates timeout')), 5000)
-        );
-        await Promise.race([ratesPromise, ratesTimeout]);
-      } catch (rateError) {
-        Logger.warn('AppStore', 'Failed to load exchange rates during hydration', rateError);
-      }
-
-      // Hydrate connected exchange accounts with 5-second timeout (optional)
-      try {
-        Logger.debug('AppStore', 'Hydrating exchange accounts');
-        const hydrateExchangeAccounts = useFinanceStore.getState().hydrateExchangeAccounts;
-        const exchangePromise = hydrateExchangeAccounts(storedToken);
-        const exchangeTimeout = new Promise<void>((_, reject) =>
-          setTimeout(() => reject(new Error('Exchange accounts hydration timeout')), 5000)
-        );
-        await Promise.race([exchangePromise, exchangeTimeout]);
-        Logger.info('AppStore', 'Exchange accounts hydrated successfully');
-      } catch (exchangeError) {
-        Logger.warn('AppStore', 'Failed to hydrate exchange accounts', exchangeError);
-      }
+      // Exchange rates and exchange accounts are loaded on-demand, not persisted
+      Logger.debug('AppStore', 'Hydration completed - Finance data will be loaded on-demand from backend');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown hydration error';
       Logger.warn('AppStore', 'Failed to hydrate from storage', { 
@@ -619,9 +617,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       throw error;
     }
   },
-  setBaseCurrency: (baseCurrency) => set((state) => ({ preferences: { ...state.preferences, baseCurrency } })),
+  setBaseCurrency: (baseCurrency) => {
+    set((state) => ({ preferences: { ...state.preferences, baseCurrency } }));
+    // Auto-persist to storage
+    get().persistPreferences();
+  },
   setLanguage: (language) => {
-    // Update state
     set((state) => ({ preferences: { ...state.preferences, language } }));
     // Persist to storage
     get().persistPreferences();
@@ -629,19 +630,28 @@ export const useAppStore = create<AppState>((set, get) => ({
   persistPreferences: async () => {
     const state = get();
     try {
+      // Only persist user preferences to storage (language, currency, ai summary settings)
       await setStoredPreferences(state.preferences);
+      Logger.debug('AppStore', 'Preferences persisted to storage', {
+        baseCurrency: state.preferences.baseCurrency,
+        language: state.preferences.language,
+        weeklyAiSummary: state.preferences.weeklyAiSummary,
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       Logger.error('AppStore', 'Failed to persist preferences', { error: errorMessage });
     }
   },
-  toggleWeeklyAiSummary: () =>
+  toggleWeeklyAiSummary: () => {
     set((state) => ({
       preferences: {
         ...state.preferences,
         weeklyAiSummary: !state.preferences.weeklyAiSummary,
       },
-    })),
+    }));
+    // Auto-persist to storage
+    get().persistPreferences();
+  },
   addChatMessage: (message) => set((state) => ({ chatMessages: [...state.chatMessages, message] })),
   setPlaidLinkToken: (plaidLinkToken) => set({ plaidLinkToken }),
   setAuthToken: (authToken) => {

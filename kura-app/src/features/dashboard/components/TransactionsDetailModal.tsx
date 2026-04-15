@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Modal, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { Transaction } from '../../../shared/store/useFinanceStore';
@@ -13,12 +13,59 @@ interface TransactionsDetailModalProps {
   transactions: Transaction[];
 }
 
+const getTransactionAccountTypeLabel = (accountType: string | undefined): string => {
+  if (!accountType) return 'Account';
+  switch (accountType) {
+    case 'saving':
+      return 'Savings';
+    case 'checking':
+      return 'Checking';
+    case 'credit':
+      return 'Credit';
+    default:
+      return 'Account';
+  }
+};
+
+// Get transaction icon based on type and category
+const getTransactionIcon = (transaction: any): string => {
+  // First check transaction type
+  if (transaction.type === 'deposit') return '💰';
+  if (transaction.type === 'transfer') return '🔄';
+  
+  // Then check category for more specific icons
+  const category = (transaction.personalFinanceCategory || transaction.category || '').toLowerCase();
+  
+  if (category.includes('food') || category.includes('restaurant') || category.includes('grocery')) return '🍔';
+  if (category.includes('transport') || category.includes('gas') || category.includes('taxi') || category.includes('uber')) return '🚗';
+  if (category.includes('entertainment') || category.includes('movies') || category.includes('games')) return '🎬';
+  if (category.includes('shopping') || category.includes('retail')) return '🛍️';
+  if (category.includes('subscription')) return '🔄';
+  if (category.includes('utility') || category.includes('bill')) return '🏠';
+  if (category.includes('health') || category.includes('medical') || category.includes('pharmacy')) return '⚕️';
+  if (category.includes('travel') || category.includes('hotel')) return '✈️';
+  
+  return '🛍️'; // Default
+};
+
+// Get merchant display name (prefer enriched version)
+const getMerchantDisplay = (transaction: any): string => {
+  return transaction.enrichedMerchantName || transaction.merchant || 'Unknown';
+};
+
+// Get category display
+const getCategoryLabel = (transaction: any): string => {
+  return transaction.personalFinanceCategory || transaction.category || 'Other';
+};
+
 export default function TransactionsDetailModal({ 
   isOpen, 
   onClose, 
   account, 
   transactions 
 }: TransactionsDetailModalProps) {
+  const insets = useSafeAreaInsets();
+  
   if (!account) return null;
 
   const accountType = (account as any).type;
@@ -42,7 +89,7 @@ export default function TransactionsDetailModal({
 
   return (
     <Modal visible={isOpen} transparent animationType="fade">
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#0B0B0F' }}>
+      <View style={{ flex: 1, backgroundColor: '#0B0B0F', paddingTop: insets.top, paddingBottom: insets.bottom }}>
         {/* Header */}
         <View
           style={{
@@ -181,28 +228,50 @@ export default function TransactionsDetailModal({
                           justifyContent: 'center',
                           alignItems: 'center',
                           marginRight: 12,
+                          overflow: 'hidden',
                         }}
                       >
-                        <Text>{transaction.type === 'deposit' ? '💰' : transaction.type === 'transfer' ? '🔄' : '🛍️'}</Text>
+                        {transaction.logo ? (
+                          <Image
+                            source={{ uri: transaction.logo }}
+                            style={{ width: 40, height: 40, borderRadius: 20 }}
+                          />
+                        ) : (
+                          <Text>{getTransactionIcon(transaction)}</Text>
+                        )}
                       </View>
 
                       {/* Merchant & Meta */}
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }} numberOfLines={1}>
-                          {transaction.merchant}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }} numberOfLines={1}>
+                            {getMerchantDisplay(transaction)}
+                          </Text>
+                          {transaction.isPending && (
+                            <Text style={{ color: '#FFA500', fontSize: 10, fontWeight: '600' }}>⏳</Text>
+                          )}
+                          {transaction.isSubscription && (
+                            <Text style={{ color: '#8B5CF6', fontSize: 10, fontWeight: '600' }}>🔄</Text>
+                          )}
+                        </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
                           <Text style={{ color: '#999999', fontSize: 12 }}>{transaction.date}</Text>
-                          <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#444444' }} />
-                          <Text style={{ color: '#999999', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                            {transaction.accountType === 'saving'
-                              ? 'Savings'
-                              : transaction.accountType === 'checking'
-                                ? 'Checking'
-                                : transaction.accountType === 'credit'
-                                  ? 'Credit'
-                                  : 'Crypto'}
-                          </Text>
+                          {transaction.accountType && (
+                            <>
+                              <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#444444' }} />
+                              <Text style={{ color: '#999999', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                                {getTransactionAccountTypeLabel(transaction.accountType)}
+                              </Text>
+                            </>
+                          )}
+                          {(transaction.personalFinanceCategory || transaction.category) && (
+                            <>
+                              <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#444444' }} />
+                              <Text style={{ color: '#999999', fontSize: 12 }}>
+                                {getCategoryLabel(transaction)}
+                              </Text>
+                            </>
+                          )}
                         </View>
                       </View>
                     </View>
@@ -260,7 +329,7 @@ export default function TransactionsDetailModal({
             <Text style={{ color: '#8B5CF6', fontSize: 16, fontWeight: '600' }}>Done</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }

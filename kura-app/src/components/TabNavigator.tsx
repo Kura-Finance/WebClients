@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LiquidGlassView, isLiquidGlassSupported } from '@callstack/liquid-glass';
 import DashboardScreen from '../features/dashboard/screens/DashboardScreen';
+import BudgetScreen from '../features/dashboard/screens/BudgetScreen';
 import InvestmentScreen from '../features/investment/screens/InvestmentScreen';
 
 const Stack = createNativeStackNavigator();
@@ -85,6 +86,11 @@ export default function TabNavigator() {
         <Stack.Screen
           name={activeTab}
           component={currentScreen}
+        />
+        <Stack.Screen
+          name="Budget"
+          component={BudgetScreen}
+          options={{ animationEnabled: true }}
         />
       </Stack.Navigator>
 
