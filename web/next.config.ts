@@ -28,7 +28,7 @@ const nextConfig: NextConfig = {
   
   /**
    * Rewrites for API routes
-   * Forwards /api/* requests to backend server
+   * Forwards all /api/* requests to backend server
    */
   async rewrites() {
     return {

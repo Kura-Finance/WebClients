@@ -6,6 +6,7 @@ export function middleware(request: NextRequest) {
 
   // Get the request origin (protocol + host)
   const requestOrigin = request.nextUrl.origin;
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   // Define CSP sources
   const connectSources = [
@@ -20,10 +21,15 @@ export function middleware(request: NextRequest) {
     'https://api.reown.org',
     'https://static.cloudflareinsights.com', // Cloudflare Insights
     'https://kura.dpdns.org', // Explicit self-domain for reverse proxy
+    ...(isDevelopment ? ['ws://localhost', 'ws://127.0.0.1'] : []), // Allow WebSocket for dev HMR
   ].filter(Boolean).join(' ');
 
   const scriptSources = [
     "'self'",
+    "'unsafe-inline'",
+    ...(isDevelopment ? ["'unsafe-eval'"] : []), // Allow eval() for React dev mode debugging
+    'https://cdn.plaid.com',
+    'https://*.plaid.com',
     'https://static.cloudflareinsights.com', // Cloudflare Insights
   ].join(' ');
 

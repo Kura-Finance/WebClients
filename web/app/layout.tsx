@@ -61,11 +61,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Kura" />
         <meta name="theme-color" content="#8B5CF6" />
 
-        {/* Allow Plaid CDN in CSP */}
-        <meta
-          httpEquiv="Content-Security-Policy"
-          content="frame-src https://cdn.plaid.com https://*.plaid.com; connect-src https://cdn.plaid.com https://*.plaid.com"
-        />
+        {/* CSP is set via middleware.ts - no need for meta tag */}
         {/* Load Plaid Link script once globally to prevent duplication */}
         <Script
           src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"
