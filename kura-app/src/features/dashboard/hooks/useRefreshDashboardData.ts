@@ -14,6 +14,7 @@ export function useRefreshDashboardData() {
   const exchangeAccounts = useFinanceStore((state: any) => state.exchangeAccounts);
   const fetchExchangeBalances = useExchangeStore((state: any) => state.fetchExchangeBalances);
   const authToken = useAppStore((state: any) => state.authToken);
+  const loadExchangeRates = useAppStore((state: any) => state.loadExchangeRates);
 
   const handleRefresh = useCallback(async () => {
     if (!authToken) {
@@ -23,11 +24,20 @@ export function useRefreshDashboardData() {
 
     setRefreshing(true);
     try {
-      Logger.debug('useRefreshDashboardData', 'Refreshing Plaid data and exchange accounts');
+      Logger.debug('useRefreshDashboardData', 'Refreshing Plaid data, exchange rates, and exchange accounts');
       
-      // Refresh Plaid data
-      await hydratePlaidFinanceData(authToken);
+      // Refresh Plaid data with refresh=true to force fetch from Plaid API
+      await hydratePlaidFinanceData(authToken, true);
       Logger.info('useRefreshDashboardData', 'Plaid data refreshed successfully');
+      
+      // Refresh exchange rates with forceRefresh=true to bypass cache
+      try {
+        await loadExchangeRates(true);
+        Logger.info('useRefreshDashboardData', 'Exchange rates refreshed successfully');
+      } catch (rateError) {
+        Logger.warn('useRefreshDashboardData', 'Failed to refresh exchange rates', rateError);
+        // Don't throw - continue with exchange account refresh if rates fail
+      }
       
       // Refresh exchange accounts in parallel
       if (exchangeAccounts && exchangeAccounts.length > 0) {
@@ -50,7 +60,7 @@ export function useRefreshDashboardData() {
     } finally {
       setRefreshing(false);
     }
-  }, [authToken, hydratePlaidFinanceData, exchangeAccounts, fetchExchangeBalances]);
+  }, [authToken, hydratePlaidFinanceData, exchangeAccounts, fetchExchangeBalances, loadExchangeRates]);
 
   return {
     refreshing,

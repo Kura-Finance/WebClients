@@ -24,7 +24,9 @@ export interface BackendFinanceTransaction {
   merchant: string;
   category: string;
   type: 'credit' | 'deposit' | 'transfer';
-  logo?: string; // Merchant logo URL from backend
+  // Logo sources (priority: Plaid > Clearbit > fallback emoji)
+  plaidMerchantLogo?: string; // Logo from Plaid (preferred)
+  merchantLogo?: string; // Logo from Clearbit
   // Enhanced fields from backend
   personalFinanceCategory?: string;
   isRecurring?: boolean;
@@ -194,6 +196,7 @@ export const exchangePlaidPublicToken = (
  */
 export const fetchPlaidFinanceSnapshot = (token: string, refresh: boolean = false): Promise<BackendFinanceSnapshot> => {
   const queryParam = refresh ? '?refresh=true' : '';
+  Logger.debug('PlaidAPI', 'Fetching Plaid snapshot', { refresh, queryParam });
   return plaidRequest<BackendFinanceSnapshot>(
     `/api/plaid/finance-snapshot${queryParam}`,
     { method: 'GET' },

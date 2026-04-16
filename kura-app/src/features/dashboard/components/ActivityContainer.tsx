@@ -56,6 +56,33 @@ const getCategoryLabel = (transaction: Transaction): string => {
   return transaction.personalFinanceCategory || transaction.category || 'Other';
 };
 
+// Get merchant logo with priority: Plaid > Clearbit > fallback
+const getMerchantLogo = (transaction: Transaction): string | null => {
+  // Priority: Plaid logo (default) > Clearbit logo > null
+  const logo = transaction.plaidMerchantLogo || transaction.merchantLogo || null;
+  return logo;
+};
+
+// Calculate correct transaction amount with sign
+// credit type = expense (negative), deposit/transfer = income or transfer (positive)
+const getTransactionAmount = (transaction: Transaction): number => {
+  const amount = Number(transaction.amount);
+  // Credit card transactions are expenses, show as negative
+  if (transaction.type === 'credit') {
+    return Math.abs(amount) * -1; // Ensure negative
+  }
+  // Deposit is income, show as positive
+  if (transaction.type === 'deposit') {
+    return Math.abs(amount); // Ensure positive
+  }
+  // Transfer: keep original sign
+  return amount;
+};
+
+const isTransactionExpense = (transaction: Transaction): boolean => {
+  return getTransactionAmount(transaction) < 0;
+};
+
 export default function ActivityContainer({
   transactions,
   transactionHeader,
@@ -63,6 +90,12 @@ export default function ActivityContainer({
   onToggleAiOptIn,
   onViewAll,
 }: ActivityContainerProps) {
+  const [imageErrors, setImageErrors] = React.useState<Record<string | number, boolean>>({});
+
+  const handleImageError = (transactionId: string | number) => {
+    setImageErrors((prev) => ({ ...prev, [transactionId]: true }));
+  };
+
   return (
     <View style={{ borderRadius: 16, backgroundColor: '#1A1A24', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', padding: 20, height: 345, marginHorizontal: 24, marginBottom: 32, marginTop: 0 }}>
         <View style={{ marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -79,21 +112,29 @@ export default function ActivityContainer({
         >
           <View style={{ gap: 12 }}>
             {transactions.slice(0, 4).map((transaction) => {
-              const isExpense = Number(transaction.amount) < 0;
+              const isExpense = isTransactionExpense(transaction);
+              const displayAmount = getTransactionAmount(transaction);
+              const logo = getMerchantLogo(transaction);
+              const hasImageError = imageErrors[transaction.id] || false;
 
               return (
-                <View key={transaction.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12, paddingHorizontal: 0 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 16 }}>
+                <View key={transaction.id} style={{ paddingVertical: 12, paddingHorizontal: 0 }}>
+                  {/* Top row: Logo, Merchant Name, Amount */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    {/* Logo container */}
                     <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#2A2A2A', justifyContent: 'center', alignItems: 'center', marginRight: 12, overflow: 'hidden' }}>
-                      {transaction.logo ? (
+                      {logo && !hasImageError ? (
                         <Image
-                          source={{ uri: transaction.logo }}
+                          source={{ uri: logo }}
                           style={{ width: 40, height: 40, borderRadius: 20 }}
+                          onError={() => handleImageError(transaction.id)}
                         />
                       ) : (
                         <Text>{getTransactionIcon(transaction)}</Text>
                       )}
                     </View>
+                    
+                    {/* Merchant name container */}
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500' }} numberOfLines={1}>
@@ -106,36 +147,48 @@ export default function ActivityContainer({
                           <Text style={{ color: '#8B5CF6', fontSize: 10, fontWeight: '600' }}>🔄</Text>
                         )}
                       </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                        <Text style={{ color: '#999999', fontSize: 12 }}>{transaction.date}</Text>
-                        {transaction.accountType && (
-                          <>
-                            <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#444444' }} />
-                            <Text style={{ color: '#999999', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                              {getAccountTypeLabel(transaction.accountType)}
-                            </Text>
-                          </>
-                        )}
-                        {(transaction.personalFinanceCategory || transaction.category) && (
-                          <>
-                            <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: '#444444' }} />
-                            <Text style={{ color: '#999999', fontSize: 12 }}>
-                              {getCategoryLabel(transaction)}
-                            </Text>
-                          </>
-                        )}
-                      </View>
+                    </View>
+                    
+                    {/* Amount container */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 16 }}>
+                      <Text style={{ color: isExpense ? '#FFFFFF' : '#4ADE80', fontSize: 14, fontWeight: '500', fontFamily: 'monospace' }}>
+                        {isExpense ? '-' : '+'}
+                      </Text>
+                      <CurrencyDisplay
+                        value={Math.abs(displayAmount)}
+                        fontSize={14}
+                        color={isExpense ? '#FFFFFF' : '#4ADE80'}
+                        style={{ fontFamily: 'monospace', fontWeight: '500' }}
+                      />
                     </View>
                   </View>
-                  <Text style={{ color: isExpense ? '#FFFFFF' : '#4ADE80', fontSize: 14, fontWeight: '500', fontFamily: 'monospace' }}>
-                    {isExpense ? '-' : '+'}
-                  </Text>
-                  <CurrencyDisplay
-                    value={Number(transaction.amount)}
-                    fontSize={14}
-                    color={isExpense ? '#FFFFFF' : '#4ADE80'}
-                    style={{ fontFamily: 'monospace', fontWeight: '500' }}
-                  />
+                  
+                  {/* Bottom row: Date, Category, Account Type */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+                    {/* Date and Category container */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      {/* Date container */}
+                      <Text style={{ color: '#999999', fontSize: 12 }}>{transaction.date}</Text>
+                      
+                      {/* Category container */}
+                      {(transaction.personalFinanceCategory || transaction.category) && (
+                        <View style={{ backgroundColor: 'rgba(139, 92, 246, 0.2)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#8B5CF6' }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600' }}>
+                            {getCategoryLabel(transaction)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    {/* Account type container */}
+                    {transaction.accountType && (
+                      <View style={{ backgroundColor: 'rgba(139, 92, 246, 0.2)', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: '#8B5CF6' }}>
+                        <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                          {getAccountTypeLabel(transaction.accountType)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               );
             })}

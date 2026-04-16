@@ -21,6 +21,7 @@ export interface Account {
   balance: number;
   type: 'checking' | 'saving' | 'credit' | 'crypto';
   logo: string;
+  apy?: number;
 }
 
 export interface Transaction {
@@ -33,7 +34,9 @@ export interface Transaction {
   merchant: string;
   category: string;
   type: 'credit' | 'deposit' | 'transfer';
-  logo?: string; // Merchant logo URL from backend
+  // Logo sources (priority: Plaid > Clearbit > fallback emoji)
+  plaidMerchantLogo?: string; // Logo from Plaid (preferred)
+  merchantLogo?: string; // Logo from Clearbit
   // Enhanced fields
   personalFinanceCategory?: string;
   isRecurring?: boolean;

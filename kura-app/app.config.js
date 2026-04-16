@@ -20,8 +20,8 @@ module.exports = {
     ],
     splash: {
       image: "./assets/splash-icon.png",
-      resizeMode: "contain",
-      backgroundColor: "#ffffff",
+      resizeMode: "cover",
+      backgroundColor: "#1A1A24",
     },
     ios: {
       bundleIdentifier: "com.kurafinance.app",

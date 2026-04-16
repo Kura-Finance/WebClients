@@ -81,6 +81,7 @@ export default function TabNavigator() {
         screenOptions={{
           headerShown: false,
           animation: 'fade',
+          animationDuration: 150,
         }}
       >
         <Stack.Screen
@@ -90,7 +91,6 @@ export default function TabNavigator() {
         <Stack.Screen
           name="Budget"
           component={BudgetScreen}
-          options={{ animationEnabled: true }}
         />
       </Stack.Navigator>
 

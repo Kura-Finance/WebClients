@@ -127,7 +127,7 @@ export default function AccountsList({
                 style={{
                   borderRadius: 16,
                   marginTop,
-                  zIndex: index + 1,
+                  zIndex: isSelected ? 1000 : index + 1,
                   overflow: 'hidden',
                   borderWidth: 2,
                   borderColor: '#1A1A24',
@@ -146,7 +146,7 @@ export default function AccountsList({
                   <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     {/* Left Container - Account Name */}
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, color: '#999999', fontWeight: '600' }} numberOfLines={1}>
+                      <Text style={{ fontSize: 14, color: isSelected ? '#FFFFFF' : '#999999', fontWeight: '600' }} numberOfLines={1}>
                         {account.name}
                       </Text>
                     </View>
@@ -161,11 +161,16 @@ export default function AccountsList({
                     </View>
                   </View>
 
-                  {/* Bottom: Type label (left) */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }}>
-                    <Text style={{ fontSize: 11, color: '#999999', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.28 }}>
+                  {/* Bottom: Type label (left) and APY (right) */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 11, color: isSelected ? '#FFFFFF' : '#999999', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.28 }}>
                       {account.type === 'credit' ? 'Credit Card' : account.type === 'saving' ? 'Savings' : account.type === 'crypto' ? 'Crypto' : 'Checking'}
                     </Text>
+                    {account.apy && (
+                      <Text style={{ fontSize: 11, color: isSelected ? '#FFFFFF' : '#999999', fontWeight: '500' }}>
+                        APY {(account.apy * 100).toFixed(2)}%
+                      </Text>
+                    )}
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -250,7 +255,7 @@ export default function AccountsList({
               <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 {/* Left Container - Overview Text */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, color: '#999999', fontWeight: '600' }}>Overview</Text>
+                  <Text style={{ fontSize: 14, color: selectedAccountId === 'all' ? '#FFFFFF' : '#999999', fontWeight: '600' }}>Overview</Text>
                 </View>
                 {/* Right Container - Total Balance */}
                 <View>
@@ -265,7 +270,7 @@ export default function AccountsList({
 
               {/* Bottom: All Accounts (left) */}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' }}>
-                <Text style={{ fontSize: 11, color: '#999999', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.28 }}>All Accounts</Text>
+                <Text style={{ fontSize: 11, color: selectedAccountId === 'all' ? '#FFFFFF' : '#999999', fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.28 }}>All Accounts</Text>
               </View>
             </LinearGradient>
           </TouchableOpacity>

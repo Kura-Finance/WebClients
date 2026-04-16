@@ -11,7 +11,26 @@ interface UserProfileProps {
   isLoadingAvatar?: boolean;
 }
 
+// 根據成員等級獲取顏色
+const getMembershipColor = (membershipLabel: string): { backgroundColor: string; textColor: string } => {
+  const label = membershipLabel.toLowerCase();
+  
+  if (label.includes('vip')) {
+    return { backgroundColor: 'rgba(245, 158, 11, 0.1)', textColor: '#F59E0B' }; // 金色
+  }
+  if (label.includes('ultimate')) {
+    return { backgroundColor: 'rgba(139, 92, 246, 0.1)', textColor: '#A78BFA' }; // 紫色
+  }
+  if (label.includes('pro')) {
+    return { backgroundColor: 'rgba(59, 130, 246, 0.1)', textColor: '#93C5FD' }; // 藍色
+  }
+  // Basic 或默認
+  return { backgroundColor: 'rgba(74, 222, 128, 0.1)', textColor: '#86EFAC' }; // 綠色
+};
+
 export default function UserProfile({ displayName, email, membershipLabel, avatarUrl, onAvatarPress, isLoadingAvatar }: UserProfileProps) {
+  const membershipColors = getMembershipColor(membershipLabel);
+
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 40 }}>
       <TouchableOpacity 
@@ -40,8 +59,8 @@ export default function UserProfile({ displayName, email, membershipLabel, avata
       <View style={{ flex: 1 }}>
         <Text style={{ color: '#FFFFFF', fontWeight: 'bold', fontSize: 18 }}>{displayName || 'Signed out'}</Text>
         <Text style={{ color: '#999999', fontSize: 14, marginTop: 2 }}>{email || 'No email available'}</Text>
-        <View style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginTop: 8, alignSelf: 'flex-start' }}>
-          <Text style={{ color: '#A78BFA', fontSize: 12, fontFamily: 'monospace' }}>{membershipLabel || 'Kura Member'}</Text>
+        <View style={{ backgroundColor: membershipColors.backgroundColor, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginTop: 8, alignSelf: 'flex-start' }}>
+          <Text style={{ color: membershipColors.textColor, fontSize: 12, fontFamily: 'monospace' }}>{membershipLabel || 'Kura Member'}</Text>
         </View>
       </View>
     </View>

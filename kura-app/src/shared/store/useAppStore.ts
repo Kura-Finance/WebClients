@@ -105,7 +105,7 @@ interface AppState {
   hydrateUserProfile: () => Promise<void>;
   
   // Exchange rate methods
-  loadExchangeRates: () => Promise<void>;
+  loadExchangeRates: (forceRefresh?: boolean) => Promise<void>;
   
   // Plaid methods
   requestPlaidLinkToken: () => Promise<string | null>;
@@ -436,15 +436,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         return;
       }
 
-      // Fetch profile with 10-second timeout
+      // Fetch profile with 20-second timeout (increased from 10s for slower networks)
       Logger.debug('AppStore', 'Found stored token, fetching profile');
       const profilePromise = fetchCurrentUserProfile(storedToken);
       const profileTimeout = new Promise<{ user: import('../api/authApi').BackendUserProfile }>((_, reject) =>
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+        setTimeout(() => reject(new Error('Profile fetch timeout after 20s')), 20000)
       );
       const response = await Promise.race([profilePromise, profileTimeout]);
 
-      Logger.info('AppStore', 'Profile fetched successfully');
+      Logger.info('AppStore', 'Profile fetched successfully', {
+        displayName: response.user.displayName,
+        email: response.user.email,
+      });
       
       // Load saved preferences if available, otherwise use defaults
       const savedPreferences = await getStoredPreferences();
@@ -473,16 +476,27 @@ export const useAppStore = create<AppState>((set, get) => ({
         aiInsights: [],
       });
 
-      // Note: Plaid data is now managed by Webhook model and stored only in memory
-      // Frontend will pull data when user opens Investment/Dashboard screens
-      // Exchange rates and exchange accounts are loaded on-demand, not persisted
       Logger.debug('AppStore', 'Hydration completed - Finance data will be loaded on-demand from backend');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown hydration error';
+      
+      // Special handling for timeout errors
+      if (errorMessage.includes('timeout')) {
+        Logger.warn('AppStore', 'Profile fetch timeout during hydration', {
+          error: errorMessage,
+          suggestion: 'Network may be slow. User can retry or log in again.',
+        });
+        // Keep the token for retry, don't clear it
+        set({ authStatus: 'unauthenticated', authError: 'Network timeout. Please try again.' });
+        return;
+      }
+      
       Logger.warn('AppStore', 'Failed to hydrate from storage', { 
         error: errorMessage,
         errorType: error instanceof Error ? error.constructor.name : typeof error,
       });
+      
+      // For other errors, clear the invalid token
       await clearStoredAuthToken();
       set({ authStatus: 'unauthenticated', authToken: null });
     }
@@ -701,7 +715,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  loadExchangeRates: async () => {
+  loadExchangeRates: async (forceRefresh: boolean = false) => {
     try {
       const state = get();
       
@@ -710,13 +724,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         return;
       }
 
-      // Skip if cached rates are still valid
-      if (state.exchangeRates && isCacheValid(state.exchangeRates.lastUpdated)) {
+      // Skip if cached rates are still valid (unless forced)
+      if (!forceRefresh && state.exchangeRates && isCacheValid(state.exchangeRates.lastUpdated)) {
         Logger.debug('AppStore', 'Using cached exchange rates');
         return;
       }
 
-      Logger.debug('AppStore', 'Loading exchange rates');
+      Logger.debug('AppStore', 'Loading exchange rates', { forceRefresh });
       set({ isLoadingExchangeRates: true });
 
       const rates = await fetchExchangeRates();
@@ -726,6 +740,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         USD: rates.USD,
         EUR: rates.EUR,
         TWD: rates.TWD,
+        forceRefresh,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load exchange rates';

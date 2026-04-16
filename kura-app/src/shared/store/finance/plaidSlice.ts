@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { PlaidState, FinanceState, RefreshInfo } from './types';
+import { PlaidState, FinanceState } from './types';
 import { fetchPlaidFinanceSnapshot } from '../../api/plaidApi';
 import Logger from '../../utils/Logger';
 
@@ -31,6 +31,18 @@ export const createPlaidSlice: StateCreator<FinanceState, [], [], PlaidState> = 
         cacheSource: snapshot._cacheSource,
         hasRefreshInfo: !!snapshot._refreshInfo,
       });
+      
+      // Log first transaction logo data for debugging
+      if (snapshot.transactions.length > 0) {
+        const firstTransaction = snapshot.transactions[0];
+        Logger.debug('PlaidSlice', 'First transaction logo data', {
+          merchant: firstTransaction.merchant,
+          plaidMerchantLogo: !!firstTransaction.plaidMerchantLogo,
+          merchantLogo: !!firstTransaction.merchantLogo,
+          plaidLogoUrl: firstTransaction.plaidMerchantLogo?.substring(0, 50),
+          clearbitLogoUrl: firstTransaction.merchantLogo?.substring(0, 50),
+        });
+      }
 
       set((state) => {
         // Preserve Web3 Wallet and Exchange accounts (not managed by Plaid)

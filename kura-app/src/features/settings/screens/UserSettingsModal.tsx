@@ -314,60 +314,62 @@ export default function UserSettingsModal({ isVisible, onClose }: UserSettingsMo
 
               return (
                 <View style={{ marginBottom: 32 }}>
-                  {/* Current Membership Button */}
-                  <TouchableOpacity
-                    onPress={() => setShowMembership(true)}
-                    style={{
-                      paddingVertical: 16,
-                      paddingHorizontal: 16,
-                      backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#8B5CF6',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: 8,
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#8B5CF6', fontSize: 14, fontWeight: '600', marginBottom: 4 }}>
-                        {memberName}
-                      </Text>
-                      <Text style={{ color: '#999999', fontSize: 12 }}>
-                        {t('membership.manageYourPlan')}
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#8B5CF6" />
-                  </TouchableOpacity>
-
-                  {/* Tier Features Button (Only show if not Basic) */}
-                  {shouldShowUpgradeButton && (
+                  <View style={{ flexDirection: 'column' }}>
+                    {/* Current Membership Button */}
                     <TouchableOpacity
                       onPress={() => setShowMembership(true)}
                       style={{
                         paddingVertical: 16,
                         paddingHorizontal: 16,
-                        backgroundColor: '#1A1A24',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
                         borderRadius: 12,
                         borderWidth: 1,
-                        borderColor: 'rgba(139, 92, 246, 0.2)',
+                        borderColor: '#8B5CF6',
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        marginBottom: 16,
                       }}
                     >
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600', marginBottom: 4 }}>
-                          {tierFeatures}
+                        <Text style={{ color: '#8B5CF6', fontSize: 14, fontWeight: '600', marginBottom: 4 }}>
+                          {memberName}
                         </Text>
                         <Text style={{ color: '#999999', fontSize: 12 }}>
-                          {t('membership.learnMore')}
+                          {t('membership.manageYourPlan')}
                         </Text>
                       </View>
-                      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                      <Ionicons name="chevron-forward" size={20} color="#8B5CF6" />
                     </TouchableOpacity>
-                  )}
+
+                    {/* Tier Features Button (Only show if not Basic) */}
+                    {shouldShowUpgradeButton && (
+                      <TouchableOpacity
+                        onPress={() => setShowMembership(true)}
+                        style={{
+                          paddingVertical: 16,
+                          paddingHorizontal: 16,
+                          backgroundColor: '#1A1A24',
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: 'rgba(139, 92, 246, 0.2)',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600', marginBottom: 4 }}>
+                            {tierFeatures}
+                          </Text>
+                          <Text style={{ color: '#999999', fontSize: 12 }}>
+                            {t('membership.learnMore')}
+                          </Text>
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
                 </View>
               );
             })()}
