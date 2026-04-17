@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
 const isScrolled = ref(false);
 const isMobileMenuOpen = ref(false);
 

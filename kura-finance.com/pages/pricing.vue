@@ -52,6 +52,16 @@ const plans = [
     highlighted: false,
   }
 ];
+
+const handlePlanAction = (planName: string) => {
+  if (planName === 'Starter') {
+    navigateTo('https://app.kura-finance.com', { external: true });
+  } else if (planName === 'Professional') {
+    navigateTo('https://app.kura-finance.com', { external: true });
+  } else if (planName === 'Enterprise') {
+    alert('Scheduling demo - feature coming soon!');
+  }
+};
 </script>
 
 <template>
@@ -67,7 +77,7 @@ const plans = [
     <main class="relative z-10 w-full px-4 sm:px-6 py-16 md:py-24">
       <div class="max-w-7xl mx-auto">
         <!-- Page Header -->
-        <section class="mb-20 text-center">
+        <section class="mb-20 text-center pt-16 md:pt-20">
           <h1 class="text-5xl md:text-6xl font-black mb-6 tracking-tight">
             Simple, <span class="bg-gradient-to-r from-kura-primary to-kura-secondary bg-clip-text text-transparent">Transparent Pricing</span>
           </h1>
@@ -83,7 +93,7 @@ const plans = [
             <div v-if="plan.highlighted" class="absolute inset-0 bg-gradient-to-r from-kura-primary/20 to-kura-secondary/20 rounded-2xl blur-xl opacity-60 group-hover:opacity-100 transition-opacity duration-300" />
             
             <!-- Card -->
-            <div class="relative bg-gradient-to-br from-white/[0.05] to-transparent border transition-all duration-300" :class="plan.highlighted ? 'border-kura-primary/50 lg:scale-105' : 'border-white/10 hover:border-white/20'">
+            <div class="relative bg-gradient-to-br from-white/[0.05] to-transparent border transition-all duration-300 rounded-2xl" :class="plan.highlighted ? 'border-kura-primary/50 lg:scale-105' : 'border-white/10 hover:border-white/20'">
               <div class="p-8 md:p-10">
                 <!-- Plan Header -->
                 <div class="mb-8">
@@ -164,15 +174,3 @@ const plans = [
     <Footer />
   </div>
 </template>
-
-<script setup lang="ts">
-const handlePlanAction = (planName: string) => {
-  if (planName === 'Starter') {
-    navigateTo('https://app.kura-finance.com', { external: true });
-  } else if (planName === 'Professional') {
-    navigateTo('https://app.kura-finance.com', { external: true });
-  } else if (planName === 'Enterprise') {
-    alert('Scheduling demo - feature coming soon!');
-  }
-};
-</script>

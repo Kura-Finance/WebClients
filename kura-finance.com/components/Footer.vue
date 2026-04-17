@@ -41,24 +41,16 @@
           <h4 class="font-semibold text-white text-sm uppercase tracking-widest">Product</h4>
           <ul class="space-y-2">
             <li>
-              <a href="#features" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Features
-              </a>
+              <a href="#features" class="text-sm text-gray-400 hover:text-white transition-colors">Features</a>
             </li>
             <li>
-              <NuxtLink to="/pricing" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Pricing
-              </NuxtLink>
+              <NuxtLink to="/pricing" class="text-sm text-gray-400 hover:text-white transition-colors">Pricing</NuxtLink>
             </li>
             <li>
-              <a href="https://app.kura-finance.com" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Dashboard
-              </a>
+              <a href="https://app.kura-finance.com" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-400 hover:text-white transition-colors">Dashboard</a>
             </li>
             <li>
-              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">
-                API Docs
-              </a>
+              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">API Docs</a>
             </li>
           </ul>
         </div>
@@ -68,24 +60,16 @@
           <h4 class="font-semibold text-white text-sm uppercase tracking-widest">Company</h4>
           <ul class="space-y-2">
             <li>
-              <NuxtLink to="/about" class="text-sm text-gray-400 hover:text-white transition-colors">
-                About
-              </NuxtLink>
+              <NuxtLink to="/about" class="text-sm text-gray-400 hover:text-white transition-colors">About</NuxtLink>
             </li>
             <li>
-              <a href="mailto:hello@kura-finance.com" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Contact
-              </a>
+              <a href="mailto:hello@kura-finance.com" class="text-sm text-gray-400 hover:text-white transition-colors">Contact</a>
             </li>
             <li>
-              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Blog
-              </a>
+              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Blog</a>
             </li>
             <li>
-              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Careers
-              </a>
+              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Careers</a>
             </li>
           </ul>
         </div>
@@ -95,24 +79,16 @@
           <h4 class="font-semibold text-white text-sm uppercase tracking-widest">Legal</h4>
           <ul class="space-y-2">
             <li>
-              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Terms of Service
-              </a>
+              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Terms of Service</a>
             </li>
             <li>
-              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Privacy Policy
-              </a>
+              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
             </li>
             <li>
-              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Disclaimer
-              </a>
+              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Disclaimer</a>
             </li>
             <li>
-              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Compliance
-              </a>
+              <a href="#" class="text-sm text-gray-400 hover:text-white transition-colors">Compliance</a>
             </li>
           </ul>
         </div>
@@ -135,85 +111,4 @@
 
 <script setup lang="ts">
 // Footer is a presentational component
-</script>
-
-            </li>
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Roadmap
-              </NuxtLink>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Company Links -->
-        <div class="space-y-4">
-          <h4 class="font-semibold text-white">Company</h4>
-          <ul class="space-y-2">
-            <li>
-              <NuxtLink to="/about" class="text-sm text-gray-400 hover:text-white transition-colors">
-                About
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Blog
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Careers
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Contact
-              </NuxtLink>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Legal Links -->
-        <div class="space-y-4">
-          <h4 class="font-semibold text-white">Legal</h4>
-          <ul class="space-y-2">
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Privacy Policy
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Terms of Service
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Cookie Policy
-              </NuxtLink>
-            </li>
-            <li>
-              <NuxtLink to="/" class="text-sm text-gray-400 hover:text-white transition-colors">
-                Disclaimer
-              </NuxtLink>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Footer Bottom -->
-      <div class="border-t border-[#2D2D35] pt-8 flex flex-col md:flex-row md:items-center md:justify-between">
-        <p class="text-sm text-gray-400">
-          &copy; {{ currentYear }} Kura. All rights reserved.
-        </p>
-        <p class="text-sm text-gray-500 mt-4 md:mt-0">
-          Built with care for the crypto and traditional finance community.
-        </p>
-      </div>
-    </div>
-  </footer>
-</template>
-
-<script setup lang="ts">
-const currentYear = new Date().getFullYear();
 </script>
