@@ -2,6 +2,9 @@
 npm-debug.log
 yarn-error.log
 pnpm-lock.yaml
+# Always include package lock files for npm ci
+!package-lock.json
+!package.json
 
 # Version control
 .git
