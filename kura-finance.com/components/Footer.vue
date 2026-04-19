@@ -2,7 +2,7 @@
   <footer class="relative z-20 border-t border-kura-border bg-kura-background pointer-events-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16 pointer-events-auto">
       <!-- Main Footer Content -->
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-10 mb-8 md:mb-12">
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-8 md:gap-10 mb-8 md:mb-12">
         <!-- Brand Section -->
         <div class="space-y-4 col-span-1 md:col-span-2">
           <h3 class="text-xl font-bold text-kura-text flex items-center gap-2">
@@ -46,6 +46,25 @@
             </li>
             <li>
               <NuxtLink to="/notary" class="text-sm text-kura-text-secondary hover:text-kura-text transition-colors">Kura Notary</NuxtLink>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Solutions Links -->
+        <div class="space-y-4">
+          <h4 class="font-semibold text-kura-text text-sm uppercase tracking-widest">Solutions</h4>
+          <ul class="space-y-2">
+            <li>
+              <NuxtLink to="/digital-nomads" class="text-sm text-kura-text-secondary hover:text-kura-text transition-colors">Digital Nomads</NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/web3-freelancers" class="text-sm text-kura-text-secondary hover:text-kura-text transition-colors">Web3 Freelancers</NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/startups-llcs" class="text-sm text-kura-text-secondary hover:text-kura-text transition-colors">Startups & LLCs</NuxtLink>
+            </li>
+            <li>
+              <NuxtLink to="/defi-protocols" class="text-sm text-kura-text-secondary hover:text-kura-text transition-colors">DeFi Protocols</NuxtLink>
             </li>
           </ul>
         </div>

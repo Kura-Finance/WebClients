@@ -89,36 +89,22 @@
             </div>
 
             <!-- Solutions Menu -->
-            <div v-show="activeDropdown === 'solutions'" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <NuxtLink to="/digital-nomads" class="group/item flex items-start gap-4 p-5 rounded-xl hover:bg-kura-background-light transition-colors border border-transparent hover:border-kura-border" @click="activeDropdown = null">
-                <div class="flex-shrink-0 mt-1">
-                  <span class="text-2xl">🌍</span>
-                </div>
-                <div class="flex-1">
-                  <div class="text-base font-semibold text-kura-text group-hover/item:text-kura-primary transition-colors">For Digital Nomads</div>
-                  <div class="text-xs text-kura-primary font-medium mt-0.5">Unify your cross-border finances</div>
-                  <div class="text-sm text-kura-text-secondary line-clamp-2 mt-2">Manage US, TW, and crypto wallets in one unified dashboard. Never juggle multiple apps again.</div>
-                </div>
+            <div v-show="activeDropdown === 'solutions'" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <NuxtLink to="/digital-nomads" class="group/item flex flex-col gap-2 p-4 rounded-xl hover:bg-kura-background-light transition-colors border border-transparent hover:border-kura-border" @click="activeDropdown = null">
+                <div class="text-base font-semibold text-kura-text group-hover/item:text-kura-primary transition-colors">For Digital Nomads</div>
+                <div class="text-sm text-kura-text-secondary line-clamp-2">Unify your cross-border finances</div>
               </NuxtLink>
-              <NuxtLink to="/web3-freelancers" class="group/item flex items-start gap-4 p-5 rounded-xl hover:bg-kura-background-light transition-colors border border-transparent hover:border-kura-border" @click="activeDropdown = null">
-                <div class="flex-shrink-0 mt-1">
-                  <span class="text-2xl">💼</span>
-                </div>
-                <div class="flex-1">
-                  <div class="text-base font-semibold text-kura-text group-hover/item:text-kura-primary transition-colors">For Web3 Freelancers</div>
-                  <div class="text-xs text-kura-primary font-medium mt-0.5">Track crypto earnings with clarity</div>
-                  <div class="text-sm text-kura-text-secondary line-clamp-2 mt-2">Track USDT/USDC earnings with historical exchange rates. Simplify tax reporting and accounting.</div>
-                </div>
+              <NuxtLink to="/web3-freelancers" class="group/item flex flex-col gap-2 p-4 rounded-xl hover:bg-kura-background-light transition-colors border border-transparent hover:border-kura-border" @click="activeDropdown = null">
+                <div class="text-base font-semibold text-kura-text group-hover/item:text-kura-primary transition-colors">For Web3 Freelancers</div>
+                <div class="text-sm text-kura-text-secondary line-clamp-2">Track crypto earnings with clarity</div>
               </NuxtLink>
-              <NuxtLink to="/startups-llcs" class="group/item flex items-start gap-4 p-5 rounded-xl hover:bg-kura-background-light transition-colors border border-transparent hover:border-kura-border" @click="activeDropdown = null">
-                <div class="flex-shrink-0 mt-1">
-                  <span class="text-2xl">🏢</span>
-                </div>
-                <div class="flex-1">
-                  <div class="text-base font-semibold text-kura-text group-hover/item:text-kura-primary transition-colors">For Startups & LLCs</div>
-                  <div class="text-xs text-kura-primary font-medium mt-0.5">Treasury management & compliance tools</div>
-                  <div class="text-sm text-kura-text-secondary line-clamp-2 mt-2">Manage GCP, SaaS subscriptions, and blockchain notary features for enterprise-grade compliance.</div>
-                </div>
+              <NuxtLink to="/startups-llcs" class="group/item flex flex-col gap-2 p-4 rounded-xl hover:bg-kura-background-light transition-colors border border-transparent hover:border-kura-border" @click="activeDropdown = null">
+                <div class="text-base font-semibold text-kura-text group-hover/item:text-kura-primary transition-colors">For Startups & LLCs</div>
+                <div class="text-sm text-kura-text-secondary line-clamp-2">Treasury management & compliance tools</div>
+              </NuxtLink>
+              <NuxtLink to="/defi-protocols" class="group/item flex flex-col gap-2 p-4 rounded-xl hover:bg-kura-background-light transition-colors border border-transparent hover:border-kura-border" @click="activeDropdown = null">
+                <div class="text-base font-semibold text-kura-text group-hover/item:text-kura-primary transition-colors">For DeFi Protocols</div>
+                <div class="text-sm text-kura-text-secondary line-clamp-2">Credit infrastructure & risk oracles</div>
               </NuxtLink>
             </div>
 
@@ -191,6 +177,9 @@
                   </NuxtLink>
                   <NuxtLink to="/startups-llcs" @click="isMobileMenuOpen = false; activeMobileSubmenu = null" class="block py-2 text-sm text-kura-text-secondary hover:text-kura-primary transition-colors">
                     For Startups & LLCs
+                  </NuxtLink>
+                  <NuxtLink to="/defi-protocols" @click="isMobileMenuOpen = false; activeMobileSubmenu = null" class="block py-2 text-sm text-kura-text-secondary hover:text-kura-primary transition-colors">
+                    For DeFi Protocols
                   </NuxtLink>
                 </div>
               </transition>
