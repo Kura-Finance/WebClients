@@ -35,7 +35,7 @@ export default function AppSessionHydrator() {
       const latestState = useAppStore.getState();
       if (latestState.authStatus === 'authenticated' && latestState.authToken) {
         try {
-          await hydratePlaidFinanceData(latestState.authToken);
+          await hydratePlaidFinanceData();
         } catch {
           // Keep UI usable even when Plaid data API is temporarily unavailable.
         }

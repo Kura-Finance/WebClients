@@ -1,12 +1,23 @@
 /**
  * Authentication API Service
  * 参考自 kura-web 的 backendApi.ts
+ * 
+ * Mobile Authentication:
+ * - Uses JWT tokens stored in Secure Storage (iOS Keychain / Android Secure Enclave)
+ * - Tokens are sent via Authorization header on each request
+ * - All requests include X-Client-Type: mobile header
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import Logger from '../utils/Logger';
-// In-memory fallback for when AsyncStorage is unavailable
+import {
+  setSecureAuthToken,
+  getSecureAuthToken,
+  clearSecureAuthToken,
+} from '../utils/secureTokenStorage';
+
+// In-memory fallback for when storage is unavailable
 let memoryStorage: Record<string, string> = {};
 
 // Default backend URL - production environment
@@ -67,24 +78,40 @@ export const getBackendBaseUrl = (): string => {
 
 export const getStoredAuthToken = async (): Promise<string | null> => {
   try {
-    const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-    if (token) {
-      Logger.debug('AuthAPI', '✅ Auth token retrieved from AsyncStorage', {
-        tokenLength: token.length,
+    // Priority 1: Try Secure Storage (Keychain/Secure Enclave)
+    const secureToken = await getSecureAuthToken();
+    if (secureToken) {
+      Logger.debug('AuthAPI', '✅ Auth token retrieved from Secure Storage (primary)', {
+        tokenLength: secureToken.length,
       });
-    } else {
-      Logger.debug('AuthAPI', '⚪ No auth token found in AsyncStorage');
+      return secureToken;
     }
-    return token;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    Logger.error('AuthAPI', '❌ CRITICAL: AsyncStorage getItem failed - token persistence broken', {
-      error: errorMessage,
-      errorType: error instanceof Error ? error.name : typeof error,
-      suggestion: 'Check device storage permissions, available space, or AsyncStorage initialization',
-    });
+
+    // Priority 2: Fallback to AsyncStorage for backward compatibility
+    try {
+      const asyncToken = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
+      if (asyncToken) {
+        Logger.debug('AuthAPI', '⚠️ Auth token retrieved from AsyncStorage (fallback)', {
+          tokenLength: asyncToken.length,
+          recommendation: 'Token should be migrated to Secure Storage',
+        });
+        // Try to migrate to Secure Storage for future use
+        try {
+          await setSecureAuthToken(asyncToken);
+          await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+          Logger.info('AuthAPI', '✅ Token successfully migrated to Secure Storage');
+        } catch (migrationError) {
+          Logger.warn('AuthAPI', '⚠️ Could not migrate token to Secure Storage', migrationError);
+        }
+        return asyncToken;
+      }
+    } catch (asyncError) {
+      Logger.debug('AuthAPI', 'AsyncStorage fallback failed', asyncError);
+    }
+
+    Logger.debug('AuthAPI', '⚪ No auth token found in any storage');
     
-    // Fallback: only use in-memory storage if available
+    // Priority 3: In-memory fallback
     const fallbackToken = memoryStorage[AUTH_TOKEN_KEY] || null;
     if (fallbackToken) {
       Logger.warn('AuthAPI', '⚠️ Using in-memory auth token (will be lost on app restart)', {
@@ -92,6 +119,16 @@ export const getStoredAuthToken = async (): Promise<string | null> => {
       });
     }
     return fallbackToken;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    Logger.error('AuthAPI', '❌ CRITICAL: Failed to retrieve auth token from any storage', {
+      error: errorMessage,
+      errorType: error instanceof Error ? error.name : typeof error,
+      suggestion: 'Check device storage permissions and Secure Store availability',
+    });
+    
+    // Last resort: return in-memory token if available
+    return memoryStorage[AUTH_TOKEN_KEY] || null;
   }
 };
 
@@ -102,43 +139,68 @@ export const setStoredAuthToken = async (token: string): Promise<void> => {
       throw new Error('Invalid token: must be a non-empty string');
     }
 
-    await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
-    Logger.info('AuthAPI', '✅ Auth token saved to AsyncStorage successfully', {
-      tokenLength: token.length,
-    });
-    
-    // Also keep in-memory backup
+    // Priority 1: Try to save to Secure Storage (Keychain/Secure Enclave)
+    let savedToSecureStore = false;
+    try {
+      await setSecureAuthToken(token);
+      Logger.info('AuthAPI', '✅ Auth token saved to Secure Storage successfully', {
+        tokenLength: token.length,
+      });
+      savedToSecureStore = true;
+    } catch (secureError) {
+      Logger.warn('AuthAPI', '⚠️ Failed to save to Secure Storage, trying AsyncStorage', {
+        error: secureError instanceof Error ? secureError.message : String(secureError),
+      });
+    }
+
+    // Priority 2: Fallback to AsyncStorage if Secure Storage fails
+    if (!savedToSecureStore) {
+      try {
+        await AsyncStorage.setItem(AUTH_TOKEN_KEY, token);
+        Logger.info('AuthAPI', '⚠️ Auth token saved to AsyncStorage (fallback)', {
+          tokenLength: token.length,
+          recommendation: 'Consider enabling Secure Storage on device',
+        });
+      } catch (asyncError) {
+        Logger.warn('AuthAPI', '⚠️ AsyncStorage also failed, using in-memory storage', {
+          error: asyncError instanceof Error ? asyncError.message : String(asyncError),
+        });
+      }
+    }
+
+    // Always keep in-memory backup
     memoryStorage[AUTH_TOKEN_KEY] = token;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    Logger.error('AuthAPI', '❌ CRITICAL: AsyncStorage setItem failed - token NOT persisted', {
+    Logger.error('AuthAPI', '❌ CRITICAL: Failed to save auth token', {
       error: errorMessage,
       errorType: error instanceof Error ? error.name : typeof error,
-      suggestion: 'Check device storage permissions, available space, or AsyncStorage initialization',
+      suggestion: 'Check device storage permissions',
     });
-    
-    // Try in-memory fallback as last resort
-    try {
-      memoryStorage[AUTH_TOKEN_KEY] = token;
-      Logger.warn('AuthAPI', '⚠️ Token saved to in-memory storage only (will be lost on app restart)', {
-        tokenLength: token.length,
-      });
-    } catch (memoryError) {
-      Logger.error('AuthAPI', '❌ CRITICAL: Failed to save token anywhere (in-memory and AsyncStorage both failed)', {
-        error: memoryError instanceof Error ? memoryError.message : String(memoryError),
-      });
-      throw new Error('Failed to persist authentication token');
-    }
+    throw new Error('Failed to persist authentication token');
   }
 };
 
 export const clearStoredAuthToken = async (): Promise<void> => {
   try {
-    await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-    Logger.info('AuthAPI', '✅ Auth token cleared from AsyncStorage');
+    // Clear from Secure Storage
+    try {
+      await clearSecureAuthToken();
+      Logger.info('AuthAPI', '✅ Auth token cleared from Secure Storage');
+    } catch (secureError) {
+      Logger.debug('AuthAPI', 'Secure Storage clear failed or token not present', secureError);
+    }
+
+    // Also clear from AsyncStorage for backward compatibility
+    try {
+      await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
+      Logger.info('AuthAPI', '✅ Auth token cleared from AsyncStorage');
+    } catch (asyncError) {
+      Logger.debug('AuthAPI', 'AsyncStorage removeItem failed', asyncError);
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    Logger.warn('AuthAPI', '⚠️ AsyncStorage removeItem failed, clearing in-memory token', {
+    Logger.warn('AuthAPI', '⚠️ Error during token clear operation', {
       error: errorMessage,
     });
   } finally {
@@ -161,6 +223,8 @@ async function apiRequest<T>(
   if (!headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json');
   }
+  // Add client type header for mobile authentication (JWT-based)
+  headers.set('X-Client-Type', 'mobile');
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -286,6 +350,17 @@ export const loginUser = (email: string, password: string): Promise<AuthResponse
     method: 'POST',
     body: JSON.stringify({ email: normalizedEmail, password }),
   });
+};
+
+/**
+ * 用户登出
+ */
+export const logoutUser = (token: string): Promise<{ message: string }> => {
+  return apiRequest<{ message: string }>(
+    '/api/auth/logout',
+    { method: 'POST' },
+    token
+  );
 };
 
 /**

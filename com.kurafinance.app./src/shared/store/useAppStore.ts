@@ -12,6 +12,7 @@ import {
   requestEmailChange,
   confirmEmailChange,
   loginUser,
+  logoutUser,
   sendVerificationCode as sendVerificationCodeApi,
   verifyEmailAndRegister as verifyEmailAndRegisterApi,
   resendVerificationCode as resendVerificationCodeApi,
@@ -207,7 +208,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   logout: async () => {
     try {
       Logger.info('AppStore', 'Logging out');
-      // Clear auth token (but keep preferences in storage)
+      const authToken = get().authToken;
+      
+      // Call logout API if we have a token
+      if (authToken) {
+        try {
+          await logoutUser(authToken);
+          Logger.debug('AppStore', 'Logout API call successful');
+        } catch (apiError) {
+          Logger.warn('AppStore', 'Logout API call failed, but proceeding with local cleanup', apiError);
+          // Continue with local cleanup even if API call fails
+        }
+      }
+      
+      // Clear auth token from storage (but keep preferences in storage)
       await clearStoredAuthToken();
       
       Logger.debug('AppStore', 'Auth token cleared from storage, preserving user preferences');
