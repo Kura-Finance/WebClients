@@ -248,14 +248,16 @@ definePageMeta({
   layout: 'default'
 });
 
-useHead({
-  title: 'For Web3 Freelancers | Kura Finance',
-  meta: [
-    {
-      name: 'description',
-      content: 'Track your USDT, USDC, and crypto earnings with clarity. Perfect for Web3 freelancers and crypto professionals.'
-    }
-  ]
+useSeoMeta({
+  title: 'For Web3 Freelancers - Crypto Accounting',
+  description: 'Track your USDT, USDC, and crypto earnings with clarity. Perfect for Web3 freelancers and crypto professionals. Real-time portfolio tracking and tax reporting.',
+  keywords: 'Web3 freelancer, crypto accounting, USDT tracking, freelancer taxes, crypto income, stablecoin tracker',
+  ogTitle: 'For Web3 Freelancers - Crypto Accounting',
+  ogDescription: 'Track your USDT, USDC, and crypto earnings with clarity.',
+  ogUrl: 'https://kura-finance.com/web3-freelancers',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'For Web3 Freelancers - Kura Finance'
 });
 </script>
 

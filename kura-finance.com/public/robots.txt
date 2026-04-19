@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /*.json$
+Sitemap: https://kura-finance.com/sitemap.xml

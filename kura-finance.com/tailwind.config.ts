@@ -13,9 +13,9 @@ export default {
     extend: {
       colors: {
         'kura': {
-          'background': '#0B0B0F',
-          'background-light': '#1A1A24',
-          'background-lighter': '#2D2D35',
+          'background': '#FAF8F3',
+          'background-light': '#FCF9F5',
+          'background-lighter': '#F5F0E8',
           'primary': '#8B5CF6',
           'primary-dark': '#7C3AED',
           'primary-light': '#A78BFA',
@@ -24,11 +24,13 @@ export default {
           'secondary-light': '#60A5FA',
           'accent': '#00D9FF',
           'accent-alt': '#10B981',
-          'border': '#2D2D35',
-          'border-light': '#404049',
+          'border': '#E5E7EB',
+          'border-light': '#F3F4F6',
           'success': '#10B981',
           'warning': '#F59E0B',
           'error': '#EF4444',
+          'text': '#111827',
+          'text-secondary': '#6B7280',
         }
       },
       fontFamily: {

@@ -23,13 +23,15 @@ definePageMeta({
   layout: 'default'
 });
 
-useHead({
-  title: 'Community | Kura Finance',
-  meta: [
-    {
-      name: 'description',
-      content: 'Coming Soon'
-    }
-  ]
+useSeoMeta({
+  title: 'Community - Kura Finance',
+  description: 'Join the Kura Finance community. Connect with Web3 developers, digital nomads, and entrepreneurs. Share insights and grow together.',
+  keywords: 'Kura Finance community, Web3 community, fintech community, crypto enthusiasts',
+  ogTitle: 'Community - Kura Finance',
+  ogDescription: 'Join the Kura Finance community.',
+  ogUrl: 'https://kura-finance.com/community',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Community - Kura Finance'
 });
 </script>

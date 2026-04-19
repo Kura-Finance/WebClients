@@ -23,14 +23,16 @@ definePageMeta({
   layout: 'default'
 });
 
-useHead({
-  title: 'Help Center | Kura Finance',
-  meta: [
-    {
-      name: 'description',
-      content: 'Coming Soon'
-    }
-  ]
+useSeoMeta({
+  title: 'Help Center - Kura Finance',
+  description: 'Get help with Kura Finance. Browse FAQs, guides, and support resources. Find answers to common questions about Web3 finance and portfolio tracking.',
+  keywords: 'Kura Finance help, FAQ, support, documentation, guides',
+  ogTitle: 'Help Center - Kura Finance',
+  ogDescription: 'Get help with Kura Finance. Browse FAQs, guides, and support resources.',
+  ogUrl: 'https://kura-finance.com/help',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Help Center - Kura Finance'
 });
 </script>
 

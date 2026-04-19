@@ -65,4 +65,16 @@
 definePageMeta({
   layout: 'default',
 });
+
+useSeoMeta({
+  title: 'Privacy Policy - Kura Finance',
+  description: 'Kura Finance privacy policy. Learn how we protect and handle your personal data and financial information. Your privacy is our top priority.',
+  keywords: 'privacy policy, data protection, GDPR, user privacy',
+  ogTitle: 'Privacy Policy - Kura Finance',
+  ogDescription: 'Learn how we protect and handle your personal data and financial information.',
+  ogUrl: 'https://kura-finance.com/privacy',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Privacy Policy - Kura Finance'
+});
 </script>

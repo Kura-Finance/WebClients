@@ -64,4 +64,16 @@
 definePageMeta({
   layout: 'default',
 });
+
+useSeoMeta({
+  title: 'Terms of Service - Kura Finance',
+  description: 'Kura Finance Terms of Service. Read the legal terms governing the use of our platform and services.',
+  keywords: 'terms of service, legal terms, user agreement',
+  ogTitle: 'Terms of Service - Kura Finance',
+  ogDescription: 'Read the legal terms governing the use of our platform and services.',
+  ogUrl: 'https://kura-finance.com/tos',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Terms of Service - Kura Finance'
+});
 </script>

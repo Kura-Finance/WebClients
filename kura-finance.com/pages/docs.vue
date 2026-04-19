@@ -23,13 +23,15 @@ definePageMeta({
   layout: 'default'
 });
 
-useHead({
-  title: 'Documentation | Kura Finance',
-  meta: [
-    {
-      name: 'description',
-      content: 'Coming Soon'
-    }
-  ]
+useSeoMeta({
+  title: 'Documentation - Kura Finance',
+  description: 'Comprehensive technical guides and API documentation for Kura Finance. Learn how to integrate Web3 and traditional finance data.',
+  keywords: 'Kura Finance API, documentation, technical guides, integration, developer resources',
+  ogTitle: 'Documentation - Kura Finance',
+  ogDescription: 'Comprehensive technical guides and API documentation for Kura Finance.',
+  ogUrl: 'https://kura-finance.com/docs',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Documentation - Kura Finance'
 });
 </script>

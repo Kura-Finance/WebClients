@@ -178,14 +178,16 @@ definePageMeta({
   layout: 'default'
 });
 
-useHead({
-  title: 'For Digital Nomads | Kura Finance',
-  meta: [
-    {
-      name: 'description',
-      content: 'Unify your USD, TWD, and crypto wallets in one dashboard. Perfect for digital nomads managing cross-border finances.'
-    }
-  ]
+useSeoMeta({
+  title: 'For Digital Nomads - Multi-Currency Wealth Management',
+  description: 'Unify your USD, TWD, and crypto wallets in one dashboard. Perfect for digital nomads managing cross-border finances with real-time currency conversion.',
+  keywords: 'digital nomad finances, multi-currency wallet, cross-border payments, expatriate accounting, remote worker finances',
+  ogTitle: 'For Digital Nomads - Wealth Management',
+  ogDescription: 'Unify your USD, TWD, and crypto wallets in one dashboard.',
+  ogUrl: 'https://kura-finance.com/digital-nomads',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'For Digital Nomads - Kura Finance'
 });
 </script>
 

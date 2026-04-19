@@ -3,6 +3,18 @@ definePageMeta({
   layout: 'default'
 });
 
+useSeoMeta({
+  title: 'Pricing - Kura Finance',
+  description: 'Kura Finance offers flexible pricing plans for every financial management need. From free basic features to enterprise solutions. All plans include US-grade compliance and zero-custody security.',
+  keywords: 'Kura Finance pricing, subscription plans, Web3 portfolio tracker pricing, wealth management cost',
+  ogTitle: 'Simple Transparent Pricing | Kura Finance',
+  ogDescription: 'Kura Finance offers flexible pricing plans for every financial management need.',
+  ogUrl: 'https://kura-finance.com/pricing',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Pricing - Kura Finance'
+});
+
 const plans = [
   {
     name: 'Kura Basic',

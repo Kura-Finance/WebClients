@@ -56,4 +56,16 @@
 definePageMeta({
   layout: 'default',
 });
+
+useSeoMeta({
+  title: 'Disclaimer - Kura Finance',
+  description: 'Important disclaimer for Kura Finance. Financial information provided for informational purposes only. Not investment advice.',
+  keywords: 'disclaimer, financial disclaimer, investment disclaimer',
+  ogTitle: 'Disclaimer - Kura Finance',
+  ogDescription: 'Important disclaimer for Kura Finance.',
+  ogUrl: 'https://kura-finance.com/disclaimer',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Disclaimer - Kura Finance'
+});
 </script>

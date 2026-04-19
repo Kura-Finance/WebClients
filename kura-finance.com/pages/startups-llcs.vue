@@ -269,14 +269,16 @@ definePageMeta({
   layout: 'default'
 });
 
-useHead({
-  title: 'For Startups & LLCs | Kura Finance',
-  meta: [
-    {
-      name: 'description',
-      content: 'Unified treasury management for startups. Track bank accounts, SaaS expenses, and blockchain assets. Compliance-ready reporting.'
-    }
-  ]
+useSeoMeta({
+  title: 'For Startups & LLCs - Treasury Management',
+  description: 'Unified treasury management for startups and LLCs. Track bank accounts, SaaS expenses, and blockchain assets. Compliance-ready reporting for modern companies.',
+  keywords: 'startup treasury, LLC accounting, business finances, startup accounting software, treasury management, DeFi treasury',
+  ogTitle: 'For Startups & LLCs - Treasury Management',
+  ogDescription: 'Unified treasury management for startups and LLCs.',
+  ogUrl: 'https://kura-finance.com/startups-llcs',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'For Startups & LLCs - Kura Finance'
 });
 </script>
 

@@ -77,4 +77,16 @@ Wilmington, DE 19801
 definePageMeta({
   layout: 'default',
 });
+
+useSeoMeta({
+  title: 'Compliance & Trust Center - Kura Finance',
+  description: 'Kura Finance Trust Center. Learn about our compliance, security standards, and legal framework. Enterprise-grade security for your financial data.',
+  keywords: 'compliance, security, trust center, SOC 2, data security, regulatory compliance',
+  ogTitle: 'Compliance & Trust Center - Kura Finance',
+  ogDescription: 'Learn about our compliance, security standards, and legal framework.',
+  ogUrl: 'https://kura-finance.com/compliance',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Compliance - Kura Finance'
+});
 </script>

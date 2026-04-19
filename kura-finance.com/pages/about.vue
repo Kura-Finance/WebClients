@@ -1,5 +1,5 @@
 <template>
-  <div class="about-container text-white">
+  <div class="about-container text-kura-text">
     <!-- Hero Section -->
     <section class="hero-section">
       <div class="space-y-6">
@@ -14,34 +14,54 @@
 
     <!-- Mission Section -->
     <section class="mission-section">
-      <h2 class="mission-title">Our Mission: Bridging the Gap Between Web3 and Traditional Finance</h2>
-      <p class="mission-text">
-        At Kura Finance, we believe that managing your assets across decentralized protocols and traditional bank accounts shouldn't require a dozen open tabs and complex spreadsheets. Our mission is to build the most intuitive, unified financial dashboard for the modern digital citizen.
-      </p>
+      <div class="content-with-image">
+        <div class="image-placeholder"></div>
+        <div class="content-block">
+          <h2 class="mission-title">Our Mission: Bridging the Gap Between Web3 and Traditional Finance</h2>
+          <p class="mission-text">
+            At Kura Finance, we believe that managing your assets across decentralized protocols and traditional bank accounts shouldn't require a dozen open tabs and complex spreadsheets. Our mission is to build the most intuitive, unified financial dashboard for the modern digital citizen.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- Built for Utility Section -->
     <section class="utility-section">
-      <h2 class="utility-title">Built for Utility, Not Speculation</h2>
-      <p class="utility-text">
-        We approach the Web3 and FinTech space with a builder's mindset. We are not day traders, nor do we build tools for short-term arbitrage. Our philosophy is simple: we look at what brings genuine value, we use the products ourselves, and we build infrastructure that we actually want to stick with for the long haul. Kura Finance was born out of this exact necessity—a practical solution for real-world financial management.
-      </p>
+      <div class="content-with-image content-reversed">
+        <div class="image-placeholder"></div>
+        <div class="content-block">
+          <h2 class="utility-title">Built for Utility, Not Speculation</h2>
+          <p class="utility-text">
+            We approach the Web3 and FinTech space with a builder's mindset. We are not day traders, nor do we build tools for short-term arbitrage. Our philosophy is simple: we look at what brings genuine value, we use the products ourselves, and we build infrastructure that we actually want to stick with for the long haul. Kura Finance was born out of this exact necessity—a practical solution for real-world financial management.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- Forward-Looking Innovation Section -->
     <section class="innovation-section">
-      <h2 class="innovation-title">Forward-Looking Innovation</h2>
-      <p class="innovation-text">
-        Beyond data aggregation, we are constantly exploring how blockchain technology can solve traditional pain points. With our upcoming blockchain notary features, we aim to leverage the immutability of decentralized networks to provide secure, verifiable proof of existence for critical legal and business documents.
-      </p>
+      <div class="content-with-image">
+        <div class="image-placeholder"></div>
+        <div class="content-block">
+          <h2 class="innovation-title">Forward-Looking Innovation</h2>
+          <p class="innovation-text">
+            Beyond data aggregation, we are constantly exploring how blockchain technology can solve traditional pain points. With our upcoming blockchain notary features, we aim to leverage the immutability of decentralized networks to provide secure, verifiable proof of existence for critical legal and business documents.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- Join the Journey Section -->
     <section class="join-section">
-      <h2 class="join-title">Join the Journey</h2>
-      <p class="join-text">
-        Whether you are a developer, a freelancer, or an enterprise managing cross-border assets, Kura Finance is designed to bring clarity to your financial truth.
-      </p>
+      <div class="content-with-image content-reversed">
+        <div class="image-placeholder"></div>
+        <div class="content-block">
+          <h2 class="join-title">Join the Journey</h2>
+          <p class="join-text">
+            Whether you are a developer, a freelancer, or an enterprise managing cross-border assets, Kura Finance is designed to bring clarity to your financial truth.
+          </p>
+        </div>
+      </div>
     </section>
 
     <!-- Founder Section -->
@@ -52,7 +72,7 @@
           <!-- Avatar -->
           <div class="flex-shrink-0">
             <img 
-              src="~/assets/avatar.jpg" 
+              src="~/assets/avatar.webp" 
               alt="Rick Weng, Founder" 
               class="w-32 h-32 md:w-40 md:h-40 rounded-2xl object-cover border-2 border-kura-primary/30"
             />
@@ -121,6 +141,18 @@
 <script setup lang="ts">
 import { reactive } from 'vue'
 
+useSeoMeta({
+  title: 'About Kura Finance',
+  description: 'Meet the team behind Kura Finance. We are building practical financial infrastructure for Web3 developers, digital nomads, and enterprises managing cross-border assets.',
+  keywords: 'Kura Finance team, founder Rick Weng, Web3 finance company, fintech startup, wealth management platform',
+  ogTitle: 'About Kura Finance',
+  ogDescription: 'Meet the team behind Kura Finance. We are building practical financial infrastructure for Web3 developers, digital nomads, and enterprises managing cross-border assets.',
+  ogUrl: 'https://kura-finance.com/about',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'About Kura Finance'
+});
+
 const milestones = reactive([
   {
     time: 'Phase 1: The Catalyst',
@@ -160,7 +192,7 @@ const milestones = reactive([
   font-size: clamp(2.5rem, 8vw, 3.5rem);
   font-weight: 800;
   line-height: 1.1;
-  background: linear-gradient(135deg, #fff 0%, #888 100%);
+  background: linear-gradient(135deg, #111827 0%, #4B5563 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -168,100 +200,146 @@ const milestones = reactive([
 
 .hero-subtitle {
   font-size: 1.25rem;
-  color: #a0a0a0;
+  color: #6B7280;
   max-width: 600px;
   margin: 0 auto;
+}
+
+/* Content with Image Layout */
+.content-with-image {
+  display: flex;
+  gap: 60px;
+  align-items: center;
+}
+
+.content-with-image.content-reversed {
+  flex-direction: row-reverse;
+}
+
+.image-placeholder {
+  flex-shrink: 0;
+  width: 420px;
+  height: 520px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.05));
+  border: 2px dashed rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9CA3AF;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.content-block {
+  flex: 1;
 }
 
 /* Mission Section */
 .mission-section {
   margin-bottom: 100px;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 12px;
+  overflow: hidden;
+}
+
+.mission-section .content-with-image {
+  padding: 60px;
 }
 
 .mission-title {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #ffffff;
+  color: #111827;
 }
 
 .mission-text {
   font-size: 1.05rem;
   line-height: 1.8;
-  color: #c8c8c8;
+  color: #6B7280;
   margin: 0;
 }
 
 /* Utility Section */
 .utility-section {
   margin-bottom: 100px;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 12px;
+  overflow: hidden;
+}
+
+.utility-section .content-with-image {
+  padding: 60px;
 }
 
 .utility-title {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #ffffff;
+  color: #111827;
 }
 
 .utility-text {
   font-size: 1.05rem;
   line-height: 1.8;
-  color: #c8c8c8;
+  color: #6B7280;
   margin: 0;
 }
 
 /* Innovation Section */
 .innovation-section {
   margin-bottom: 100px;
-  padding: 40px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 12px;
+  overflow: hidden;
+}
+
+.innovation-section .content-with-image {
+  padding: 60px;
 }
 
 .innovation-title {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #ffffff;
+  color: #111827;
 }
 
 .innovation-text {
   font-size: 1.05rem;
   line-height: 1.8;
-  color: #c8c8c8;
+  color: #6B7280;
   margin: 0;
 }
 
 /* Join Section */
 .join-section {
   margin-bottom: 100px;
-  padding: 40px;
   background: rgba(24, 160, 88, 0.05);
   border: 1px solid rgba(24, 160, 88, 0.2);
   border-radius: 12px;
+  overflow: hidden;
+}
+
+.join-section .content-with-image {
+  padding: 60px;
 }
 
 .join-title {
   font-size: 2rem;
   font-weight: 700;
   margin-bottom: 16px;
-  color: #ffffff;
+  color: #111827;
 }
 
 .join-text {
   font-size: 1.05rem;
   line-height: 1.8;
-  color: #c8c8c8;
+  color: #6B7280;
   margin: 0;
 }
 
@@ -272,10 +350,10 @@ const milestones = reactive([
 
 .founder-card {
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.02);
   padding: 48px;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .quote-accent {
@@ -292,12 +370,13 @@ const milestones = reactive([
   font-size: 1.75rem;
   font-weight: 700;
   margin-bottom: 12px;
+  color: #111827;
 }
 
 .founder-text {
   font-size: 1.1rem;
   line-height: 1.8;
-  color: #d1d1d1;
+  color: #6B7280;
 }
 
 .signature {
@@ -311,11 +390,11 @@ const milestones = reactive([
   font-weight: 700;
   font-family: 'Georgia', serif;
   font-style: italic;
-  color: #ffffff;
+  color: #111827;
 }
 
 .signature .title {
-  color: #777;
+  color: #9CA3AF;
   font-size: 0.9rem;
   letter-spacing: 1px;
 }
@@ -365,7 +444,7 @@ const milestones = reactive([
   height: 12px;
   background: #18a058;
   border-radius: 50%;
-  border: 3px solid #0f172a;
+  border: 3px solid #ffffff;
 }
 
 .timeline-content-wrapper {
@@ -383,7 +462,7 @@ const milestones = reactive([
 .timeline-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: #111827;
   margin: 0;
 }
 
@@ -395,7 +474,7 @@ const milestones = reactive([
 }
 
 .timeline-description {
-  color: #999;
+  color: #9CA3AF;
   line-height: 1.6;
   margin: 0;
 }
@@ -416,11 +495,11 @@ const milestones = reactive([
   font-size: 1.2rem;
   font-weight: 600;
   margin: 0;
-  color: #ffffff;
+  color: #111827;
 }
 
 .trust-desc {
-  color: #777;
+  color: #9CA3AF;
   margin: 8px 0 0 0;
   font-size: 0.95rem;
 }
@@ -438,11 +517,31 @@ const milestones = reactive([
     margin-bottom: 80px;
   }
 
+  .content-with-image {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .content-with-image.content-reversed {
+    flex-direction: column;
+  }
+
+  .image-placeholder {
+    width: 100%;
+    height: 300px;
+  }
+
   .mission-section,
   .utility-section,
   .innovation-section,
   .join-section {
     margin-bottom: 60px;
+  }
+
+  .mission-section .content-with-image,
+  .utility-section .content-with-image,
+  .innovation-section .content-with-image,
+  .join-section .content-with-image {
     padding: 24px;
   }
 

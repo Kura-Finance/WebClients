@@ -23,13 +23,15 @@ definePageMeta({
   layout: 'default'
 });
 
-useHead({
-  title: 'Blog | Kura Finance',
-  meta: [
-    {
-      name: 'description',
-      content: 'Coming Soon'
-    }
-  ]
+useSeoMeta({
+  title: 'Blog - Kura Finance',
+  description: 'Read insights and analysis on Web3, fintech, and wealth management. Expert perspectives on crypto accounting, portfolio tracking, and modern finance.',
+  keywords: 'Web3 blog, fintech articles, crypto accounting, wealth management tips, DeFi analysis',
+  ogTitle: 'Blog - Kura Finance',
+  ogDescription: 'Read insights and analysis on Web3, fintech, and wealth management.',
+  ogUrl: 'https://kura-finance.com/blog',
+  ogType: 'website',
+  twitterCard: 'summary_large_image',
+  twitterTitle: 'Blog - Kura Finance'
 });
 </script>
