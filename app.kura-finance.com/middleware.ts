@@ -20,7 +20,6 @@ export function middleware(request: NextRequest) {
     'wss://*.reown.com',
     'https://api.reown.org',
     'https://static.cloudflareinsights.com', // Cloudflare Insights
-    'https://kura.dpdns.org', // Explicit self-domain for reverse proxy
     ...(isDevelopment ? ['ws://localhost', 'ws://127.0.0.1'] : []), // Allow WebSocket for dev HMR
   ].filter(Boolean).join(' ');
 
