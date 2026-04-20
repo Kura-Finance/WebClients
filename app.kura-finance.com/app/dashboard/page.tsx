@@ -55,7 +55,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4 w-full mx-2">
         
         {/* Total Assets Card */}
-        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-48 w-full">
+        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-64 w-full">
           <div>
             <p className="text-gray-400 text-xs font-medium mb-0.5">Total Assets</p>
             <h2 className="text-xl font-bold text-white">${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
@@ -63,7 +63,7 @@ export default function DashboardPage() {
           
           {/* Chart */}
           {chartData.length > 0 ? (
-            <div className="h-20 -mx-8 -mb-8 flex items-end">
+            <div className="h-28 -mx-8 -mb-8 flex items-end">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
@@ -100,7 +100,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Accounts Card */}
-        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-48 overflow-y-auto w-full">
+        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-64 overflow-y-auto w-full">
           <div>
             <p className="text-gray-400 text-xs font-medium mb-1.5">Accounts</p>
             <div className="space-y-0.5">
@@ -133,7 +133,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6 w-full mx-2">
         
         {/* Investment Card */}
-        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-40 w-full">
+        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-52 w-full">
           <div>
             <p className="text-gray-400 text-xs font-medium mb-0.5">Investment</p>
             <h3 className="text-lg font-bold text-white mb-1">$0.00</h3>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Crypto Card */}
-        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-40 w-full">
+        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-52 w-full">
           <div>
             <p className="text-gray-400 text-xs font-medium mb-0.5">Crypto</p>
             <h3 className="text-lg font-bold text-white mb-1">$0.00</h3>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
         </div>
 
         {/* DeFi Protocol Card */}
-        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-40 w-full">
+        <div className="rounded-2xl bg-[#1A1A24] border border-white/5 p-3 flex flex-col justify-between h-52 w-full">
           <div>
             <p className="text-gray-400 text-xs font-medium mb-0.5">DeFi Protocol</p>
             <h3 className="text-lg font-bold text-white mb-1">$0.00</h3>
