@@ -124,7 +124,7 @@ export default function UserSettingsDrawer({ isOpen, onClose, anchorRef }: UserS
 
               {/* Security */}
               <button
-                onClick={() => handleMenuClick(() => router.push('/dashboard'))}
+                onClick={() => handleMenuClick(() => router.push('/dashboard/security'))}
                 className="w-full text-left px-3 py-2.5 rounded-lg text-gray-300 hover:text-white hover:bg-white/5 transition-colors text-sm"
               >
                 Security

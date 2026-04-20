@@ -39,6 +39,8 @@ export default function Sidebar() {
   const isImpermanentLoss = pathname.includes('/dashboard/impermanent-loss');
   const isTaxCalculator = pathname.includes('/dashboard/tax-calculator');
   const isCreditScore = pathname.includes('/dashboard/credit-score');
+  const isDid = pathname.includes('/dashboard/did');
+  const isKLHS = pathname.includes('/dashboard/klhs');
 
   return (
     <nav className="relative z-10 w-56 border-r border-[#1A1A24] bg-[#0B0B0F] py-6 px-2 flex flex-col gap-0 shrink-0 transition-all duration-300 ease-in-out h-full overflow-hidden">
@@ -66,6 +68,15 @@ export default function Sidebar() {
         <NavLink href="/dashboard/impermanent-loss" label="Impermanent Loss" isActive={isImpermanentLoss} />
         <NavLink href="/dashboard/tax-calculator" label="Tax Calculator" isActive={isTaxCalculator} />
         <NavLink href="/dashboard/credit-score" label="Credit Score" isActive={isCreditScore} />
+      </div>
+
+      {/* Divider */}
+      <div className="my-3 border-t border-gray-800" />
+
+      {/* Tertiary Section */}
+      <div className="space-y-2">
+        <NavLink href="/dashboard/did" label="Kura DID" isActive={isDid} />
+        <NavLink href="/dashboard/klhs" label="KLHS" isActive={isKLHS} />
       </div>
 
     </nav>
