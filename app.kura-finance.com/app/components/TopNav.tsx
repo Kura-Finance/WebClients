@@ -1,7 +1,7 @@
 // src/components/TopNav.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import UserSettingsDrawer from './UserSettingsDrawer';
@@ -9,6 +9,7 @@ import { useAppStore } from '@/store/useAppStore';
 
 export default function TopNav() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const userProfile = useAppStore(state => state.userProfile);
   const authStatus = useAppStore(state => state.authStatus);
   const displayName = userProfile.displayName.trim();
@@ -37,8 +38,9 @@ export default function TopNav() {
 
         {/* 右側控制區 */}
         <div className="flex items-center gap-4">
-          {/* 使用者頭像 (點擊開啟設定抽屜) */}
+          {/* 使用者頭像 (點擊開啟浮動視窗) */}
           <button 
+            ref={avatarButtonRef}
             onClick={() => setIsSettingsOpen(true)}
             className="w-7 h-7 rounded-full border border-[#1A1A24] overflow-hidden hover:border-[#8B5CF6] transition-colors focus:outline-none cursor-pointer"
           >
@@ -60,10 +62,11 @@ export default function TopNav() {
         </div>
       </header>
 
-      {/* 掛載右側抽屜 */}
+      {/* 掛載浮動視窗 */}
       <UserSettingsDrawer 
         isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+        onClose={() => setIsSettingsOpen(false)}
+        anchorRef={avatarButtonRef}
       />
     </>
   );
