@@ -78,6 +78,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "assets.coingecko.com",
       },
+      {
+        protocol: "https",
+        hostname: "img.logo.dev",
+      },
     ],
   },
 };
