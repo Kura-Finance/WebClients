@@ -38,7 +38,6 @@ export default function Sidebar() {
   const isBudget = pathname.includes('/dashboard/budget');
   const isImpermanentLoss = pathname.includes('/dashboard/impermanent-loss');
   const isTaxCalculator = pathname.includes('/dashboard/tax-calculator');
-  const isCreditScore = pathname.includes('/dashboard/credit-score');
   const isDid = pathname.includes('/dashboard/did');
   const isKLHS = pathname.includes('/dashboard/klhs');
 
@@ -67,7 +66,6 @@ export default function Sidebar() {
         <NavLink href="/dashboard/budget" label="Budget" isActive={isBudget} />
         <NavLink href="/dashboard/impermanent-loss" label="Impermanent Loss" isActive={isImpermanentLoss} />
         <NavLink href="/dashboard/tax-calculator" label="Tax Calculator" isActive={isTaxCalculator} />
-        <NavLink href="/dashboard/credit-score" label="Credit Score" isActive={isCreditScore} />
       </div>
 
       {/* Divider */}
