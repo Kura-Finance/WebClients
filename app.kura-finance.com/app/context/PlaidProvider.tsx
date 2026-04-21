@@ -7,68 +7,57 @@ interface PlaidContextType {
   plaidError: string | null;
 }
 
-const PlaidContext = createContext<PlaidContextType>({
-  isPlaidReady: false,
-  plaidError: null,
-});
+const PlaidContext = createContext<PlaidContextType | null>(null);
 
 export function PlaidProvider({ children }: { children: ReactNode }) {
   const [isPlaidReady, setIsPlaidReady] = useState(false);
   const [plaidError, setPlaidError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if Plaid is already loaded
+    // Check if Plaid is already available
     if (typeof window !== 'undefined' && window.Plaid) {
-      console.log('[PlaidProvider] Plaid SDK already loaded');
+      console.log('[PlaidProvider] Plaid SDK already available');
       setIsPlaidReady(true);
       return;
     }
 
-    // Wait for Plaid to load
-    const checkPlaidLoaded = () => {
+    // Listen for script load event (more reliable than polling)
+    const handlePlaidReady = () => {
       if (window.Plaid) {
-        console.log('[PlaidProvider] Plaid SDK detected');
+        console.log('[PlaidProvider] Plaid SDK loaded via DOMContentLoaded');
         setIsPlaidReady(true);
-        return true;
       }
-      return false;
     };
 
-    // Check immediately
-    if (checkPlaidLoaded()) return;
-
-    // Set up polling to check if Plaid loads
+    // Also use the dynamic checking approach as fallback
     let attempts = 0;
-    const maxAttempts = 100; // ~10 seconds at 100ms intervals
+    const maxAttempts = 100; // 10 seconds max
+    
     const checkInterval = setInterval(() => {
       attempts++;
       
-      if (checkPlaidLoaded()) {
+      if (window.Plaid) {
+        console.log('[PlaidProvider] Plaid SDK detected after', attempts, 'attempts');
+        setIsPlaidReady(true);
         clearInterval(checkInterval);
         return;
       }
 
       if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
-        console.error('[PlaidProvider] Plaid SDK failed to load after 10 seconds');
-        setPlaidError('Plaid SDK failed to load. Please refresh the page.');
+        const errorMsg = 'Plaid SDK failed to load after 10 seconds';
+        console.error('[PlaidProvider]', errorMsg);
+        setPlaidError(errorMsg);
       }
     }, 100);
 
-    // Also listen for script load events
-    const handleScriptLoad = () => {
-      console.log('[PlaidProvider] Script load event detected');
-      if (window.Plaid) {
-        setIsPlaidReady(true);
-        clearInterval(checkInterval);
-      }
-    };
-
-    window.addEventListener('load', handleScriptLoad);
+    document.addEventListener('DOMContentLoaded', handlePlaidReady);
+    window.addEventListener('load', handlePlaidReady);
 
     return () => {
       clearInterval(checkInterval);
-      window.removeEventListener('load', handleScriptLoad);
+      document.removeEventListener('DOMContentLoaded', handlePlaidReady);
+      window.removeEventListener('load', handlePlaidReady);
     };
   }, []);
 

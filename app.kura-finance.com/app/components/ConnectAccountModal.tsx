@@ -14,6 +14,7 @@ import {
   PlaidApiError,
   createPlaidLinkToken,
   exchangePlaidPublicToken,
+  type PlaidFinanceSnapshot,
 } from '@/lib/plaidApi';
 
 interface ConnectAccountModalProps {
@@ -55,19 +56,56 @@ function ConnectAccountModalContent({
       setPlaidError(null);
 
       try {
+        console.debug('[ConnectAccountModal] Exchanging Plaid public token', {
+          institution: metadata.institution?.name,
+        });
+
         const result = await exchangePlaidPublicToken({
           public_token: publicToken,
           institution_name: metadata.institution?.name,
         });
 
-        await hydratePlaidFinanceData();
+        console.info('[ConnectAccountModal] Public token exchanged successfully');
+
+        // Load updated finance data
+        try {
+          await hydratePlaidFinanceData();
+          console.info('[ConnectAccountModal] Finance data reloaded');
+        } catch (reloadError) {
+          // If reload fails, still consider exchange successful - user can refresh manually
+          console.warn('[ConnectAccountModal] Finance data reload failed, but exchange succeeded', reloadError);
+        }
+
         alert(result.message || 'Bank account connected successfully.');
         onClose();
       } catch (error) {
-        const message =
-          error instanceof PlaidApiError ? error.message : 'Failed to exchange Plaid token.';
+        let message = 'Failed to connect bank account.';
+
+        if (error instanceof PlaidApiError) {
+          switch (error.status) {
+            case 401:
+              message = 'Your session expired. Please sign in again and try connecting your account.';
+              break;
+            case 429:
+              message = 'Too many connection attempts. Please wait a moment and try again.';
+              break;
+            case 400:
+              message = error.errorCode === 'INVALID_REQUEST' 
+                ? 'Invalid bank credentials. Please verify and try again.'
+                : 'Invalid request. Please try again.';
+              break;
+            case 500:
+            case 502:
+            case 503:
+              message = 'Server error. Please try again in a few moments.';
+              break;
+            default:
+              message = error.message;
+          }
+        }
+
         setPlaidError(message);
-        console.error('[ConnectAccountModal] Error exchanging Plaid token:', error);
+        console.error('[ConnectAccountModal] Token exchange failed:', { error, message });
       } finally {
         setIsExchangingToken(false);
       }
@@ -92,13 +130,41 @@ function ConnectAccountModalContent({
     async () => {
       try {
         setPlaidError(null);
+        console.debug('[ConnectAccountModal] Requesting Plaid link token');
+
         const result = await createPlaidLinkToken();
+        
+        if (!result.link_token) {
+          throw new PlaidApiError('Server did not return a link token', 500);
+        }
+
         setPlaidLinkToken(result.link_token);
+        console.info('[ConnectAccountModal] Link token received');
       } catch (error) {
-        const message =
-          error instanceof PlaidApiError ? error.message : 'Failed to get Plaid link token.';
+        let message = 'Failed to initialize Plaid. Please try again.';
+
+        if (error instanceof PlaidApiError) {
+          switch (error.status) {
+            case 401:
+              message = 'Your session expired. Please sign in again.';
+              break;
+            case 429:
+              message = 'Too many attempts. Please wait and try again.';
+              break;
+            case 500:
+            case 502:
+            case 503:
+              message = 'Plaid service temporarily unavailable. Please try again later.';
+              break;
+            default:
+              message = error.message;
+          }
+        } else if (error instanceof Error && error.message.includes('NetworkError')) {
+          message = 'Network error. Please check your connection and try again.';
+        }
+
         setPlaidError(message);
-        console.error('[ConnectAccountModal] Error fetching Plaid link token:', error);
+        console.error('[ConnectAccountModal] Failed to fetch link token:', { error, message });
       }
     },
     [setPlaidLinkToken]
@@ -113,31 +179,50 @@ function ConnectAccountModalContent({
     setPlaidError(null);
 
     if (!authToken) {
-      setPlaidError('Please sign in first.');
+      setPlaidError('Please sign in first to connect a bank account.');
       return;
     }
 
     setIsConnecting('plaid');
 
-    if (!linkToken) {
-      await fetchPlaidLinkToken();
-      setIsConnecting(null);
-      return;
-    }
+    try {
+      // Fetch token if needed
+      if (!linkToken) {
+        console.debug('[ConnectAccountModal] Fetching link token');
+        await fetchPlaidLinkToken();
 
-    if (isPlaidReady) {
-      try {
-        openPlaid();
-      } catch (error) {
-        console.error('[ConnectAccountModal] Error opening Plaid:', error);
-        setPlaidError('Failed to open Plaid Link. Please try again.');
+        // Re-check if token was successfully fetched
+        if (!linkToken) {
+          setPlaidError('Failed to load Plaid Link. Please check your connection and try again.');
+          return;
+        }
       }
-      setIsConnecting(null);
-      return;
-    }
 
-    setPlaidError('Plaid is still initializing. Please try again in a moment.');
-    setIsConnecting(null);
+      // Check if Plaid SDK is ready
+      if (!isPlaidReady) {
+        setPlaidError('Plaid is still initializing. Please wait and try again.');
+        console.warn('[ConnectAccountModal] Plaid SDK not ready when attempting to open');
+        return;
+      }
+
+      // Open Plaid Link
+      console.debug('[ConnectAccountModal] Opening Plaid Link UI');
+      openPlaid();
+    } catch (error) {
+      console.error('[ConnectAccountModal] Error in handlePlaidConnect:', error);
+
+      if (error instanceof PlaidApiError) {
+        if (error.status === 429) {
+          setPlaidError('Too many attempts. Please wait a few minutes before trying again.');
+        } else {
+          setPlaidError(`Failed to initialize Plaid: ${error.message}`);
+        }
+      } else {
+        setPlaidError('Failed to connect account. Please refresh and try again.');
+      }
+    } finally {
+      setIsConnecting(null);
+    }
   };
 
   const handleReownConnect = async () => {

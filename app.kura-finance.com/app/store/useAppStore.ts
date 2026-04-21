@@ -16,7 +16,6 @@ import {
   exchangePlaidPublicToken,
   disconnectPlaidAccount as disconnectPlaidAccountApi,
   fetchPlaidFinanceSnapshot,
-  updatePlaidAccountOrder as updatePlaidAccountOrderApi,
 } from '@/lib/plaidApi';
 import { useFinanceStore } from './useFinanceStore';
 

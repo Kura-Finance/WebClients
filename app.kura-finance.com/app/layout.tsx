@@ -66,7 +66,6 @@ export default function RootLayout({
         <Script
           src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"
           strategy="beforeInteractive"
-          crossOrigin="anonymous"
           onError={() => {
             console.error('[Layout] Failed to load Plaid SDK from CDN');
           }}

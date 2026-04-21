@@ -63,11 +63,6 @@ export interface BackendFinanceSnapshot {
   investments: BackendFinanceInvestment[];
 }
 
-export interface UpdatePlaidAccountOrderPayload {
-  accountIds?: string[];
-  investmentAccountIds?: string[];
-}
-
 interface ApiErrorBody {
   error?: string;
   message?: string;
@@ -228,20 +223,6 @@ export const disconnectPlaidAccount = (
     {
       method: 'DELETE',
       body: JSON.stringify({ accountId }),
-    },
-    token
-  );
-};
-
-export const updatePlaidAccountOrder = (
-  token: string,
-  payload: UpdatePlaidAccountOrderPayload
-): Promise<{ status: string; message: string }> => {
-  return backendRequest<{ status: string; message: string }>(
-    '/api/plaid/account-order',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
     },
     token
   );

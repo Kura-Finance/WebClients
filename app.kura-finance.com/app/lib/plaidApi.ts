@@ -1,20 +1,23 @@
 /**
  * Plaid API Service Layer
- * 对齐 kura-app 实现
+ * Backend handles caching, frontend focuses on error handling and type safety
  */
 
 import { getBackendBaseUrl } from './authApi';
 import { handleFetchError, handleResponseError, logResponse, logSuccess, extractErrorMessage } from './errorHandler';
 
-export interface BackendFinanceAccount {
+// ============= Types =============
+
+export interface PlaidAccountPayload {
   id: string;
   name: string;
   balance: number;
   type: 'checking' | 'saving' | 'credit' | 'crypto';
   logo: string;
+  apy?: number;
 }
 
-export interface BackendFinanceTransaction {
+export interface PlaidTransactionPayload {
   id: string;
   accountId: string;
   accountName: string;
@@ -24,16 +27,19 @@ export interface BackendFinanceTransaction {
   merchant: string;
   category: string;
   type: 'credit' | 'deposit' | 'transfer';
+  isRecurring?: boolean;
+  isSubscription?: boolean;
+  merchantLogo?: string;
 }
 
-export interface BackendFinanceInvestmentAccount {
+export interface PlaidInvestmentAccountPayload {
   id: string;
   name: string;
   type: 'Broker' | 'Exchange' | 'Web3 Wallet';
   logo: string;
 }
 
-export interface BackendFinanceInvestment {
+export interface PlaidInvestmentPayload {
   id: string;
   accountId: string;
   symbol: string;
@@ -41,20 +47,15 @@ export interface BackendFinanceInvestment {
   holdings: number;
   currentPrice: number;
   change24h: number;
-  type: 'crypto' | 'stock';
+  type: 'crypto' | 'stock' | 'etf';
   logo: string;
 }
 
-export interface BackendFinanceSnapshot {
-  accounts: BackendFinanceAccount[];
-  transactions: BackendFinanceTransaction[];
-  investmentAccounts: BackendFinanceInvestmentAccount[];
-  investments: BackendFinanceInvestment[];
-}
-
-export interface UpdatePlaidAccountOrderPayload {
-  accountIds?: string[];
-  investmentAccountIds?: string[];
+export interface PlaidFinanceSnapshot {
+  accounts: PlaidAccountPayload[];
+  transactions: PlaidTransactionPayload[];
+  investmentAccounts: PlaidInvestmentAccountPayload[];
+  investments: PlaidInvestmentPayload[];
 }
 
 interface ApiErrorBody {
@@ -64,13 +65,17 @@ interface ApiErrorBody {
 
 export class PlaidApiError extends Error {
   status: number;
+  errorCode?: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, errorCode?: string) {
     super(message);
     this.name = 'PlaidApiError';
     this.status = status;
+    this.errorCode = errorCode;
   }
 }
+
+// ============= Request Handler =============
 
 async function plaidRequest<T>(
   path: string,
@@ -83,19 +88,15 @@ async function plaidRequest<T>(
   if (!headers.has('Content-Type') && options.body) {
     headers.set('Content-Type', 'application/json');
   }
-  // 标识为 Web 客户端
   headers.set('X-Client-Type', 'web');
 
   try {
-    console.debug('[PlaidAPI] Fetching:', {
-      method: options.method || 'GET',
-      url,
-    });
+    console.debug('[PlaidAPI] Request:', { method: options.method || 'GET', url });
 
     const response = await fetch(url, {
       ...options,
       headers,
-      credentials: 'include', // 重要: 包含 HttpOnly Cookie
+      credentials: 'include',
     });
 
     logResponse(response.status, response.statusText, response.headers.get('content-type'), url, 'PlaidAPI');
@@ -117,22 +118,24 @@ async function plaidRequest<T>(
       throw apiError;
     }
 
-    logSuccess(json, url, 'PlaidAPI');
-    return (json as T) ?? ({} as T);
+    const data = (json as T) ?? ({} as T);
+    logSuccess(data, url, 'PlaidAPI');
+    return data;
   } catch (error) {
-    // 如果已经是 PlaidApiError，直接抛出
     if (error instanceof PlaidApiError) {
       throw error;
     }
-    
+
     const { error: apiError } = handleFetchError(error, url, 'PlaidAPI');
     throw apiError;
   }
 }
 
+// ============= Public API =============
+
 /**
- * 创建 Plaid Link Token
- * Cookie 会自动发送，无需手动传递 token
+ * Create Link Token for Plaid Link UI
+ * 获取 Link Token 以打开 Plaid Link UI
  */
 export const createPlaidLinkToken = (): Promise<{ link_token: string }> => {
   return plaidRequest<{ link_token: string }>(
@@ -142,14 +145,13 @@ export const createPlaidLinkToken = (): Promise<{ link_token: string }> => {
 };
 
 /**
- * 交换 Plaid Public Token 为 Access Token
- * 用户在 Plaid 完成授权后调用
- * Cookie 会自动发送，无需手动传递 token
+ * Exchange public token for access token
+ * 用户完成银行认证后，交换获得 Access Token
  */
 export const exchangePlaidPublicToken = (
   payload: { public_token: string; institution_name?: string }
-): Promise<{ status: string; message: string }> => {
-  return plaidRequest<{ status: string; message: string }>(
+): Promise<{ status: string; message: string; snapshot?: PlaidFinanceSnapshot }> => {
+  return plaidRequest<{ status: string; message: string; snapshot?: PlaidFinanceSnapshot }>(
     '/api/plaid/exchange-public-token',
     {
       method: 'POST',
@@ -159,45 +161,28 @@ export const exchangePlaidPublicToken = (
 };
 
 /**
- * 获取财务数据快照
- * 包括银行账户、交易、投资账户和投资产品
- * Cookie 会自动发送，无需手动传递 token
+ * Get finance snapshot
+ * 获取财务快照（帐户、交易、投资）
  */
-export const fetchPlaidFinanceSnapshot = (): Promise<BackendFinanceSnapshot> => {
-  return plaidRequest<BackendFinanceSnapshot>(
+export const fetchPlaidFinanceSnapshot = (): Promise<PlaidFinanceSnapshot> => {
+  return plaidRequest<PlaidFinanceSnapshot>(
     '/api/plaid/finance-snapshot',
     { method: 'GET' }
   );
 };
 
 /**
- * 断开 Plaid 银行账户连接
- * Cookie 会自动发送，无需手动传递 token
+ * Disconnect a Plaid account
+ * 断开连接某个 Plaid 账户
  */
 export const disconnectPlaidAccount = (
   accountId: string
 ): Promise<{ status: string; message: string }> => {
   return plaidRequest<{ status: string; message: string }>(
-    '/api/plaid/account',
+    '/api/plaid/disconnect',
     {
-      method: 'DELETE',
+      method: 'POST',
       body: JSON.stringify({ accountId }),
-    }
-  );
-};
-
-/**
- * 更新 Plaid 账户顺序（用于 UI 排序）
- * Cookie 会自动发送，无需手动传递 token
- */
-export const updatePlaidAccountOrder = (
-  payload: UpdatePlaidAccountOrderPayload
-): Promise<{ status: string; message: string }> => {
-  return plaidRequest<{ status: string; message: string }>(
-    '/api/plaid/account-order',
-    {
-      method: 'PUT',
-      body: JSON.stringify(payload),
     }
   );
 };

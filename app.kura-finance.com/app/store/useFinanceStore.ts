@@ -178,10 +178,10 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         });
 
         return {
-          accounts: snapshot.accounts,
-          transactions: snapshot.transactions,
-          investmentAccounts: [...snapshot.investmentAccounts, ...nonPlaidAccounts],
-          investments: [...snapshot.investments, ...nonPlaidInvestments],
+          accounts: snapshot.accounts as Account[],
+          transactions: snapshot.transactions as Transaction[],
+          investmentAccounts: [...snapshot.investmentAccounts, ...nonPlaidAccounts] as InvestmentAccount[],
+          investments: [...snapshot.investments, ...nonPlaidInvestments] as Investment[],
           isLoadingPlaidData: false,
         };
       });
