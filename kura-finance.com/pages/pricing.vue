@@ -57,20 +57,8 @@ const plans = [
       'Real-Time Alerts: Telegram/Discord notifications for abnormal movements or liquidations.',
       'High-Frequency Sync: 20 manual syncs daily, background updates every hour.'
     ],
+    footer: 'If you need more, please contact us',
     cta: 'Upgrade to Ultimate',
-    highlighted: false,
-  },
-  {
-    name: 'Kura VIP',
-    price: '$999.99+',
-    period: '/ yr',
-    description: 'Exclusive custom solution',
-    features: [
-      'Everything in Ultimate',
-      'Dedicated Node: Use your own Alchemy/Infura API Key for millisecond-level data.',
-      'Developer API & Webhooks: Top-tier access to stream standardized JSON to your systems.'
-    ],
-    cta: 'Contact Us',
     highlighted: false,
   }
 ];
@@ -138,6 +126,9 @@ const handlePlanAction = (planName: string) => {
                       <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                     </svg>
                     <span class="text-kura-text-secondary text-xs leading-relaxed" v-html="feature.replace(': ', ':<br/>')"></span>
+                  </div>
+                  <div v-if="'footer' in plan" class="text-kura-primary text-xs pt-3 italic">
+                    {{ plan.footer }}
                   </div>
                 </div>
               </div>
