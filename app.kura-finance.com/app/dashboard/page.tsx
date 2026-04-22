@@ -55,7 +55,7 @@ export default function DashboardPage() {
   const changePositive = changePercent !== null && changePercent >= 0;
 
   return (
-    <div className="w-full pb-8 px-4 sm:px-6 lg:px-8 pt-8 max-w-7xl mx-auto">
+    <div className="w-full pb-24 px-12 sm:px-[72px] lg:px-24 pt-24 max-w-7xl mx-auto">
       {isConnectModalOpen && (
         <ConnectAccountModal
           isOpen={isConnectModalOpen}
