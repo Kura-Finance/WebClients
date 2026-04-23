@@ -21,7 +21,8 @@ import {
   SRPParameters,
   SRPRoutines,
 } from 'tssrp6a';
-import { getBackendBaseUrl } from '@/lib/authApi';
+import { getBackendBaseUrl } from '@/lib/httpClient';
+import type { BackendUserProfile } from '@/lib/authApi';
 
 const SRP_PARAMS = new SRPParameters();
 const SRP_ROUTINES = new SRPRoutines(SRP_PARAMS);
@@ -86,7 +87,7 @@ export async function computeVerifier(
 export interface SRPLoginResult {
   serverM2: string;
   token: string;
-  user: any;
+  user: BackendUserProfile;
   encryptedDataKey: string;
   kekSalt: string;
 }
@@ -116,7 +117,7 @@ export async function srpFullLogin(
   );
 
   // Step 3: 同時傳 clientA + M1（後端在此才需要 A）
-  const result = await srpPost<{ serverM2: string; token: string; user: any }>(
+  const result = await srpPost<{ serverM2: string; token: string; user: BackendUserProfile }>(
     '/api/auth/srp/verify',
     {
       sessionId: challenge.sessionId,

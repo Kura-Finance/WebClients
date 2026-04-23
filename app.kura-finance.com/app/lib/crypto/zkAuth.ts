@@ -4,7 +4,7 @@
  * 整合 keyDerivation + srpClient，提供完整的 ZK 登入/註冊流程。
  * 外部只需呼叫：
  *   - zkLogin(email, password)    → SRP 零知識登入
- *   - zkRegister(email, password) → 建立帳號 + 背景設定 SRP
+ *   - zkConfirmRegister(...)      → 驗證碼註冊 + SRP 初始化
  *   - clearCryptoSession()        → 登出時清除 Data Key
  *
  * Data Key 解密後存放於 module-level memory，
@@ -15,15 +15,15 @@ import { deriveKeysFromPassword, generateSalt, sealDataKey, unsealDataKey } from
 import {
   computeVerifier,
   srpFullLogin,
-  setupSRP,
   generateDataKey,
   getSRPSalts,
 } from './srpClient';
 import {
-  registerUser,
+  confirmRegister as apiConfirmRegister,
   resetPassword as apiResetPassword,
   changePassword as apiChangePassword,
 } from '@/lib/authApi';
+import type { BackendUserProfile } from '@/lib/authApi';
 
 // ─────────────────────────────────────────
 // Crypto Session（記憶體中，登出後清除）
@@ -54,7 +54,7 @@ export function clearCryptoSession(): void {
  * 2. SRP 握手驗證（M1/M2 互相確認）
  * 3. 解密 encryptedDataKey → 存入 cryptoSession
  */
-export async function zkLogin(email: string, password: string): Promise<{ user: any }> {
+export async function zkLogin(email: string, password: string): Promise<{ user: BackendUserProfile }> {
   const normalizedEmail = email.toLowerCase().trim();
 
   // Step 1: 取得 salt — 同時確認此帳號是否已啟用 SRP
@@ -69,7 +69,7 @@ export async function zkLogin(email: string, password: string): Promise<{ user: 
   const { kek, authKeyHex } = await deriveKeysFromPassword(password, srpSalt, kekSalt);
 
   // Step 3: SRP 完整握手
-  const { user, encryptedDataKey, kekSalt: serverKekSalt } = await srpFullLogin(
+  const { user, encryptedDataKey } = await srpFullLogin(
     normalizedEmail,
     authKeyHex,
   );
@@ -84,21 +84,27 @@ export async function zkLogin(email: string, password: string): Promise<{ user: 
 }
 
 // ─────────────────────────────────────────
-// ZK 註冊
+// 註冊確認（驗證碼 + SRP）
 // ─────────────────────────────────────────
 
-/**
- * 建立帳號（舊版流程），完成後背景設定 SRP + Data Key
- */
-export async function zkRegister(email: string, password: string): Promise<{ user: any }> {
+export async function zkConfirmRegister(
+  email: string,
+  password: string,
+  verificationCode: string,
+): Promise<{ user: BackendUserProfile }> {
   const normalizedEmail = email.toLowerCase().trim();
-  const response = await registerUser(normalizedEmail, password);
-
-  // 背景設定 SRP（不阻塞 UI）
-  setupSRPForNewAccount(normalizedEmail, password).catch((e) =>
-    console.warn('[ZK] SRP setup after register failed:', e),
+  const { srpSalt, srpVerifier, encryptedDataKey, kekSalt, plainDataKey, kek } =
+    await buildSRPSetupPayload(normalizedEmail, password);
+  const response = await apiConfirmRegister(
+    normalizedEmail,
+    verificationCode,
+    srpSalt,
+    srpVerifier,
+    encryptedDataKey,
+    kekSalt,
   );
 
+  cryptoSession = { dataKeyHex: plainDataKey, kek };
   return { user: response.user };
 }
 
@@ -165,23 +171,22 @@ export async function zkChangePassword(email: string, newPassword: string): Prom
 // 內部工具
 // ─────────────────────────────────────────
 
-async function setupSRPForNewAccount(email: string, password: string): Promise<void> {
+async function buildSRPSetupPayload(email: string, password: string): Promise<{
+  srpSalt: string;
+  srpVerifier: string;
+  encryptedDataKey: string;
+  kekSalt: string;
+  plainDataKey: string;
+  kek: CryptoKey;
+}> {
   const srpSalt = generateSalt();
   const kekSalt = generateSalt();
-
   const { kek, authKeyHex } = await deriveKeysFromPassword(password, srpSalt, kekSalt);
   const { srpVerifier } = await computeVerifier(email, authKeyHex, srpSalt);
-
-  // 請後端生成 Data Key（後端只在這一刻看到明文，不儲存）
   const { plainDataKey } = await generateDataKey();
   const encryptedDataKey = await sealDataKey(plainDataKey, kek);
 
-  // 上傳（後端只存加密版，無法反解）
-  await setupSRP({ srpSalt, srpVerifier, encryptedDataKey, kekSalt });
-
-  // 存入 session
-  cryptoSession = { dataKeyHex: plainDataKey, kek };
-  console.info('[ZK] SRP setup complete');
+  return { srpSalt, srpVerifier, encryptedDataKey, kekSalt, plainDataKey, kek };
 }
 
 

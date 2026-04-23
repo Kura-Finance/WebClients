@@ -2,18 +2,21 @@ import { create } from 'zustand';
 import {
   fetchCurrentUserProfile,
   updateCurrentUserProfile,
-  registerUser,
   logoutUser,
   requestPasswordReset as requestPasswordResetApi,
   requestRegisterToken as requestRegisterTokenApi,
-  confirmRegister as confirmRegisterApi,
 } from '@/lib/authApi';
-import { zkLogin, zkRegister, clearCryptoSession, zkChangePassword, zkResetPassword } from '@/lib/crypto/zkAuth';
+import {
+  zkLogin,
+  zkConfirmRegister,
+  clearCryptoSession,
+  zkChangePassword,
+  zkResetPassword,
+} from '@/lib/crypto/zkAuth';
 import {
   createPlaidLinkToken,
   exchangePlaidPublicToken,
   disconnectPlaidAccount as disconnectPlaidAccountApi,
-  fetchPlaidFinanceSnapshot,
 } from '@/lib/plaidApi';
 import { useFinanceStore } from './useFinanceStore';
 
@@ -32,37 +35,22 @@ export interface UserPreferences {
   weeklyAiSummary: boolean;
 }
 
-export interface AiInsight {
-  id: 'spending-alert' | 'optimization';
-  title: string;
-  content: string;
-}
-
-export interface AppChatMessage {
-  id: string;
-  role: 'ai' | 'user';
-  content: string;
-}
-
 interface AppState {
   authStatus: 'loading' | 'authenticated' | 'unauthenticated';
   userProfile: UserProfile;
   preferences: UserPreferences;
-  aiInsights: AiInsight[];
-  chatMessages: AppChatMessage[];
   plaidLinkToken: string | null;
   authToken: string | null;
   authError: string | null;
 
   // Auth methods
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (newPassword: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   resetPassword: (email: string, resetCode: string, newPassword: string) => Promise<void>;
-  requestRegisterToken: (email: string) => Promise<{ registerToken?: string }>;
-  confirmRegister: (email: string, password: string, registerToken: string) => Promise<void>;
+  requestRegisterToken: (email: string) => Promise<void>;
+  confirmRegister: (email: string, password: string, verificationCode: string) => Promise<void>;
   hydrateFromStorage: () => Promise<void>;
 
   // User methods
@@ -70,9 +58,7 @@ interface AppState {
   setBaseCurrency: (currency: BaseCurrency) => void;
   toggleLargeTransactionAlerts: () => void;
   toggleWeeklyAiSummary: () => void;
-  addChatMessage: (message: AppChatMessage) => void;
   setPlaidLinkToken: (token: string | null) => void;
-  setAuthToken: (token: string | null) => void;
   clearAuthSession: () => void;
   hydrateUserProfile: () => Promise<void>;
 
@@ -95,8 +81,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     largeTransactionAlerts: false,
     weeklyAiSummary: false,
   },
-  aiInsights: [],
-  chatMessages: [],
   plaidLinkToken: null,
   authToken: null,
   authError: null,
@@ -121,7 +105,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
         authError: null,
         preferences: { baseCurrency: 'USD', largeTransactionAlerts: false, weeklyAiSummary: false },
-        aiInsights: [],
       });
 
       try {
@@ -133,43 +116,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       console.error('[AppStore] Login failed', { error: errorMessage });
-      set({ authStatus: 'unauthenticated', authError: errorMessage });
-      throw error;
-    }
-  },
-
-  signup: async (email: string, password: string) => {
-    try {
-      const normalizedEmail = email.toLowerCase().trim();
-      console.debug('[AppStore] Attempting ZK signup', { email: normalizedEmail });
-      set({ authStatus: 'loading', authError: null });
-
-      // ZK register：完成帳號後背景設定 SRP
-      const response = await zkRegister(normalizedEmail, password);
-
-      set({
-        authToken: 'web-client',
-        authStatus: 'authenticated',
-        userProfile: {
-          displayName: response.user.displayName,
-          email: normalizedEmail,
-          avatarUrl: response.user.avatarUrl || '',
-          membershipLabel: response.user.membershipLabel || '',
-        },
-        authError: null,
-        preferences: { baseCurrency: 'USD', largeTransactionAlerts: false, weeklyAiSummary: false },
-        aiInsights: [],
-      });
-
-      try {
-        const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
-        await hydratePlaidFinanceData();
-      } catch (plaidError) {
-        console.warn('[AppStore] Failed to auto-load Plaid data after signup', plaidError);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Signup failed';
-      console.error('[AppStore] Signup failed', { error: errorMessage });
       set({ authStatus: 'unauthenticated', authError: errorMessage });
       throw error;
     }
@@ -239,9 +185,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   requestRegisterToken: async (email: string) => {
     try {
       console.debug('[AppStore] Requesting register token', { email });
-      const response = await requestRegisterTokenApi(email);
-      console.info('[AppStore] Register token email sent', { registerToken: response.registerToken });
-      return { registerToken: response.registerToken };
+      await requestRegisterTokenApi(email);
+      console.info('[AppStore] Registration verification code sent');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Register token request failed';
       console.error('[AppStore] Register token request failed', { error: errorMessage });
@@ -249,10 +194,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  confirmRegister: async (email: string, password: string, registerToken: string) => {
+  confirmRegister: async (email: string, password: string, verificationCode: string) => {
     try {
       console.debug('[AppStore] Confirming registration', { email });
-      const response = await confirmRegisterApi(email, password, registerToken);
+      const response = await zkConfirmRegister(email, password, verificationCode);
       // Web 客户端: Token 存储在 HttpOnly Cookie 中，无需手动存储
 
       console.info('[AppStore] Registration confirmed successfully');
@@ -271,7 +216,6 @@ export const useAppStore = create<AppState>((set, get) => ({
           largeTransactionAlerts: false,
           weeklyAiSummary: false,
         },
-        aiInsights: [],
       });
 
       // Auto-load Plaid data from backend
@@ -322,7 +266,6 @@ export const useAppStore = create<AppState>((set, get) => ({
             largeTransactionAlerts: false,
             weeklyAiSummary: false,
           },
-          aiInsights: [],
         });
 
         // Auto-load Plaid data from backend
@@ -334,7 +277,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         } catch (plaidError) {
           console.warn('[AppStore] Failed to auto-load Plaid data', plaidError);
         }
-      } catch (error) {
+      } catch {
         // No valid cookie or session
         console.info('[AppStore] No valid session found');
         set({ authStatus: 'unauthenticated', authError: null, authToken: null });
@@ -382,18 +325,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       },
     })),
 
-  addChatMessage: (message) => set((state) => ({ chatMessages: [...state.chatMessages, message] })),
-
   setPlaidLinkToken: (plaidLinkToken) => set({ plaidLinkToken }),
-
-  setAuthToken: (authToken) => {
-    if (authToken) {
-      set({ authToken, authStatus: 'authenticated' });
-      return;
-    }
-
-    set({ authToken: null, authStatus: 'unauthenticated' });
-  },
 
   clearAuthSession: () => {
     set(() => ({
@@ -436,7 +368,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.debug('[AppStore] Plaid API response received', { result });
 
       // Handle both { link_token } and { token } response formats
-      const token = result.link_token || (result as any).token;
+      const fallbackToken =
+        typeof (result as { token?: unknown }).token === 'string'
+          ? (result as { token: string }).token
+          : undefined;
+      const token = result.link_token || fallbackToken;
       if (!token) {
         console.error('[AppStore] No link token in response', { result });
         throw new Error('No link token returned from backend');

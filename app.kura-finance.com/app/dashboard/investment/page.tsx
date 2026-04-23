@@ -28,7 +28,6 @@ export default function InvestmentPage() {
   // Exchange Store
   const exchangeInvestmentAccounts = useExchangeStore(state => state.exchangeInvestmentAccounts);
   const exchangeInvestments = useExchangeStore(state => state.exchangeInvestments);
-  const removeExchangeAccount = useExchangeStore(state => state.removeExchangeAccount);
 
   // Combine data from all three stores
   const investmentAccounts = useMemo(

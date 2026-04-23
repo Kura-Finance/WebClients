@@ -18,7 +18,7 @@ export default function AppSessionHydrator() {
     if (authStatus === 'loading' && !authToken) {
       void hydrateFromStorage();
     }
-  }, []);
+  }, [authStatus, authToken, hydrateFromStorage]);
 
   useEffect(() => {
     if (authStatus !== 'loading') {

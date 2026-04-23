@@ -3,8 +3,7 @@
  * Backend handles caching, frontend focuses on error handling and type safety
  */
 
-import { getBackendBaseUrl } from './authApi';
-import { handleFetchError, handleResponseError, logResponse, logSuccess, extractErrorMessage } from './errorHandler';
+import { requestJson } from './httpClient';
 
 // ============= Types =============
 
@@ -58,11 +57,6 @@ export interface PlaidFinanceSnapshot {
   investments: PlaidInvestmentPayload[];
 }
 
-interface ApiErrorBody {
-  error?: string;
-  message?: string;
-}
-
 export class PlaidApiError extends Error {
   status: number;
   errorCode?: string;
@@ -81,54 +75,7 @@ async function plaidRequest<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const baseUrl = getBackendBaseUrl();
-  const url = `${baseUrl}${path}`;
-
-  const headers = new Headers(options.headers ?? {});
-  if (!headers.has('Content-Type') && options.body) {
-    headers.set('Content-Type', 'application/json');
-  }
-  headers.set('X-Client-Type', 'web');
-
-  try {
-    console.debug('[PlaidAPI] Request:', { method: options.method || 'GET', url });
-
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include',
-    });
-
-    logResponse(response.status, response.statusText, response.headers.get('content-type'), url, 'PlaidAPI');
-
-    const raw = await response.text();
-    let json: (ApiErrorBody & T) | null = null;
-    if (raw) {
-      try {
-        json = JSON.parse(raw) as ApiErrorBody & T;
-      } catch {
-        json = null;
-      }
-    }
-
-    if (!response.ok) {
-      const { error, message } = extractErrorMessage(json);
-      const errorMsg = error || message || `Request failed with status ${response.status}`;
-      const { error: apiError } = handleResponseError(response.status, errorMsg, url, 'PlaidAPI');
-      throw apiError;
-    }
-
-    const data = (json as T) ?? ({} as T);
-    logSuccess(data, url, 'PlaidAPI');
-    return data;
-  } catch (error) {
-    if (error instanceof PlaidApiError) {
-      throw error;
-    }
-
-    const { error: apiError } = handleFetchError(error, url, 'PlaidAPI');
-    throw apiError;
-  }
+  return requestJson<T>(path, options, 'PlaidAPI');
 }
 
 // ============= Public API =============

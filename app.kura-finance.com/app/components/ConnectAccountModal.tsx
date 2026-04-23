@@ -14,7 +14,6 @@ import {
   PlaidApiError,
   createPlaidLinkToken,
   exchangePlaidPublicToken,
-  type PlaidFinanceSnapshot,
 } from '@/lib/plaidApi';
 
 interface ConnectAccountModalProps {

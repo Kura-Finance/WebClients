@@ -1,25 +1,24 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 
 type DeviceType = 'ios' | 'android' | 'desktop' | 'unknown';
 
+function detectDeviceType(): DeviceType {
+  if (typeof navigator === 'undefined') {
+    return 'unknown';
+  }
+
+  const userAgent = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(userAgent)) return 'ios';
+  if (/android/.test(userAgent)) return 'android';
+  if (/windows|mac|linux/.test(userAgent)) return 'desktop';
+  return 'unknown';
+}
+
 export default function DownloadPage() {
-  const [deviceType, setDeviceType] = useState<DeviceType>('unknown');
-
-  useEffect(() => {
-    // Detect device type from user agent
-    const userAgent = navigator.userAgent.toLowerCase();
-
-    if (/iphone|ipad|ipod/.test(userAgent)) {
-      setDeviceType('ios');
-    } else if (/android/.test(userAgent)) {
-      setDeviceType('android');
-    } else if (/windows|mac|linux/.test(userAgent)) {
-      setDeviceType('desktop');
-    }
-  }, []);
+  const [deviceType] = useState<DeviceType>(detectDeviceType);
 
   return (
     <div className="min-h-screen bg-[#0B0B0F] text-white flex flex-col">

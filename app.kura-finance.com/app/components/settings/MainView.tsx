@@ -1,20 +1,18 @@
 import React from 'react';
 import Image from 'next/image';
 import { motion, Variants } from 'framer-motion';
-import Link from 'next/link';
 import { useAppStore } from '@/store/useAppStore';
 
 interface MainViewProps {
-  pathname: string;
   handleClose: () => void;
   setActiveView: (view: 'main' | 'profile' | 'accounts' | 'preferences') => void;
   onConnectAccount: () => void;
   variants: Variants;
 }
 
-export default function MainView({ pathname, handleClose, setActiveView, onConnectAccount, variants }: MainViewProps) {
+export default function MainView({ handleClose, setActiveView, onConnectAccount, variants }: MainViewProps) {
   const userProfile = useAppStore(state => state.userProfile);
-  const clearAuthSession = useAppStore(state => state.clearAuthSession);
+  const logout = useAppStore(state => state.logout);
   const authStatus = useAppStore(state => state.authStatus);
   const displayName = userProfile.displayName.trim();
   const avatarInitial = displayName ? displayName.slice(0, 1).toUpperCase() : '?';
@@ -73,8 +71,8 @@ export default function MainView({ pathname, handleClose, setActiveView, onConne
       {authStatus === 'authenticated' && (
         <div className="absolute bottom-6 left-6 right-6 pt-6 border-t border-white/5">
           <button
-            onClick={() => {
-              clearAuthSession();
+            onClick={async () => {
+              await logout();
               handleClose();
             }}
             className="w-full py-3 rounded-xl bg-red-500/10 text-red-400 font-medium hover:bg-red-500/20 transition-colors border border-red-500/20"

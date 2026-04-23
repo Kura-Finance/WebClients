@@ -9,6 +9,8 @@ export default function RootHubPage() {
   const authStatus = useAppStore((state) => state.authStatus);
   const router = useRouter();
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot_password'>('login');
+  const [registerStep, setRegisterStep] = useState<'request' | 'verify'>('request');
+  const [registerCode, setRegisterCode] = useState('');
   const [resetStep, setResetStep] = useState<'request' | 'verify'>('request');
   const [resetCode, setResetCode] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -18,10 +20,11 @@ export default function RootHubPage() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   const login = useAppStore((state) => state.login);
-  const signup = useAppStore((state) => state.signup);
   const setPlaidLinkToken = useAppStore((state) => state.setPlaidLinkToken);
   const requestPasswordReset = useAppStore((state) => state.requestPasswordReset);
   const resetPassword = useAppStore((state) => state.resetPassword);
+  const requestRegisterToken = useAppStore((state) => state.requestRegisterToken);
+  const confirmRegister = useAppStore((state) => state.confirmRegister);
 
   // Redirect to dashboard if authenticated
   useEffect(() => {
@@ -75,17 +78,39 @@ export default function RootHubPage() {
       return;
     }
 
-    if (!email || !password) {
-      setAuthError('Email and password are required.');
-      return;
-    }
-
     setIsAuthenticating(true);
 
     try {
       if (authMode === 'register') {
-        await signup(email.trim(), password);
+        if (registerStep === 'request') {
+          if (!email) {
+            setAuthError('Email is required.');
+            return;
+          }
+          await requestRegisterToken(email.trim());
+          setRegisterStep('verify');
+          setSuccessMessage('Verification code sent to your email.');
+          return;
+        }
+
+        if (!email || !password) {
+          setAuthError('Email and password are required.');
+          return;
+        }
+
+        if (!registerCode.trim()) {
+          setAuthError('Verification code is required.');
+          return;
+        }
+
+        await confirmRegister(email.trim(), password, registerCode.trim());
+        setRegisterStep('request');
+        setRegisterCode('');
       } else {
+        if (!email || !password) {
+          setAuthError('Email and password are required.');
+          return;
+        }
         await login(email.trim(), password);
       }
 
@@ -140,6 +165,8 @@ export default function RootHubPage() {
                       setAuthMode('login');
                       setAuthError(null);
                       setSuccessMessage(null);
+                      setRegisterStep('request');
+                      setRegisterCode('');
                     }}
                     className={`flex-1 px-3 py-2 rounded-lg border transition-all ${
                       authMode === 'login'
@@ -155,6 +182,8 @@ export default function RootHubPage() {
                       setAuthMode('register');
                       setAuthError(null);
                       setSuccessMessage(null);
+                      setRegisterStep('request');
+                      setRegisterCode('');
                     }}
                     className={`flex-1 px-3 py-2 rounded-lg border transition-all ${
                       authMode === 'register'
@@ -224,6 +253,17 @@ export default function RootHubPage() {
                 />
               )}
 
+              {/* Register Verify Step Input */}
+              {authMode === 'register' && registerStep === 'verify' && (
+                <input
+                  type="text"
+                  value={registerCode}
+                  onChange={(e) => setRegisterCode(e.target.value)}
+                  placeholder="6-digit Verification Code"
+                  className="w-full rounded-xl bg-[#0B0B0F] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6]/60 transition-colors"
+                />
+              )}
+
               {/* Forgot Password Link */}
               {authMode === 'login' && (
                 <div className="flex justify-end">
@@ -262,7 +302,9 @@ export default function RootHubPage() {
                     ? 'Send Code'
                     : 'Reset Password'
                   : authMode === 'register'
-                  ? 'Create Account'
+                  ? registerStep === 'request'
+                    ? 'Send Verification Code'
+                    : 'Create Account'
                   : 'Sign In'}
               </button>
 

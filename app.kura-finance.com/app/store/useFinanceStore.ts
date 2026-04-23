@@ -114,7 +114,7 @@ const CHAIN_MARKET_META: Record<number, { coingeckoId: string; logo: string; fal
   },
 };
 
-export const useFinanceStore = create<FinanceState>((set, get) => ({
+export const useFinanceStore = create<FinanceState>((set) => ({
   // Initial State
   accounts: [],
   transactions: [],
