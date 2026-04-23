@@ -47,7 +47,7 @@ export default function RootHubPage() {
         } catch (srpError) {
           // SRP not set up yet for this account → use legacy path
           const msg = srpError instanceof Error ? srpError.message : '';
-          const isNotSetup = msg.includes('帳號或密碼錯誤') || msg.includes('SRP') || msg.includes('salt');
+          const isNotSetup = msg.includes('SRP not configured');
           if (isNotSetup) {
             await zkLoginLegacy(email.trim(), password);
           } else {

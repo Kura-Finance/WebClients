@@ -90,8 +90,8 @@ export default function DashboardPage() {
               <div className="w-full h-full rounded-xl bg-white/5 animate-pulse" />
             </div>
           ) : chartData.length > 0 ? (
-            <div className="flex-1 -mx-3 sm:-mx-4 lg:-mx-5 -mb-3 sm:-mb-4 lg:-mb-5 flex items-end mt-1.5 sm:mt-2">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="flex-1 -mx-3 sm:-mx-4 lg:-mx-5 -mb-3 sm:-mb-4 lg:-mb-5 flex items-end mt-1.5 sm:mt-2 min-h-[120px]">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" style={{ fontSize: 'clamp(10px, 2vw, 12px)' }} tick={{ fontSize: 'clamp(10px, 2vw, 12px)' }} />
