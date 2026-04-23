@@ -25,7 +25,7 @@
         <section>
           <h2 class="text-2xl font-bold text-kura-text mb-4">3. Third-Party Data Processors & Partners</h2>
           <p class="text-kura-text-secondary leading-relaxed">
-            We use trusted third-party services (such as Google Cloud, Lemon Squeezy, and identity verification partners like Sumsub) to operate our platform. Furthermore, upon your explicit on-chain or in-app authorization, cryptographically secured risk attestations (ZK Proofs) may be shared with designated DeFi protocols to facilitate undercollateralized lending or identity verification.
+            We use trusted third-party services (such as Google Cloud and Lemon Squeezy) to operate our platform.
           </p>
         </section>
 

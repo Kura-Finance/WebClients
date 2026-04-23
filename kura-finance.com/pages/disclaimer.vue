@@ -34,7 +34,7 @@
         <section>
           <h2 class="text-2xl font-bold text-kura-text mb-4">4. Data Accuracy & API Limitations</h2>
           <p class="text-kura-text-secondary leading-relaxed">
-            While we strive to provide real-time and accurate cross-chain and fiat data, we rely heavily on third-party APIs (e.g., Plaid, Sumsub) and blockchain RPC nodes. We do not guarantee the 100% accuracy, uptime, completeness, or timeliness of any financial data, risk scores, or on-chain attestations displayed. We are not liable for any financial impact caused by API synchronization delays or network outages.
+            While we strive to provide real-time and accurate cross-chain and fiat data, we rely heavily on third-party APIs (e.g., Plaid) and blockchain RPC nodes. We do not guarantee the 100% accuracy, uptime, completeness, or timeliness of any financial data displayed. We are not liable for any financial impact caused by API synchronization delays or network outages.
           </p>
         </section>
 
@@ -42,7 +42,7 @@
         <section>
           <h2 class="text-2xl font-bold text-kura-text mb-4">5. No Fiduciary Duty</h2>
           <p class="text-kura-text-secondary leading-relaxed">
-            Your use of Kura Finance does not create a fiduciary, advisory, or principal-agent relationship between you and Kura Finance LLC. You are solely responsible for evaluating the merits and risks associated with the use of any tools, Oracles, or information provided by our Service.
+            Your use of Kura Finance does not create a fiduciary, advisory, or principal-agent relationship between you and Kura Finance LLC. You are solely responsible for evaluating the merits and risks associated with the use of any tools or information provided by our Service.
           </p>
         </section>
       </div>

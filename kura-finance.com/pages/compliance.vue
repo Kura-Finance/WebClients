@@ -58,7 +58,7 @@ Wilmington, DE 19801
             <div>
               <h3 class="text-lg font-semibold text-kura-text mb-2">Global Sanctions (OFAC) Compliance:</h3>
               <p class="text-kura-text-secondary leading-relaxed">
-                We are committed to operating within the legal frameworks of the United States. We strictly adhere to international sanctions and utilize wallet-screening APIs to block addresses associated with illicit activities or comprehensively sanctioned jurisdictions (OFAC) from utilizing our Oracle services.
+                We are committed to operating within the legal frameworks of the United States. We strictly adhere to international sanctions and utilize wallet-screening APIs to block addresses associated with illicit activities or comprehensively sanctioned jurisdictions (OFAC) from utilizing our services.
               </p>
             </div>
           </div>
