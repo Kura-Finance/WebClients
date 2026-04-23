@@ -4,7 +4,7 @@
  * 整合 keyDerivation + srpClient，提供完整的 ZK 登入/註冊流程。
  * 外部只需呼叫：
  *   - zkLogin(email, password)    → SRP 零知識登入
- *   - zkConfirmRegister(...)      → 驗證碼註冊 + SRP 初始化
+ *   - zkVerifyRegistration(...)   → 驗證碼註冊 + SRP 初始化
  *   - clearCryptoSession()        → 登出時清除 Data Key
  *
  * Data Key 解密後存放於 module-level memory，
@@ -19,7 +19,7 @@ import {
   getSRPSalts,
 } from './srpClient';
 import {
-  confirmRegister as apiConfirmRegister,
+  verifyRegistration as apiVerifyRegistration,
   resetPassword as apiResetPassword,
   changePassword as apiChangePassword,
 } from '@/lib/authApi';
@@ -87,15 +87,15 @@ export async function zkLogin(email: string, password: string): Promise<{ user: 
 // 註冊確認（驗證碼 + SRP）
 // ─────────────────────────────────────────
 
-export async function zkConfirmRegister(
+export async function zkVerifyRegistration(
   email: string,
   password: string,
   verificationCode: string,
 ): Promise<{ user: BackendUserProfile }> {
   const normalizedEmail = email.toLowerCase().trim();
   const { srpSalt, srpVerifier, encryptedDataKey, kekSalt, plainDataKey, kek } =
-    await buildSRPSetupPayload(normalizedEmail, password);
-  const response = await apiConfirmRegister(
+    await buildRegistrationSrpPayload(normalizedEmail, password);
+  const response = await apiVerifyRegistration(
     normalizedEmail,
     verificationCode,
     srpSalt,
@@ -171,7 +171,7 @@ export async function zkChangePassword(email: string, newPassword: string): Prom
 // 內部工具
 // ─────────────────────────────────────────
 
-async function buildSRPSetupPayload(email: string, password: string): Promise<{
+async function buildRegistrationSrpPayload(email: string, password: string): Promise<{
   srpSalt: string;
   srpVerifier: string;
   encryptedDataKey: string;

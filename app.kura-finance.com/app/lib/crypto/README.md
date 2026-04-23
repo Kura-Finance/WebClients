@@ -30,10 +30,12 @@ app/lib/crypto/
 5. unsealDataKey(encryptedDataKey, kek) → dataKeyHex（存 memory）
 ```
 
-### 登入（舊版 fallback + 自動升級）
+### 註冊（驗證碼 + SRP）
 ```
-1. loginUser(email, password) → 舊版 bcrypt
-2. background: setupSRPForNewAccount() → 升級至 SRP
+1. requestRegistrationCode(email) → 後端寄送驗證碼
+2. 前端本地推導 srpSalt/srpVerifier/kekSalt
+3. 前端本地產生並加密 Data Key → encryptedDataKey
+4. verifyRegistration(email, verificationCode, srpSalt, srpVerifier, encryptedDataKey, kekSalt)
 ```
 
 ### 安全屬性

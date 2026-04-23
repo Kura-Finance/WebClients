@@ -3,14 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
-import { AuthApiError } from '@/lib/authApi';
 
 export default function RootHubPage() {
   const authStatus = useAppStore((state) => state.authStatus);
   const router = useRouter();
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot_password'>('login');
-  const [registerStep, setRegisterStep] = useState<'request' | 'verify'>('request');
-  const [registerCode, setRegisterCode] = useState('');
+  const [registrationStep, setRegistrationStep] = useState<'request' | 'verify'>('request');
+  const [registrationCode, setRegistrationCode] = useState('');
   const [resetStep, setResetStep] = useState<'request' | 'verify'>('request');
   const [resetCode, setResetCode] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -23,8 +22,8 @@ export default function RootHubPage() {
   const setPlaidLinkToken = useAppStore((state) => state.setPlaidLinkToken);
   const requestPasswordReset = useAppStore((state) => state.requestPasswordReset);
   const resetPassword = useAppStore((state) => state.resetPassword);
-  const requestRegisterToken = useAppStore((state) => state.requestRegisterToken);
-  const confirmRegister = useAppStore((state) => state.confirmRegister);
+  const requestRegistrationCode = useAppStore((state) => state.requestRegistrationCode);
+  const verifyRegistration = useAppStore((state) => state.verifyRegistration);
 
   // Redirect to dashboard if authenticated
   useEffect(() => {
@@ -50,7 +49,7 @@ export default function RootHubPage() {
           setResetStep('verify');
           setSuccessMessage('Verification code sent to your email.');
         } catch (error) {
-          const message = error instanceof AuthApiError ? error.message : 'Failed to send reset code.';
+          const message = error instanceof Error ? error.message : 'Failed to send reset code.';
           setAuthError(message);
         } finally {
           setIsAuthenticating(false);
@@ -69,7 +68,7 @@ export default function RootHubPage() {
           setPassword('');
           setSuccessMessage('Password reset successfully. Please sign in with your new password.');
         } catch (error) {
-          const message = error instanceof AuthApiError ? error.message : 'Password reset failed.';
+          const message = error instanceof Error ? error.message : 'Password reset failed.';
           setAuthError(message);
         } finally {
           setIsAuthenticating(false);
@@ -82,13 +81,13 @@ export default function RootHubPage() {
 
     try {
       if (authMode === 'register') {
-        if (registerStep === 'request') {
+        if (registrationStep === 'request') {
           if (!email) {
             setAuthError('Email is required.');
             return;
           }
-          await requestRegisterToken(email.trim());
-          setRegisterStep('verify');
+          await requestRegistrationCode(email.trim());
+          setRegistrationStep('verify');
           setSuccessMessage('Verification code sent to your email.');
           return;
         }
@@ -98,14 +97,14 @@ export default function RootHubPage() {
           return;
         }
 
-        if (!registerCode.trim()) {
+        if (!registrationCode.trim()) {
           setAuthError('Verification code is required.');
           return;
         }
 
-        await confirmRegister(email.trim(), password, registerCode.trim());
-        setRegisterStep('request');
-        setRegisterCode('');
+        await verifyRegistration(email.trim(), password, registrationCode.trim());
+        setRegistrationStep('request');
+        setRegistrationCode('');
       } else {
         if (!email || !password) {
           setAuthError('Email and password are required.');
@@ -116,7 +115,7 @@ export default function RootHubPage() {
 
       setPlaidLinkToken(null);
     } catch (error) {
-      const message = error instanceof AuthApiError ? error.message : 'Authentication failed.';
+      const message = error instanceof Error ? error.message : 'Authentication failed.';
       setAuthError(message);
     } finally {
       setIsAuthenticating(false);
@@ -165,8 +164,8 @@ export default function RootHubPage() {
                       setAuthMode('login');
                       setAuthError(null);
                       setSuccessMessage(null);
-                      setRegisterStep('request');
-                      setRegisterCode('');
+                      setRegistrationStep('request');
+                      setRegistrationCode('');
                     }}
                     className={`flex-1 px-3 py-2 rounded-lg border transition-all ${
                       authMode === 'login'
@@ -182,8 +181,8 @@ export default function RootHubPage() {
                       setAuthMode('register');
                       setAuthError(null);
                       setSuccessMessage(null);
-                      setRegisterStep('request');
-                      setRegisterCode('');
+                      setRegistrationStep('request');
+                      setRegistrationCode('');
                     }}
                     className={`flex-1 px-3 py-2 rounded-lg border transition-all ${
                       authMode === 'register'
@@ -254,11 +253,11 @@ export default function RootHubPage() {
               )}
 
               {/* Register Verify Step Input */}
-              {authMode === 'register' && registerStep === 'verify' && (
+              {authMode === 'register' && registrationStep === 'verify' && (
                 <input
                   type="text"
-                  value={registerCode}
-                  onChange={(e) => setRegisterCode(e.target.value)}
+                  value={registrationCode}
+                  onChange={(e) => setRegistrationCode(e.target.value)}
                   placeholder="6-digit Verification Code"
                   className="w-full rounded-xl bg-[#0B0B0F] border border-white/10 px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:border-[#8B5CF6]/60 transition-colors"
                 />
@@ -302,7 +301,7 @@ export default function RootHubPage() {
                     ? 'Send Code'
                     : 'Reset Password'
                   : authMode === 'register'
-                  ? registerStep === 'request'
+                  ? registrationStep === 'request'
                     ? 'Send Verification Code'
                     : 'Create Account'
                   : 'Sign In'}

@@ -21,16 +21,6 @@ export interface AuthResponse {
   user: BackendUserProfile;
 }
 
-export class AuthApiError extends Error {
-  status: number;
-
-  constructor(message: string, status: number) {
-    super(message);
-    this.name = 'AuthApiError';
-    this.status = status;
-  }
-}
-
 /**
  * Web 客户端 API 请求
  * 自动包含 X-Client-Type: web 和 credentials: 'include'
@@ -129,7 +119,7 @@ export const resetPassword = (
 /**
  * 用户注册 - 第一步：请求注册令牌
  */
-export const requestRegisterToken = (email: string): Promise<{ message: string }> => {
+export const requestRegistrationCode = (email: string): Promise<{ message: string }> => {
   const normalizedEmail = email.toLowerCase().trim();
   return apiRequest<{ message: string }>('/api/auth/register/request-token', {
     method: 'POST',
@@ -140,7 +130,7 @@ export const requestRegisterToken = (email: string): Promise<{ message: string }
 /**
  * 用户注册 - 第二步：确认注册
  */
-export const confirmRegister = (
+export const verifyRegistration = (
   email: string,
   verificationCode: string,
   srpSalt: string,

@@ -4,11 +4,11 @@ import {
   updateCurrentUserProfile,
   logoutUser,
   requestPasswordReset as requestPasswordResetApi,
-  requestRegisterToken as requestRegisterTokenApi,
+  requestRegistrationCode as requestRegistrationCodeApi,
 } from '@/lib/authApi';
 import {
   zkLogin,
-  zkConfirmRegister,
+  zkVerifyRegistration,
   clearCryptoSession,
   zkChangePassword,
   zkResetPassword,
@@ -49,8 +49,8 @@ interface AppState {
   changePassword: (newPassword: string) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   resetPassword: (email: string, resetCode: string, newPassword: string) => Promise<void>;
-  requestRegisterToken: (email: string) => Promise<void>;
-  confirmRegister: (email: string, password: string, verificationCode: string) => Promise<void>;
+  requestRegistrationCode: (email: string) => Promise<void>;
+  verifyRegistration: (email: string, password: string, verificationCode: string) => Promise<void>;
   hydrateFromStorage: () => Promise<void>;
 
   // User methods
@@ -182,22 +182,22 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  requestRegisterToken: async (email: string) => {
+  requestRegistrationCode: async (email: string) => {
     try {
-      console.debug('[AppStore] Requesting register token', { email });
-      await requestRegisterTokenApi(email);
+      console.debug('[AppStore] Requesting registration code', { email });
+      await requestRegistrationCodeApi(email);
       console.info('[AppStore] Registration verification code sent');
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Register token request failed';
-      console.error('[AppStore] Register token request failed', { error: errorMessage });
+      const errorMessage = error instanceof Error ? error.message : 'Registration code request failed';
+      console.error('[AppStore] Registration code request failed', { error: errorMessage });
       throw error;
     }
   },
 
-  confirmRegister: async (email: string, password: string, verificationCode: string) => {
+  verifyRegistration: async (email: string, password: string, verificationCode: string) => {
     try {
-      console.debug('[AppStore] Confirming registration', { email });
-      const response = await zkConfirmRegister(email, password, verificationCode);
+      console.debug('[AppStore] Verifying registration', { email });
+      const response = await zkVerifyRegistration(email, password, verificationCode);
       // Web 客户端: Token 存储在 HttpOnly Cookie 中，无需手动存储
 
       console.info('[AppStore] Registration confirmed successfully');
