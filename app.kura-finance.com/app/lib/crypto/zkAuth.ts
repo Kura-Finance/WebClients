@@ -121,8 +121,8 @@ export async function zkResetPassword(email: string, code: string, newPassword: 
   const { kek, authKeyHex } = await deriveKeysFromPassword(newPassword, srpSalt, kekSalt);
   const { srpVerifier } = await computeVerifier(normalizedEmail, authKeyHex, srpSalt);
 
-  // 2. 生成全新 Data Key 並加密
-  const { plainDataKey } = await generateDataKey();
+  // 2. 生成全新 Data Key 並加密（完全在 client 端生成，無需認證、後端永遠看不到明文）
+  const plainDataKey = generateSalt();
   const encryptedDataKey = await sealDataKey(plainDataKey, kek);
 
   // 3. 上傳給後端
