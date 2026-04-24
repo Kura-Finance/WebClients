@@ -23,7 +23,7 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="w-full flex justify-between items-center px-6 py-2.5 border-b border-[#1A1A24] bg-[#0B0B0F]/80 backdrop-blur-md z-40 shrink-0 sticky top-0">
+      <header className="w-full flex justify-between items-center px-6 py-2.5 border-b border-[#1A1A24] bg-[#0B0B0F]/80 backdrop-blur-md z-40 shrink-0">
         
         {/* 左側 Logo */}
         <Link href="/" className="text-lg font-bold text-white flex items-center gap-2 hover:opacity-80 transition-opacity">

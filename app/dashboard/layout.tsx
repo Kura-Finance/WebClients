@@ -44,20 +44,15 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex flex-col h-full w-full">
-      {/* 頂部導覽列 - 固定於頂部 */}
-      <TopNav />
-      
-      {/* 含側邊欄的主要內容區域 */}
-      <div className="flex flex-1 overflow-hidden w-full">
-        {/* 側邊欄 - 固定且不可捲動 */}
-        <Sidebar />
-        
-        {/* 主內容 - 可捲動 */}
-        <main className="relative z-30 flex-1 overflow-y-auto bg-gradient-to-br from-[#0B0B0F] to-[#1A1A24]/30 w-full">
-          {children}
-        </main>
-      </div>
+    <div className="flex h-full w-full">
+      {/* 側邊欄 - 固定且不可捲動 */}
+      <Sidebar />
+
+      {/* 主內容 - 可捲動（含頂部導覽列） */}
+      <main className="relative z-30 flex-1 overflow-y-auto bg-gradient-to-br from-[#0B0B0F] to-[#1A1A24]/30 w-full">
+        <TopNav />
+        {children}
+      </main>
     </div>
   );
 }
