@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Area, AreaChart, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -137,7 +137,6 @@ export default function DashboardPage() {
                       <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                   <XAxis dataKey="label" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 12 }} />
                   <YAxis stroke="rgba(255,255,255,0.3)" width={40} tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -246,7 +245,6 @@ export default function DashboardPage() {
             <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={placeholderWaveData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                   <XAxis dataKey="t" hide />
                   <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
                   <Tooltip
@@ -274,7 +272,6 @@ export default function DashboardPage() {
             <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={placeholderWaveData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                   <XAxis dataKey="t" hide />
                   <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
                   <Tooltip
@@ -302,7 +299,6 @@ export default function DashboardPage() {
             <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={placeholderWaveData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                   <XAxis dataKey="t" hide />
                   <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
                   <Tooltip
