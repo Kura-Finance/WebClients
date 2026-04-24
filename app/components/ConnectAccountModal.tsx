@@ -237,40 +237,15 @@ function ConnectAccountModalContent({
           connector.type.toLowerCase().includes('walletconnect')
       );
 
-      if (reownConnector) {
-        await connectAsync({ connector: reownConnector });
-        onClose();
+      if (!reownConnector) {
+        setPlaidError(
+          'Reown WalletConnect is not configured. Please set NEXT_PUBLIC_REOWN_PROJECT_ID and retry.',
+        );
         return;
       }
 
-      const injectedCandidates = connectors.filter(
-        (connector) => connector.type === 'injected' || connector.id.includes('injected')
-      );
-
-      const prioritized = [
-        ...injectedCandidates.filter((connector) => connector.id.toLowerCase().includes('metamask')),
-        ...injectedCandidates.filter((connector) => !connector.id.toLowerCase().includes('metamask')),
-      ];
-
-      let injectedConnector: (typeof connectors)[number] | undefined;
-      for (const connector of prioritized) {
-        try {
-          const provider = await connector.getProvider?.();
-          if (provider) {
-            injectedConnector = connector;
-            break;
-          }
-        } catch {
-          // 嘗試下一個 injected connector。
-        }
-      }
-
-      if (!injectedConnector) {
-        setPlaidError('No browser wallet detected. Please install MetaMask, Rabby, or Brave Wallet.');
-        return;
-      }
-
-      await connectAsync({ connector: injectedConnector });
+      // 僅使用 Reown (WalletConnect) 連線，確保會彈出 WalletConnect 掃碼畫面。
+      await connectAsync({ connector: reownConnector });
       onClose();
     } catch (error: unknown) {
       const walletError = error as { code?: number; message?: string };
@@ -279,10 +254,10 @@ function ConnectAccountModalContent({
       if (walletError.code === 4001 || message.includes('user rejected') || message.includes('rejected')) {
         // 使用者主動取消連線，維持安靜不提示。
       } else if (message.includes('provider') && message.includes('not found')) {
-        setPlaidError('Wallet provider not found. Please open or install your wallet extension and refresh.');
+        setPlaidError('WalletConnect provider not found. Please retry and ensure Reown project configuration is valid.');
       } else {
         console.error('Wallet connection failed', error);
-        setPlaidError('Wallet connection failed. Please unlock your wallet and try again.');
+        setPlaidError('WalletConnect connection failed. Please retry from the Reown QR modal.');
       }
     } finally {
       setIsConnecting(null);

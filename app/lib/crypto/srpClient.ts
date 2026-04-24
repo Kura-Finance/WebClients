@@ -21,7 +21,7 @@ import {
   SRPParameters,
   SRPRoutines,
 } from 'tssrp6a';
-import { getBackendBaseUrl } from '@/lib/httpClient';
+import { requestJson } from '@/lib/httpClient';
 import type { BackendUserProfile } from '@/lib/authApi';
 
 const SRP_PARAMS = new SRPParameters();
@@ -49,25 +49,18 @@ export interface SRPChallengeResponse {
 // ─────────────────────────────────────────
 
 async function srpPost<T>(path: string, body: Record<string, string>): Promise<T> {
-  const res = await fetch(`${getBackendBaseUrl()}${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Client-Type': 'web' },
-    credentials: 'include',
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
-  return data as T;
+  return requestJson<T>(
+    path,
+    {
+      method: 'POST',
+      body: JSON.stringify(body),
+    },
+    'SRPAPI',
+  );
 }
 
 async function srpGet<T>(path: string): Promise<T> {
-  const res = await fetch(`${getBackendBaseUrl()}${path}`, {
-    headers: { 'X-Client-Type': 'web' },
-    credentials: 'include',
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || data.message || 'Request failed');
-  return data as T;
+  return requestJson<T>(path, { method: 'GET' }, 'SRPAPI');
 }
 
 // ─────────────────────────────────────────

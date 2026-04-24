@@ -367,8 +367,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const result = await createPlaidLinkToken();
       console.debug('[AppStore] Plaid API response received', { result });
 
-      // 同時支援 { link_token } 與 { token } 兩種回傳格式
-      const token = result.link_token ?? result.token;
+      const token = result.link_token;
       if (!token) {
         console.error('[AppStore] No link token in response', { result });
         throw new Error('No link token returned from backend');

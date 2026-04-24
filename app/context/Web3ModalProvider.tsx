@@ -12,7 +12,7 @@ import AppSessionHydrator from '@/components/AppSessionHydrator'
 const queryClient = new QueryClient()
 
 // Reown（原 WalletConnect）專案 ID
-const reownProjectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+const reownProjectId = process.env.NEXT_PUBLIC_REOWN_PROJECT_ID
 
 // 在執行期從瀏覽器取得實際 URL（僅客戶端）
 const getWalletMetadataUrl = () => {

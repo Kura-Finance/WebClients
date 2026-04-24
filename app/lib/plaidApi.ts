@@ -55,11 +55,12 @@ export interface PlaidFinanceSnapshot {
   transactions: PlaidTransactionPayload[];
   investmentAccounts: PlaidInvestmentAccountPayload[];
   investments: PlaidInvestmentPayload[];
+  _cacheSource?: string;
+  _limitReached?: boolean;
 }
 
 export interface PlaidLinkTokenResponse {
-  link_token?: string;
-  token?: string;
+  link_token: string;
 }
 
 export class PlaidApiError extends Error {
@@ -102,8 +103,8 @@ export const createPlaidLinkToken = (): Promise<PlaidLinkTokenResponse> => {
  */
 export const exchangePlaidPublicToken = (
   payload: { public_token: string; institution_name?: string }
-): Promise<{ status: string; message: string; snapshot?: PlaidFinanceSnapshot }> => {
-  return plaidRequest<{ status: string; message: string; snapshot?: PlaidFinanceSnapshot }>(
+): Promise<{ message: string; snapshot?: PlaidFinanceSnapshot }> => {
+  return plaidRequest<{ message: string; snapshot?: PlaidFinanceSnapshot }>(
     '/api/plaid/exchange-public-token',
     {
       method: 'POST',
@@ -129,8 +130,8 @@ export const fetchPlaidFinanceSnapshot = (): Promise<PlaidFinanceSnapshot> => {
  */
 export const disconnectPlaidAccount = (
   accountId: string
-): Promise<{ status: string; message: string }> => {
-  return plaidRequest<{ status: string; message: string }>(
+): Promise<{ message: string; data?: { accountId: string; institution?: string; plaidRequestId?: string } }> => {
+  return plaidRequest<{ message: string; data?: { accountId: string; institution?: string; plaidRequestId?: string } }>(
     '/api/plaid/disconnect',
     {
       method: 'POST',

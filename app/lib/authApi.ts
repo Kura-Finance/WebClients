@@ -21,6 +21,8 @@ export interface AuthResponse {
   user: BackendUserProfile;
 }
 
+type GenericAuthResult = Record<string, unknown>;
+
 function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
 }
@@ -103,9 +105,9 @@ export const changePassword = (
   srpVerifier: string,
   encryptedDataKey: string,
   kekSalt: string
-): Promise<{ message: string }> => {
+): Promise<GenericAuthResult> => {
   const normalizedPayload = normalizeSrpPayload(srpSalt, srpVerifier, encryptedDataKey, kekSalt);
-  return apiRequest<{ message: string }>(
+  return apiRequest<GenericAuthResult>(
     '/api/auth/change-password',
     {
       method: 'POST',
@@ -136,14 +138,14 @@ export const resetPassword = (
   srpVerifier: string,
   encryptedDataKey: string,
   kekSalt: string
-): Promise<{ message: string }> => {
+): Promise<GenericAuthResult> => {
   const normalizedEmail = normalizeEmail(email);
   const normalizedResetCode = resetCode.trim();
   if (!/^\d{6}$/.test(normalizedResetCode)) {
     throw new Error('resetCode must be a 6-digit numeric string.');
   }
   const normalizedPayload = normalizeSrpPayload(srpSalt, srpVerifier, encryptedDataKey, kekSalt);
-  return apiRequest<{ message: string }>('/api/auth/password-reset/verify', {
+  return apiRequest<GenericAuthResult>('/api/auth/password-reset/verify', {
     method: 'POST',
     body: JSON.stringify({
       email: normalizedEmail,
@@ -158,7 +160,7 @@ export const resetPassword = (
  */
 export const requestRegistrationCode = (email: string): Promise<{ message: string }> => {
   const normalizedEmail = normalizeEmail(email);
-  return apiRequest<{ message: string }>('/api/auth/register/request-token', {
+  return apiRequest<{ message: string; expiresIn?: number }>('/api/auth/register/send-code', {
     method: 'POST',
     body: JSON.stringify({ email: normalizedEmail }),
   });
@@ -177,7 +179,7 @@ export const verifyRegistration = (
 ): Promise<AuthResponse> => {
   const normalizedEmail = normalizeEmail(email);
   const normalizedPayload = normalizeSrpPayload(srpSalt, srpVerifier, encryptedDataKey, kekSalt);
-  return apiRequest<AuthResponse>('/api/auth/register/confirm', {
+  return apiRequest<AuthResponse>('/api/auth/register/verify', {
     method: 'POST',
     body: JSON.stringify({
       email: normalizedEmail,
