@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useRef, useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import UserSettingsDrawer from './UserSettingsDrawer';
@@ -23,20 +22,7 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="w-full flex justify-between items-center px-6 py-2.5 border-b border-[#1A1A24] bg-[#0B0B0F]/80 backdrop-blur-md z-40 shrink-0">
-        
-        {/* 左側 Logo */}
-        <Link href="/" className="text-lg font-bold text-white flex items-center gap-2 hover:opacity-80 transition-opacity">
-          <Image
-            src="/logo.webp"
-            alt="Kura Logo"
-            width={32}
-            height={32}
-            className="w-8 h-8"
-          />
-          Kura
-        </Link>
-
+      <header className="w-full flex justify-end items-center px-6 py-2.5 bg-[#0B0B0F]/80 backdrop-blur-md z-40 shrink-0">
         {/* 右側控制區 */}
         <div className="flex items-center gap-4">
           {/* 使用者頭像 (點擊開啟浮動視窗) */}
