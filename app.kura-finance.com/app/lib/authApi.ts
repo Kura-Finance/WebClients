@@ -110,9 +110,17 @@ export const resetPassword = (
   encryptedDataKey: string,
   kekSalt: string
 ): Promise<{ message: string }> => {
+  const normalizedEmail = email.toLowerCase().trim();
   return apiRequest<{ message: string }>('/api/auth/password-reset/verify', {
     method: 'POST',
-    body: JSON.stringify({ email, resetCode, srpSalt, srpVerifier, encryptedDataKey, kekSalt }),
+    body: JSON.stringify({
+      email: normalizedEmail,
+      resetCode: resetCode.trim(),
+      srpSalt: srpSalt.toLowerCase(),
+      srpVerifier: srpVerifier.toLowerCase(),
+      encryptedDataKey,
+      kekSalt: kekSalt.toLowerCase(),
+    }),
   });
 };
 

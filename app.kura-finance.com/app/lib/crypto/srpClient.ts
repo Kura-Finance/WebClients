@@ -27,6 +27,11 @@ import type { BackendUserProfile } from '@/lib/authApi';
 const SRP_PARAMS = new SRPParameters();
 const SRP_ROUTINES = new SRPRoutines(SRP_PARAMS);
 
+function toEvenLengthHex(value: bigint): string {
+  const hex = value.toString(16).toLowerCase();
+  return hex.length % 2 === 0 ? hex : `0${hex}`;
+}
+
 // ─────────────────────────────────────────
 // 型別
 // ─────────────────────────────────────────
@@ -77,7 +82,8 @@ export async function computeVerifier(
   const salt = BigInt(`0x${srpSalt}`);
   const x = await SRP_ROUTINES.computeX(email, salt, authKeyHex);
   const verifier = SRP_ROUTINES.computeVerifier(x);
-  return { srpVerifier: verifier.toString(16) };
+  // 後端通常要求 SRP verifier 為合法位元組 hex，需補齊奇數長度的前導 0。
+  return { srpVerifier: toEvenLengthHex(verifier) };
 }
 
 // ─────────────────────────────────────────
