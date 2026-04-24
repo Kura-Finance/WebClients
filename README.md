@@ -37,7 +37,6 @@ NEXT_PUBLIC_REOWN_PROJECT_ID=your_reown_project_id
 Notes:
 
 - `NEXT_PUBLIC_REOWN_PROJECT_ID` is required for WalletConnect/Reown QR connection flow.
-- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` is still accepted as a fallback alias in code.
 
 ## Local Development
 
