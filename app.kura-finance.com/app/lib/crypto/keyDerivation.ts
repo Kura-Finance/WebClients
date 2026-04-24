@@ -1,16 +1,15 @@
+import { argon2id } from 'hash-wasm';
+
 /**
  * 前端金鑰推導
  *
- * 使用 Web Crypto API (瀏覽器原生，無需外部套件) 實現：
- * - PBKDF2 推導 Master Key（模擬 Argon2id 的安全性）
+ * 使用 Argon2id + Web Crypto API 實現：
+ * - Argon2id 推導 Master Key
  * - HKDF 衍生 KEK（Key Encryption Key）和 Auth Key
  * - AES-GCM 加密/解密 Data Key
  *
- * 備註：生產等級可換成 Argon2id (hash-wasm + WASM)，
- * 但 PBKDF2 with 600,000 iterations 已符合 NIST 建議。
- *
  * 金鑰層次：
- *   password + salt → MasterKey (PBKDF2)
+ *   password + salt → MasterKey (Argon2id)
  *   MasterKey → KEK (HKDF, 用於加/解密 DataKey)
  *   MasterKey → AuthKey (HKDF, 未來 SRP 使用)
  *   DataKey → 用於加密財務資料（目前在後端加密，Phase 3 移入 TEE）
@@ -18,6 +17,10 @@
 
 const PBKDF2_ITERATIONS = 600_000;
 const PBKDF2_HASH = 'SHA-256';
+const ARGON2_ITERATIONS = 3;
+const ARGON2_MEMORY_KIB = 64 * 1024;
+const ARGON2_PARALLELISM = 1;
+const ARGON2_HASH_BYTES = 32;
 
 // ─────────────────────────────────────────
 // 低階 Web Crypto 工具
@@ -52,30 +55,68 @@ function base64ToBytes(b64: string): Uint8Array {
 
 /**
  * 步驟 1：password + salt → MasterKey（CryptoKey，不可匯出）
- * 使用 PBKDF2 with 600k iterations
+ * 主路徑使用 Argon2id；若瀏覽器/環境不支援再 fallback 到 PBKDF2。
  */
 async function deriveMasterKey(password: string, saltHex: string): Promise<CryptoKey> {
+  const saltBytes = hexToBytes(saltHex);
+
+  try {
+    const masterKeyHex = await argon2id({
+      password,
+      salt: saltBytes,
+      parallelism: ARGON2_PARALLELISM,
+      iterations: ARGON2_ITERATIONS,
+      memorySize: ARGON2_MEMORY_KIB,
+      hashLength: ARGON2_HASH_BYTES,
+      outputType: 'hex',
+    });
+
+    return crypto.subtle.importKey(
+      'raw',
+      hexToBytes(masterKeyHex),
+      { name: 'HKDF' },
+      false,
+      ['deriveKey', 'deriveBits'],
+    );
+  } catch {
+    // Fallback：保持舊版 PBKDF2 相容性，避免舊環境直接失效。
+  }
+
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
     enc.encode(password),
     'PBKDF2',
     false,
-    ['deriveKey'],
+    ['deriveBits', 'deriveKey'],
   );
 
-  return crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt: hexToBytes(saltHex),
-      iterations: PBKDF2_ITERATIONS,
-      hash: PBKDF2_HASH,
-    },
-    keyMaterial,
-    { name: 'HKDF', hash: PBKDF2_HASH },
-    false,
-    ['deriveKey', 'deriveBits'],
-  );
+  const pbkdf2Params: Pbkdf2Params = {
+    name: 'PBKDF2',
+    salt: saltBytes,
+    iterations: PBKDF2_ITERATIONS,
+    hash: PBKDF2_HASH,
+  };
+
+  try {
+    return await crypto.subtle.deriveKey(
+      pbkdf2Params,
+      keyMaterial,
+      { name: 'HKDF', hash: PBKDF2_HASH },
+      false,
+      ['deriveKey', 'deriveBits'],
+    );
+  } catch {
+    // 某些 WebCrypto 實作不支援直接派生 HKDF key，改用 deriveBits 後再 import。
+    const masterBits = await crypto.subtle.deriveBits(pbkdf2Params, keyMaterial, 256);
+    return crypto.subtle.importKey(
+      'raw',
+      masterBits,
+      { name: 'HKDF' },
+      false,
+      ['deriveKey', 'deriveBits'],
+    );
+  }
 }
 
 /**
@@ -158,7 +199,7 @@ export interface DerivedKeys {
  */
 export async function deriveKeysFromPassword(
   password: string,
-  srpSalt: string,  // 用於 PBKDF2
+  srpSalt: string,  // 用於主 KDF（Argon2id）
   kekSalt: string,  // 用於 KEK 推導
 ): Promise<DerivedKeys> {
   const masterKey = await deriveMasterKey(password, srpSalt);

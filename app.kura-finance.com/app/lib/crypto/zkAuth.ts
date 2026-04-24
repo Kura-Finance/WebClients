@@ -123,19 +123,26 @@ export async function zkResetPassword(email: string, code: string, newPassword: 
   const srpSalt = generateSalt();
   const kekSalt = generateSalt();
 
-  // 步驟 1：推導新金鑰
-  const { kek, authKeyHex } = await deriveKeysFromPassword(newPassword, srpSalt, kekSalt);
-  const { srpVerifier } = await computeVerifier(normalizedEmail, authKeyHex, srpSalt);
+  try {
+    // 步驟 1：推導新金鑰
+    const { kek, authKeyHex } = await deriveKeysFromPassword(newPassword, srpSalt, kekSalt);
+    const { srpVerifier } = await computeVerifier(normalizedEmail, authKeyHex, srpSalt);
 
-  // 步驟 2：生成全新 Data Key 並加密（完全在前端生成，後端無法看到明文）
-  const plainDataKey = generateSalt();
-  const encryptedDataKey = await sealDataKey(plainDataKey, kek);
+    // 步驟 2：生成全新 Data Key 並加密（完全在前端生成，後端無法看到明文）
+    const plainDataKey = generateSalt();
+    const encryptedDataKey = await sealDataKey(plainDataKey, kek);
 
-  // 步驟 3：上傳至後端
-  await apiResetPassword(normalizedEmail, code, srpSalt, srpVerifier, encryptedDataKey, kekSalt);
+    // 步驟 3：上傳至後端
+    await apiResetPassword(normalizedEmail, code, srpSalt, srpVerifier, encryptedDataKey, kekSalt);
 
-  // 步驟 4：重設密碼後，需重新登入以建立 session
-  clearCryptoSession();
+    // 步驟 4：重設密碼後，需重新登入以建立 session
+    clearCryptoSession();
+  } catch (error) {
+    if (error instanceof Error && error.name === 'OperationError') {
+      throw new Error('Password reset failed due to a browser cryptography error. Please update your browser and try again.');
+    }
+    throw error;
+  }
 }
 
 /**
