@@ -314,7 +314,7 @@ export default function RootHubPage() {
                       type="button"
                       onClick={resetToLogin}
                       variant="ghost"
-                      className="w-full h-10 rounded-xl border border-[#DADCE5] bg-white text-[#4B5563] hover:bg-[#F3F4F6]"
+                    className="w-full h-10 rounded-xl border border-[#DADCE5] bg-white text-[#4B5563] hover:text-[#374151] hover:bg-[#F3F4F6]"
                     >
                       Back to log in
                     </Button>
@@ -329,7 +329,7 @@ export default function RootHubPage() {
                         setRegistrationCode('');
                       }}
                       variant="ghost"
-                      className="w-full h-10 rounded-xl border border-[#DADCE5] bg-white text-[#4B5563] hover:bg-[#F3F4F6]"
+                    className="w-full h-10 rounded-xl border border-[#DADCE5] bg-white text-[#4B5563] hover:text-[#374151] hover:bg-[#F3F4F6]"
                     >
                       {isRegister ? 'Switch to log in' : 'Switch to sign up'}
                     </Button>
