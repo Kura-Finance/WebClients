@@ -5,15 +5,15 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-[#8B5CF6]/40',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-[var(--kura-primary)]/40',
   {
     variants: {
       variant: {
-        default: 'bg-[#8B5CF6] text-white hover:bg-[#7C3AED]',
-        secondary: 'bg-[#1A1A24] text-white hover:bg-[#232332] border border-white/10',
-        ghost: 'text-gray-300 hover:text-white hover:bg-white/5',
+        default: 'bg-[var(--kura-primary)] text-white hover:bg-[var(--kura-primary-dark)]',
+        secondary: 'bg-[var(--kura-surface-strong)] text-[var(--kura-text)] hover:brightness-95 border border-[var(--kura-border)]',
+        ghost: 'text-[var(--kura-text-secondary)] hover:text-[var(--kura-text)] hover:bg-[var(--kura-border-light)]',
         destructive: 'bg-red-600/90 text-white hover:bg-red-600',
-        outline: 'border border-white/15 text-white hover:bg-white/5',
+        outline: 'border border-[var(--kura-border)] text-[var(--kura-text)] hover:bg-[var(--kura-border-light)]',
       },
       size: {
         default: 'h-10 px-4 py-2',

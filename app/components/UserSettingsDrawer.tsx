@@ -76,7 +76,7 @@ export default function UserSettingsDrawer({ isOpen, onClose, anchorRef }: UserS
             }}
             className="z-[9999] w-80"
           >
-            <Card className="bg-[#0B0B0F] border-white/10">
+            <Card>
               <CardHeader className="space-y-3">
                 <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#8B5CF6] to-[#6D28D9] flex items-center justify-center overflow-hidden">
                   {userProfile.avatarUrl ? (

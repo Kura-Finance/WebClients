@@ -60,6 +60,18 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Kura" />
         <meta name="theme-color" content="#8B5CF6" />
+        <Script id="kura-theme-init" strategy="beforeInteractive">
+          {`
+            (function () {
+              try {
+                var stored = localStorage.getItem('kura-theme');
+                var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var mode = stored === 'light' || stored === 'dark' ? stored : (prefersDark ? 'dark' : 'light');
+                if (mode === 'dark') document.documentElement.classList.add('dark');
+              } catch (_) {}
+            })();
+          `}
+        </Script>
 
         {/* CSP 由 `middleware.ts` 設定，這裡不需要 meta 標籤 */}
         {/* 全域載入 Plaid Link 腳本，實際偵測由 `PlaidProvider` 處理 */}
@@ -68,7 +80,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body className="w-full h-screen bg-[#0B0B0F] text-white flex flex-col antialiased selection:bg-[#8B5CF6]/30">
+      <body className="w-full h-screen bg-[var(--kura-bg)] text-[var(--kura-text)] flex flex-col antialiased selection:bg-[var(--kura-primary)]/30">
         
         {/* 用 provider 包住整個應用程式，確保導覽列也能讀取錢包狀態 */}
         <PlaidProvider>

@@ -4,6 +4,7 @@
 import React, { useRef, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
+import ThemeToggle from './ThemeToggle';
 import UserSettingsDrawer from './UserSettingsDrawer';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -22,16 +23,17 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="w-full flex justify-end items-center px-6 py-2.5 bg-[#0B0B0F]/80 backdrop-blur-md z-40 shrink-0">
+      <header className="w-full flex justify-end items-center px-6 py-2.5 bg-[var(--kura-bg-light)]/80 backdrop-blur-md z-40 shrink-0">
         {/* 右側控制區 */}
         <div className="flex items-center gap-4">
+          <ThemeToggle />
           {/* 使用者頭像 (點擊開啟浮動視窗) */}
           <Button
             ref={avatarButtonRef}
             onClick={() => setIsSettingsOpen(true)}
             variant="ghost"
             size="icon"
-            className="w-8 h-8 rounded-full border border-[#1A1A24] p-0 overflow-hidden hover:border-[#8B5CF6] hover:bg-transparent"
+            className="w-8 h-8 rounded-full border border-[var(--kura-border)] p-0 overflow-hidden hover:border-[var(--kura-primary)] hover:bg-transparent"
           >
             {userProfile.avatarUrl ? (
               <Image
@@ -43,7 +45,7 @@ export default function TopNav() {
                 className="w-full h-full object-cover" 
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-[#1A1A24] text-[10px] font-bold text-[#A78BFA]">
+              <div className="w-full h-full flex items-center justify-center bg-[var(--kura-surface-strong)] text-[10px] font-bold text-[var(--kura-primary-light)]">
                 {avatarInitial}
               </div>
             )}

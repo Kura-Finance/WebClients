@@ -17,7 +17,7 @@ function NavLink({ href, label, isActive }: NavLinkProps) {
     <Button
       asChild
       variant={isActive ? 'secondary' : 'ghost'}
-      className={`w-full justify-start ${isActive ? 'text-[#C4B5FD] border-[#8B5CF6]/30 bg-[#8B5CF6]/20' : 'text-gray-400 hover:text-white'}`}
+      className={`w-full justify-start ${isActive ? 'text-[var(--kura-primary)] border-[var(--kura-primary)]/40 bg-[var(--kura-primary)]/15' : 'text-[var(--kura-text-secondary)] hover:text-[var(--kura-text)]'}`}
     >
       <Link href={href}>{label}</Link>
     </Button>
@@ -38,13 +38,13 @@ export default function Sidebar() {
   const isTaxCalculator = pathname.includes('/dashboard/tax-calculator');
 
   return (
-    <nav className="relative z-10 w-56 border-r border-[#1A1A24] bg-[#0B0B0F] py-6 px-2 flex flex-col gap-0 shrink-0 transition-all duration-300 ease-in-out h-full overflow-hidden">
+    <nav className="relative z-10 w-56 border-r border-[var(--kura-border)] bg-[var(--kura-bg-light)] py-6 px-2 flex flex-col gap-0 shrink-0 transition-all duration-300 ease-in-out h-full overflow-hidden">
       
       {/* 首頁 */}
       <NavLink href="/dashboard" label="Home" isActive={isHome} />
       
       {/* 分隔線 */}
-      <Separator className="my-3 bg-gray-800" />
+      <Separator className="my-3" />
 
       {/* 主要區段 */}
       <div className="space-y-2 mb-3">
@@ -55,7 +55,7 @@ export default function Sidebar() {
       </div>
 
       {/* 分隔線 */}
-      <Separator className="my-3 bg-gray-800" />
+      <Separator className="my-3" />
 
       {/* 次要區段 */}
       <div className="space-y-2">

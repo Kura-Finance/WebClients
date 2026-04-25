@@ -167,20 +167,24 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="h-[calc(100%-100px)]">
             {isLoadingAssetHistory ? (
-              <div className="w-full h-full rounded-xl bg-white/5 animate-pulse" />
+              <div className="w-full h-full rounded-xl bg-[var(--kura-border-light)] animate-pulse" />
             ) : chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <defs>
                     <linearGradient id="totalAssetsAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
+                      <stop offset="0%" stopColor="var(--kura-primary)" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="var(--kura-primary)" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="label" stroke="rgba(255,255,255,0.3)" tick={{ fontSize: 12 }} />
-                  <YAxis stroke="rgba(255,255,255,0.3)" width={40} tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="label" stroke="var(--kura-text-secondary)" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="var(--kura-text-secondary)" width={40} tick={{ fontSize: 12 }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0B0F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    contentStyle={{
+                      backgroundColor: 'var(--kura-bg-light)',
+                      border: '1px solid var(--kura-border)',
+                      borderRadius: '8px',
+                    }}
                     labelFormatter={(_, payload) => {
                       const rawTimestamp = payload?.[0]?.payload?.timestamp as string | undefined;
                       if (!rawTimestamp) return '';
@@ -193,23 +197,23 @@ export default function DashboardPage() {
                       });
                     }}
                     formatter={(value) => [`$${(value as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 'Total Assets']}
-                    labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}
+                    labelStyle={{ color: 'var(--kura-text-secondary)', fontSize: '11px' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="value"
-                    stroke="#8B5CF6"
+                    stroke="var(--kura-primary)"
                     strokeWidth={2}
                     fill="url(#totalAssetsAreaGradient)"
                     dot={false}
-                    activeDot={{ r: 4, fill: '#8B5CF6', strokeWidth: 0 }}
+                    activeDot={{ r: 4, fill: 'var(--kura-primary)', strokeWidth: 0 }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full flex-col justify-end gap-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Total Accounts</span>
+                  <span className="text-[var(--kura-text-secondary)]">Total Accounts</span>
                   <span className="font-medium">{accounts.length}</span>
                 </div>
                 <Button onClick={openConnectFlow} className="w-full">
@@ -241,8 +245,8 @@ export default function DashboardPage() {
                   : `$${normalizedBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
                 return (
-                  <div key={account.id} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0 gap-3">
-                    <div className="w-8 h-8 flex-shrink-0 rounded-full bg-white flex items-center justify-center overflow-hidden">
+                  <div key={account.id} className="flex justify-between items-center py-2 border-b border-[var(--kura-border-light)] last:border-0 gap-3">
+                    <div className="w-8 h-8 flex-shrink-0 rounded-full bg-[var(--kura-bg-lighter)] flex items-center justify-center overflow-hidden">
                       {account.logo ? (
                         <Image
                           src={account.logo}
@@ -255,7 +259,7 @@ export default function DashboardPage() {
                           }}
                         />
                       ) : (
-                        <span className="text-gray-900 text-xs font-bold">{accountTypeLabel.charAt(0).toUpperCase()}</span>
+                        <span className="text-[var(--kura-text)] text-xs font-bold">{accountTypeLabel.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -292,30 +296,34 @@ export default function DashboardPage() {
               <CardDescription>{card.description}</CardDescription>
             </CardHeader>
             <CardContent className="pt-0 flex-1 flex flex-col">
-              <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
+              <div className="h-24 mb-4 rounded-lg bg-[var(--kura-border-light)] border border-[var(--kura-border)] p-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={placeholderWaveData}>
                     <defs>
                       <linearGradient id={card.gradientId} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
+                        <stop offset="0%" stopColor="var(--kura-primary)" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="var(--kura-primary)" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
                     <XAxis dataKey="t" hide />
                     <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0B0B0F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                      contentStyle={{
+                        backgroundColor: 'var(--kura-bg-light)',
+                        border: '1px solid var(--kura-border)',
+                        borderRadius: '8px',
+                      }}
                       formatter={(value) => [`$${(value as number).toFixed(2)}`, card.title]}
-                      labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}
+                      labelStyle={{ color: 'var(--kura-text-secondary)', fontSize: '11px' }}
                     />
                     <Area
                       type="monotone"
                       dataKey="value"
-                      stroke="#8B5CF6"
+                      stroke="var(--kura-primary)"
                       strokeWidth={2}
                       fill={`url(#${card.gradientId})`}
                       dot={false}
-                      activeDot={{ r: 3, fill: '#8B5CF6', strokeWidth: 0 }}
+                      activeDot={{ r: 3, fill: 'var(--kura-primary)', strokeWidth: 0 }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -338,7 +346,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-0">
               {recentTransactions.map((transaction, index) => (
-                <div key={transaction.id} className={`flex justify-between items-center py-3 ${index !== recentTransactions.length - 1 ? 'border-b border-white/5' : ''}`}>
+                <div key={transaction.id} className={`flex justify-between items-center py-3 ${index !== recentTransactions.length - 1 ? 'border-b border-[var(--kura-border-light)]' : ''}`}>
                   <div className="flex-1">
                     <p className="font-medium text-sm">{transaction.merchant}</p>
                     <div className="flex gap-3 mt-1">

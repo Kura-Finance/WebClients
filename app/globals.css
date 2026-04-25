@@ -1,27 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --kura-bg: #faf8f3;
+  --kura-bg-light: #fcf9f5;
+  --kura-bg-lighter: #f5f0e8;
+  --kura-surface: #fcf9f5;
+  --kura-surface-strong: #f5f0e8;
+  --kura-border: #e5e7eb;
+  --kura-border-light: #f3f4f6;
+  --kura-text: #111827;
+  --kura-text-secondary: #6b7280;
+  --kura-primary: #8b5cf6;
+  --kura-primary-dark: #7c3aed;
+  --kura-primary-light: #a78bfa;
+  --kura-secondary: #3b82f6;
+  --kura-success: #10b981;
+  --kura-warning: #f59e0b;
+  --kura-error: #ef4444;
+}
+
+html.dark {
+  --kura-bg: #0b0b0f;
+  --kura-bg-light: #111118;
+  --kura-bg-lighter: #1a1a24;
+  --kura-surface: #1a1a24;
+  --kura-surface-strong: #232332;
+  --kura-border: rgba(255, 255, 255, 0.12);
+  --kura-border-light: rgba(255, 255, 255, 0.06);
+  --kura-text: #ffffff;
+  --kura-text-secondary: #9ca3af;
+  --kura-primary: #8b5cf6;
+  --kura-primary-dark: #7c3aed;
+  --kura-primary-light: #c4b5fd;
+  --kura-secondary: #60a5fa;
+  --kura-success: #34d399;
+  --kura-warning: #fbbf24;
+  --kura-error: #f87171;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--kura-bg);
+  --color-foreground: var(--kura-text);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--kura-bg);
+  color: var(--kura-text);
   font-family: Arial, Helvetica, sans-serif;
 }
 
