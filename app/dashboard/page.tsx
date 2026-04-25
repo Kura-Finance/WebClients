@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Area, AreaChart, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Area, AreaChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -104,6 +104,41 @@ export default function DashboardPage() {
       { t: '6', value: 9 },
       { t: '7', value: 13 },
       { t: '8', value: 10 },
+    ],
+    [],
+  );
+  const miniCards = useMemo(
+    () => [
+      {
+        key: 'investment',
+        title: 'Investment',
+        value: '$0.00',
+        change: '+0.00%',
+        changeVariant: 'success' as const,
+        description: 'Portfolio growth pending setup',
+        actionLabel: 'View Details',
+        gradientId: 'investmentAreaGradient',
+      },
+      {
+        key: 'crypto',
+        title: 'Crypto',
+        value: '$0.00',
+        change: '-0.00%',
+        changeVariant: 'destructive' as const,
+        description: 'Connect your Web3 wallet',
+        actionLabel: 'Connect Wallet',
+        gradientId: 'cryptoAreaGradient',
+      },
+      {
+        key: 'defi',
+        title: 'DeFi Protocol',
+        value: '$0.00',
+        change: '+0.00%',
+        changeVariant: 'success' as const,
+        description: 'Track your DeFi positions',
+        actionLabel: 'Add Protocol',
+        gradientId: 'defiAreaGradient',
+      },
     ],
     [],
   );
@@ -244,86 +279,53 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 w-full">
-        <Card className="min-h-[13.5rem] flex flex-col">
-          <CardHeader>
-            <CardDescription>Investment</CardDescription>
-            <CardTitle className="text-2xl">$0.00</CardTitle>
-            <CardDescription>Portfolio growth pending setup</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0 flex-1 flex flex-col">
-            <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={placeholderWaveData}>
-                  <XAxis dataKey="t" hide />
-                  <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0B0F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                    formatter={(value) => [`$${(value as number).toFixed(2)}`, 'Assets']}
-                    labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}
-                  />
-                  <Line type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2} dot={false} activeDot={{ r: 3, fill: '#8B5CF6', strokeWidth: 0 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <Button variant="secondary" className="w-full mt-auto">
-              View Details
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="min-h-[13.5rem] flex flex-col">
-          <CardHeader>
-            <CardDescription>Crypto</CardDescription>
-            <CardTitle className="text-2xl">$0.00</CardTitle>
-            <CardDescription>Connect your Web3 wallet</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0 flex-1 flex flex-col">
-            <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={placeholderWaveData}>
-                  <XAxis dataKey="t" hide />
-                  <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0B0F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                    formatter={(value) => [`$${(value as number).toFixed(2)}`, 'Assets']}
-                    labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}
-                  />
-                  <Line type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2} dot={false} activeDot={{ r: 3, fill: '#8B5CF6', strokeWidth: 0 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <Button variant="secondary" className="w-full mt-auto">
-              Connect Wallet
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="min-h-[13.5rem] flex flex-col">
-          <CardHeader>
-            <CardDescription>DeFi Protocol</CardDescription>
-            <CardTitle className="text-2xl">$0.00</CardTitle>
-            <CardDescription>Track your DeFi positions</CardDescription>
-          </CardHeader>
-          <CardContent className="pt-0 flex-1 flex flex-col">
-            <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={placeholderWaveData}>
-                  <XAxis dataKey="t" hide />
-                  <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#0B0B0F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
-                    formatter={(value) => [`$${(value as number).toFixed(2)}`, 'Assets']}
-                    labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}
-                  />
-                  <Line type="monotone" dataKey="value" stroke="#8B5CF6" strokeWidth={2} dot={false} activeDot={{ r: 3, fill: '#8B5CF6', strokeWidth: 0 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <Button variant="secondary" className="w-full mt-auto">
-              Add Protocol
-            </Button>
-          </CardContent>
-        </Card>
+        {miniCards.map((card) => (
+          <Card key={card.key} className="min-h-[13.5rem] flex flex-col">
+            <CardHeader className="pb-3">
+              <CardDescription>{card.title}</CardDescription>
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <CardTitle className="text-2xl">{card.value}</CardTitle>
+                <Badge variant={card.changeVariant}>
+                  {card.change} <span className="ml-1 opacity-70">30d</span>
+                </Badge>
+              </div>
+              <CardDescription>{card.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0 flex-1 flex flex-col">
+              <div className="h-24 mb-4 rounded-lg bg-white/[0.02] border border-white/5 p-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={placeholderWaveData}>
+                    <defs>
+                      <linearGradient id={card.gradientId} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="t" hide />
+                    <YAxis hide domain={['dataMin - 2', 'dataMax + 2']} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#0B0B0F', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                      formatter={(value) => [`$${(value as number).toFixed(2)}`, card.title]}
+                      labelStyle={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="value"
+                      stroke="#8B5CF6"
+                      strokeWidth={2}
+                      fill={`url(#${card.gradientId})`}
+                      dot={false}
+                      activeDot={{ r: 3, fill: '#8B5CF6', strokeWidth: 0 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <Button variant="secondary" className="w-full mt-auto">
+                {card.actionLabel}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card className="w-full">
