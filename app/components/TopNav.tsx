@@ -24,7 +24,7 @@ export default function TopNav() {
 
   return (
     <>
-      <header className="w-full flex justify-end items-center px-6 py-2.5 bg-[var(--kura-bg-light)]/80 backdrop-blur-md z-40 shrink-0">
+      <header className="w-full flex justify-end items-center px-6 py-2.5 bg-[var(--kura-bg)] z-40 shrink-0">
         {/* 右側控制區 */}
         <div className="flex items-center gap-4">
           <Button
