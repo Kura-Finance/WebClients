@@ -294,7 +294,7 @@ export default function RootHubPage() {
                   <Button
                     type="submit"
                     disabled={isAuthenticating}
-                    className="w-full h-11 rounded-xl bg-[#B8BEFF] text-white hover:bg-[#A8B0FF] shadow-none"
+                    className="w-full h-11 rounded-xl bg-[#6366F1] text-white hover:bg-[#4F46E5] shadow-sm disabled:bg-[#AEB4D9] disabled:text-white/80"
                   >
                     {isAuthenticating
                       ? 'Processing...'
