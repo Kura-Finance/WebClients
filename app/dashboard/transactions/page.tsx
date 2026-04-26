@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useFinanceStore } from '@/store/useFinanceStore';
@@ -8,6 +9,7 @@ import { useAppStore } from '@/store/useAppStore';
 
 export default function TransactionsPage() {
   const transactions = useFinanceStore((state) => state.transactions);
+  const accounts = useFinanceStore((state) => state.accounts);
   const isBalanceHidden = useAppStore((state) => state.isBalanceHidden);
   const [keyword, setKeyword] = useState('');
 
@@ -75,6 +77,10 @@ export default function TransactionsPage() {
     return 'text-[var(--kura-text-secondary)]';
   };
 
+  const accountNameById = useMemo(() => {
+    return new Map(accounts.map((account) => [account.id, account.name]));
+  }, [accounts]);
+
   return (
     <div className="w-full pb-24 px-6 sm:px-10 lg:px-16 pt-8 max-w-7xl mx-auto">
       <div className="mb-6 flex items-center justify-between gap-4">
@@ -120,12 +126,11 @@ export default function TransactionsPage() {
       </div>
 
       <div className="rounded-xl border border-[var(--kura-border)] bg-[var(--kura-surface)] overflow-hidden">
-        <div className="grid grid-cols-[0.8fr_2fr_1fr_1.1fr_1fr_1.1fr_0.8fr] gap-3 px-4 py-3 text-[11px] uppercase tracking-wide text-[var(--kura-text-secondary)] border-b border-[var(--kura-border)]">
+        <div className="grid grid-cols-[0.8fr_2.2fr_1fr_1.4fr_1.2fr_0.7fr] gap-3 px-4 py-3 text-[11px] uppercase tracking-wide text-[var(--kura-text-secondary)] border-b border-[var(--kura-border)]">
           <div>Date</div>
           <div>To/From</div>
           <div>Amount</div>
           <div>Account</div>
-          <div>Method</div>
           <div>Category</div>
           <div>Attach</div>
         </div>
@@ -138,21 +143,39 @@ export default function TransactionsPage() {
           filteredTransactions.map((transaction) => {
             const amount = parseAmount(transaction.amount);
             const isCredit = transaction.type === 'credit';
-            const sourceAccount = `${transaction.accountType} • ${transaction.accountName}`;
+            const resolvedAccountName = accountNameById.get(transaction.accountId) ?? transaction.accountName;
+            const sourceAccount = `${transaction.accountType} • ${resolvedAccountName}`;
+            const merchantLogo = (transaction as { merchantLogo?: string }).merchantLogo;
 
             return (
               <div
                 key={transaction.id}
-                className="grid grid-cols-[0.8fr_2fr_1fr_1.1fr_1fr_1.1fr_0.8fr] gap-3 px-4 py-3 items-center border-b border-[var(--kura-border-light)] last:border-b-0 text-sm"
+                className="grid grid-cols-[0.8fr_2.2fr_1fr_1.4fr_1.2fr_0.7fr] gap-3 px-4 py-3 items-center border-b border-[var(--kura-border-light)] last:border-b-0 text-sm"
               >
                 <div className="text-[var(--kura-text-secondary)]">{formatDate(transaction.date)}</div>
-                <div className="truncate">{transaction.merchant}</div>
+                <div className="min-w-0 flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
+                    {merchantLogo ? (
+                      <Image
+                        src={merchantLogo}
+                        alt={transaction.merchant}
+                        width={32}
+                        height={32}
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-semibold text-[var(--kura-text)]">
+                        {transaction.merchant.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="truncate">{transaction.merchant}</div>
+                </div>
                 <div className={`font-mono ${isCredit ? 'text-[var(--kura-error)]' : 'text-[var(--kura-success)]'}`}>
                   {isCredit ? '-' : '+'}
                   {formatAmount(amount)}
                 </div>
                 <div className="truncate text-[var(--kura-text-secondary)]">{sourceAccount}</div>
-                <div className="truncate text-[var(--kura-text-secondary)]">••••</div>
                 <div className="truncate text-[var(--kura-text-secondary)]">{transaction.category}</div>
                 <div>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full text-base">

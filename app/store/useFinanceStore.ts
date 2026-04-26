@@ -26,6 +26,7 @@ export interface Transaction {
   amount: string;
   date: string;
   merchant: string;
+  merchantLogo?: string;
   category: string;
   type: 'credit' | 'deposit' | 'transfer';
 }
