@@ -71,7 +71,7 @@ export default function AccountsPage() {
         return {
           id: account.id,
           logo: account.logo,
-          displayName: getAccountDisplayName(account.name, account.mask),
+          displayName: getAccountDisplayName(account.type, account.mask),
           typeLabel: account.type,
           maskedBalance,
           balanceTone: account.type === 'credit' ? 'credit' as const : 'positive' as const,
