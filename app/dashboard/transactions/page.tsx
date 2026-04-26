@@ -10,7 +10,6 @@ export default function TransactionsPage() {
   const transactions = useFinanceStore((state) => state.transactions);
   const isBalanceHidden = useAppStore((state) => state.isBalanceHidden);
   const [keyword, setKeyword] = useState('');
-  const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
 
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -89,8 +88,13 @@ export default function TransactionsPage() {
         <Button variant="secondary" size="sm">Data views</Button>
         <Button variant="secondary" size="sm">Filters</Button>
         <Button variant="secondary" size="sm">Date</Button>
-        <Button variant="secondary" size="sm">Keyword</Button>
         <Button variant="secondary" size="sm">Amount</Button>
+        <Input
+          value={keyword}
+          onChange={(event) => setKeyword(event.target.value)}
+          placeholder="Search"
+          className="h-8 w-44 sm:w-52 border-[var(--kura-border)] bg-[var(--kura-bg-light)]"
+        />
       </div>
 
       <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-[var(--kura-border)] bg-[var(--kura-surface)] p-4">
@@ -115,15 +119,6 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <div className="mb-4">
-        <Input
-          value={keyword}
-          onChange={(event) => setKeyword(event.target.value)}
-          placeholder="Search merchant, category, or account..."
-          className="h-10 max-w-md border-[var(--kura-border)] bg-[var(--kura-bg-light)]"
-        />
-      </div>
-
       <div className="rounded-xl border border-[var(--kura-border)] bg-[var(--kura-surface)] overflow-hidden">
         <div className="grid grid-cols-[0.8fr_2fr_1fr_1.1fr_1fr_1.1fr_0.8fr] gap-3 px-4 py-3 text-[11px] uppercase tracking-wide text-[var(--kura-text-secondary)] border-b border-[var(--kura-border)]">
           <div>Date</div>
@@ -143,7 +138,7 @@ export default function TransactionsPage() {
           filteredTransactions.map((transaction) => {
             const amount = parseAmount(transaction.amount);
             const isCredit = transaction.type === 'credit';
-            const selectedCategory = categoryMap[String(transaction.id)] ?? transaction.category;
+            const sourceAccount = `${transaction.accountType} • ${transaction.accountName}`;
 
             return (
               <div
@@ -156,27 +151,9 @@ export default function TransactionsPage() {
                   {isCredit ? '-' : '+'}
                   {formatAmount(amount)}
                 </div>
-                <div className="truncate text-[var(--kura-text-secondary)]">{transaction.accountName}</div>
+                <div className="truncate text-[var(--kura-text-secondary)]">{sourceAccount}</div>
                 <div className="truncate text-[var(--kura-text-secondary)]">••••</div>
-                <div>
-                  <select
-                    value={selectedCategory}
-                    onChange={(event) =>
-                      setCategoryMap((prev) => ({
-                        ...prev,
-                        [String(transaction.id)]: event.target.value,
-                      }))
-                    }
-                    className="w-full h-8 rounded-md border border-[var(--kura-border)] bg-[var(--kura-bg-light)] px-2 text-xs text-[var(--kura-text)]"
-                  >
-                    <option value={selectedCategory}>{selectedCategory}</option>
-                    <option value="Bank fees">Bank fees</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Groceries">Groceries</option>
-                    <option value="Transfer">Transfer</option>
-                    <option value="Others">Others</option>
-                  </select>
-                </div>
+                <div className="truncate text-[var(--kura-text-secondary)]">{transaction.category}</div>
                 <div>
                   <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full text-base">
                     +
