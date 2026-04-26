@@ -33,6 +33,26 @@ function parseBankAccountName(rawName: string, mask?: string): { institutionName
   return { institutionName, accountLabel };
 }
 
+function parseInstitutionName(rawName: string): string {
+  const [institutionPart] = rawName.split('·').map((part) => part.trim());
+  return institutionPart || rawName;
+}
+
+function getInvestmentAccountLabel(rawName: string, accountType: 'Broker' | 'Exchange' | 'Web3 Wallet'): string {
+  const normalized = rawName.toLowerCase();
+
+  if (normalized.includes('roth ira')) return 'Roth IRA';
+  if (normalized.includes('traditional ira')) return 'Traditional IRA';
+  if (normalized.includes('ira')) return 'IRA';
+  if (normalized.includes('401k') || normalized.includes('401(k)')) return '401K';
+  if (normalized.includes('retirement')) return 'Retirement';
+  if (normalized.includes('brokerage') || normalized.includes('investment')) return 'Investment';
+
+  if (accountType === 'Broker') return 'Investment';
+  if (accountType === 'Exchange') return 'Exchange';
+  return 'Wallet';
+}
+
 export default function AccountsPage() {
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<'bank' | 'investment' | 'wallet'>('bank');
@@ -46,6 +66,7 @@ export default function AccountsPage() {
   const disconnectInvestmentAccount = useFinanceStore((state) => state.disconnectInvestmentAccount);
   const hydratePlaidFinanceData = useFinanceStore((state) => state.hydratePlaidFinanceData);
   const isBalanceHidden = useAppStore((state) => state.isBalanceHidden);
+  const membershipLabel = useAppStore((state) => state.userProfile.membershipLabel);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -125,12 +146,14 @@ export default function AccountsPage() {
         .map((account) => {
           const totalValue = getInvestmentValue(account.id);
           const nickname = nicknameByAccountId[account.id]?.trim();
+          const institutionName = parseInstitutionName(account.name);
+          const accountLabel = getInvestmentAccountLabel(account.name, account.type);
           return {
             id: account.id,
             logo: account.logo,
-            displayName: nickname || account.name,
+            displayName: nickname || accountLabel,
             typeLabel: account.type,
-            institutionLabel: account.name,
+            institutionLabel: institutionName,
             maskedBalance: isBalanceHidden ? '••••••' : formatCurrency(totalValue),
             balanceTone: 'positive' as const,
             unlinkTarget: 'investment' as const,
@@ -293,7 +316,14 @@ export default function AccountsPage() {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{row.displayName}</p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-medium truncate">{row.displayName}</p>
+                    {membershipLabel && (
+                      <span className="text-[10px] leading-none px-2 py-1 rounded-full border border-[var(--kura-border)] text-[var(--kura-text-secondary)] bg-[var(--kura-bg-light)] whitespace-nowrap">
+                        {membershipLabel}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-[var(--kura-text-secondary)] truncate">
                     {row.typeLabel} – {row.institutionLabel}
                   </p>
