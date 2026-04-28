@@ -48,51 +48,58 @@ export default function DashboardPage() {
   }, [transactions]);
 
   useEffect(() => {
-    hydrateAssetHistory(30);
+    hydrateAssetHistory(7);
   }, [hydrateAssetHistory]);
 
   const chartData = useMemo(() => {
+    const toUtcDateKey = (timestamp: string): string => {
+      const date = new Date(timestamp);
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const formatUtcDayLabel = (date: Date): string => {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC',
+      });
+    };
+
+    // 先按時間排序，確保同一天取「最後一筆」作為該日收盤值（UTC 0）。
     const sortedHistory = [...apiAssetHistory].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
     );
-
-    if (sortedHistory.length === 0) return [];
-
-    const firstTimestamp = new Date(sortedHistory[0].timestamp);
-    const lastTimestamp = new Date(sortedHistory[sortedHistory.length - 1].timestamp);
-    const isSameDay = firstTimestamp.toDateString() === lastTimestamp.toDateString();
-
-    const formatLabel = (timestamp: string): string =>
-      new Date(timestamp).toLocaleString(
-        'en-US',
-        isSameDay
-          ? { hour: '2-digit', minute: '2-digit', hour12: false }
-          : { month: 'short', day: 'numeric' },
-      );
-
-    const points = sortedHistory.map((point) => ({
-      timestamp: point.timestamp,
-      label: formatLabel(point.timestamp),
-      value: point.value,
-    }));
-
-    const latestHistory = sortedHistory[sortedHistory.length - 1];
-    const latestTimestampMs = new Date(latestHistory.timestamp).getTime();
-    const hasSignificantDiff = Math.abs(latestHistory.value - totalBalance) > 0.01;
-
-    // 若最新歷史點與當前總資產差距大，補一個「當前值」點避免圖表誤導。
-    if (hasSignificantDiff) {
-      const nextTimestampMs = latestTimestampMs + 60 * 1000;
-      const nowIso = new Date(nextTimestampMs).toISOString();
-      points.push({
-        timestamp: nowIso,
-        label: formatLabel(nowIso),
-        value: totalBalance,
+    const dailyValueByUtcDate = new Map<string, { value: number; timestamp: string }>();
+    sortedHistory.forEach((point) => {
+      dailyValueByUtcDate.set(toUtcDateKey(point.timestamp), {
+        value: point.value,
+        timestamp: point.timestamp,
       });
-    }
+    });
 
-    return points;
-  }, [apiAssetHistory, totalBalance]);
+    const now = new Date();
+    const todayUtcMidnight = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const offsetFromToday = 6 - index;
+      const day = new Date(todayUtcMidnight);
+      day.setUTCDate(todayUtcMidnight.getUTCDate() - offsetFromToday);
+
+      const dayKey = toUtcDateKey(day.toISOString());
+      const existingPoint = dailyValueByUtcDate.get(dayKey);
+
+      return {
+        timestamp: existingPoint?.timestamp ?? day.toISOString(),
+        label: formatUtcDayLabel(day),
+        value: existingPoint?.value ?? 0,
+      };
+    });
+  }, [apiAssetHistory]);
 
   const changePercent = assetHistorySummary?.changePercent ?? null;
   const changePositive = changePercent !== null && changePercent >= 0;
@@ -166,7 +173,7 @@ export default function DashboardPage() {
               {changePercent !== null && (
                 <Badge variant={changePositive ? 'success' : 'destructive'}>
                   {changePositive ? '+' : ''}
-                  {changePercent.toFixed(2)}% <span className="ml-1 opacity-70">30d</span>
+                  {changePercent.toFixed(2)}% <span className="ml-1 opacity-70">7d</span>
                 </Badge>
               )}
             </div>
@@ -194,13 +201,12 @@ export default function DashboardPage() {
                     labelFormatter={(_, payload) => {
                       const rawTimestamp = payload?.[0]?.payload?.timestamp as string | undefined;
                       if (!rawTimestamp) return '';
-                      return new Date(rawTimestamp).toLocaleString('en-US', {
+                      return `${new Date(rawTimestamp).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false,
-                      });
+                        year: 'numeric',
+                        timeZone: 'UTC',
+                      })} UTC`;
                     }}
                     formatter={(value) => [
                       isBalanceHidden ? '••••••' : `$${(value as number).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
