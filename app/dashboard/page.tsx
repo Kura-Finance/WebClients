@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Area, AreaChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Line, LineChart, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -183,13 +183,7 @@ export default function DashboardPage() {
               <div className="w-full h-full rounded-xl bg-[var(--kura-border-light)] animate-pulse" />
             ) : chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <AreaChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="totalAssetsAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="var(--kura-primary)" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="var(--kura-primary)" stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
+                <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <XAxis dataKey="label" stroke="var(--kura-text-secondary)" tick={{ fontSize: 12 }} />
                   <YAxis stroke="var(--kura-text-secondary)" width={40} tick={{ fontSize: 12 }} />
                   <Tooltip
@@ -214,15 +208,6 @@ export default function DashboardPage() {
                     ]}
                     labelStyle={{ color: 'var(--kura-text-secondary)', fontSize: '11px' }}
                   />
-                  <Area
-                    type="linear"
-                    dataKey="value"
-                    baseValue={0}
-                    stroke="none"
-                    fill="url(#totalAssetsAreaGradient)"
-                    dot={false}
-                    activeDot={false}
-                  />
                   <Line
                     type="monotone"
                     dataKey="value"
@@ -231,7 +216,7 @@ export default function DashboardPage() {
                     dot={false}
                     activeDot={{ r: 4, fill: 'var(--kura-primary)', strokeWidth: 0 }}
                   />
-                </AreaChart>
+                </LineChart>
               </ResponsiveContainer>
             ) : (
               <div className="flex h-full flex-col justify-end gap-3">
