@@ -71,7 +71,13 @@ export default function AppSidebar() {
         </>
       ) : (
         <>
-          <NavLink href="/dashboard" label="<- Sidebar" isActive={false} />
+          <Link
+            href="/dashboard"
+            className="flex h-12 w-full items-center gap-3 px-4 text-[var(--kura-text-secondary)] transition-colors hover:text-[var(--kura-text)]"
+          >
+            <span className="text-3xl leading-none">‹</span>
+            <span className="text-[2rem] font-medium tracking-tight">Dashboard</span>
+          </Link>
           <Separator className="my-3" />
           <div className="space-y-2">
             {settingsLinks.map((link) => (
