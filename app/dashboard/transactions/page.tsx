@@ -163,6 +163,7 @@ export default function TransactionsPage() {
         {
           type: account.type,
           mask: account.mask,
+          name: account.name,
         },
       ]),
     );
@@ -336,7 +337,9 @@ export default function TransactionsPage() {
             const accountMeta = accountMetaById.get(transaction.accountId);
             const displayType = accountMeta?.type ?? transaction.accountType;
             const displayMask = accountMeta?.mask ? `••••${accountMeta.mask}` : '••••';
-            const sourceAccount = `${displayType} ${displayMask}`;
+            const sourceAccount = accountMeta?.mask
+              ? `${displayType} ${displayMask}`
+              : (accountMeta?.name || transaction.accountName || displayType);
             const merchantLogo = (transaction as { merchantLogo?: string }).merchantLogo;
             const displayMerchant = normalizeMerchantName(transaction.merchant);
             const normalizedMerchantLogo = typeof merchantLogo === 'string' ? merchantLogo.trim() : '';
