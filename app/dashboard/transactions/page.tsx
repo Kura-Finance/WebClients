@@ -12,6 +12,26 @@ type AmountDirection = 'any' | 'in' | 'out';
 
 const passthroughImageLoader = ({ src }: { src: string }) => src;
 
+function getDateRangeByPreset(preset: Exclude<DatePreset, 'custom'>): { from: string; to: string } {
+  if (preset === 'all') {
+    return { from: '', to: '' };
+  }
+
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  if (preset === 'thisMonth') {
+    return {
+      from: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10),
+      to: today,
+    };
+  }
+
+  return {
+    from: new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    to: today,
+  };
+}
+
 export default function TransactionsPage() {
   const transactions = useFinanceStore((state) => state.transactions);
   const accounts = useFinanceStore((state) => state.accounts);
@@ -27,27 +47,14 @@ export default function TransactionsPage() {
   const [maxAmount, setMaxAmount] = useState('');
   const toolbarRef = useRef<HTMLDivElement | null>(null);
 
-  useEffect(() => {
-    const now = new Date();
-    const today = now.toISOString().slice(0, 10);
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const last30Start = new Date(now.getTime() - 29 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const handleDatePresetChange = (nextPreset: DatePreset) => {
+    setDatePreset(nextPreset);
+    if (nextPreset === 'custom') return;
 
-    if (datePreset === 'all') {
-      setDateFrom('');
-      setDateTo('');
-      return;
-    }
-    if (datePreset === 'thisMonth') {
-      setDateFrom(thisMonthStart);
-      setDateTo(today);
-      return;
-    }
-    if (datePreset === 'last30') {
-      setDateFrom(last30Start);
-      setDateTo(today);
-    }
-  }, [datePreset]);
+    const { from, to } = getDateRangeByPreset(nextPreset);
+    setDateFrom(from);
+    setDateTo(to);
+  };
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -174,7 +181,7 @@ export default function TransactionsPage() {
               <p className="text-xs text-[var(--kura-text-secondary)]">Show transactions for</p>
               <select
                 value={datePreset}
-                onChange={(event) => setDatePreset(event.target.value as DatePreset)}
+                onChange={(event) => handleDatePresetChange(event.target.value as DatePreset)}
                 className="w-full h-9 rounded-md border border-[var(--kura-border)] bg-[var(--kura-bg-light)] px-2 text-sm"
               >
                 <option value="all">All time</option>
