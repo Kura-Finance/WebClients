@@ -55,10 +55,12 @@ export default function TopNav() {
       if (isConnected) {
         const normalizedAddress = normalizeAddress(address);
         if (normalizedAddress) {
-          const [tokens, protocols] = await Promise.all([
+          const [tokenResponse, protocolResponse] = await Promise.all([
             fetchDeBankTokenPositions(normalizedAddress, true),
             fetchDeBankProtocolPositions(normalizedAddress, true),
           ]);
+          const tokens = tokenResponse.positions;
+          const protocols = protocolResponse.positions;
 
           const accountId = `wallet-${chainId}-${normalizedAddress}`;
           const tokenAssets: Investment[] = tokens.map((token) => ({
