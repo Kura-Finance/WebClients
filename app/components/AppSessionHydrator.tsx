@@ -27,6 +27,7 @@ export default function AppSessionHydrator() {
   const hydratePlaidFinanceData = useFinanceStore((state) => state.hydratePlaidFinanceData);
   const clearPlaidFinanceData = useFinanceStore((state) => state.clearPlaidFinanceData);
   const syncConnectedWalletAssets = useFinanceStore((state) => state.syncConnectedWalletAssets);
+  const setDebankLastSyncedAt = useFinanceStore((state) => state.setDebankLastSyncedAt);
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const lastSyncedWalletKeyRef = useRef<string | null>(null);
@@ -88,10 +89,13 @@ export default function AppSessionHydrator() {
 
     void (async () => {
       try {
-        const [tokens, protocols] = await Promise.all([
+        const [tokenResponse, protocolResponse] = await Promise.all([
           fetchDeBankTokenPositions(normalizedAddress, true),
           fetchDeBankProtocolPositions(normalizedAddress, true),
         ]);
+        const tokens = tokenResponse.positions;
+        const protocols = protocolResponse.positions;
+        setDebankLastSyncedAt(tokenResponse.lastSyncedAt ?? protocolResponse.lastSyncedAt ?? null);
 
         if (cancelled) {
           return;
@@ -139,7 +143,7 @@ export default function AppSessionHydrator() {
     return () => {
       cancelled = true;
     };
-  }, [address, authStatus, chainId, isConnected, syncConnectedWalletAssets]);
+  }, [address, authStatus, chainId, isConnected, setDebankLastSyncedAt, syncConnectedWalletAssets]);
 
   useEffect(() => {
     if (isConnected && address) {

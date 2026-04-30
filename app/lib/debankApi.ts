@@ -18,6 +18,11 @@ export interface DeBankProtocolPosition {
   logo: string;
 }
 
+export interface DeBankPositionsResponse<T> {
+  positions: T[];
+  lastSyncedAt: string | null;
+}
+
 function toRecord(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : null;
 }
@@ -47,6 +52,18 @@ function extractArrayPayload<T>(payload: unknown): T[] {
     }
   }
   return [];
+}
+
+function extractLastSyncedAt(payload: unknown): string | null {
+  const record = toRecord(payload);
+  if (!record) return null;
+
+  const topLevel = toStringValue(record.lastSyncedAt);
+  if (topLevel) return topLevel;
+
+  const dataRecord = toRecord(record.data);
+  if (!dataRecord) return null;
+  return toStringValue(dataRecord.lastSyncedAt) || null;
 }
 
 function normalizeToken(raw: unknown): DeBankTokenPosition | null {
@@ -99,17 +116,20 @@ function normalizeProtocol(raw: unknown): DeBankProtocolPosition | null {
 export const fetchDeBankTokenPositions = async (
   address: string,
   refresh = false,
-): Promise<DeBankTokenPosition[]> => {
+): Promise<DeBankPositionsResponse<DeBankTokenPosition>> => {
   const query = new URLSearchParams({ address });
   if (refresh) query.set('refresh', 'true');
   const payload = await requestJson<unknown>(`/api/debank/tokens?${query.toString()}`, { method: 'GET' }, 'DeBankAPI');
-  return extractArrayPayload<unknown>(payload).map(normalizeToken).filter((item): item is DeBankTokenPosition => Boolean(item));
+  return {
+    positions: extractArrayPayload<unknown>(payload).map(normalizeToken).filter((item): item is DeBankTokenPosition => Boolean(item)),
+    lastSyncedAt: extractLastSyncedAt(payload),
+  };
 };
 
 export const fetchDeBankProtocolPositions = async (
   address: string,
   refresh = false,
-): Promise<DeBankProtocolPosition[]> => {
+): Promise<DeBankPositionsResponse<DeBankProtocolPosition>> => {
   const query = new URLSearchParams({ address });
   if (refresh) query.set('refresh', 'true');
   const payload = await requestJson<unknown>(
@@ -117,9 +137,12 @@ export const fetchDeBankProtocolPositions = async (
     { method: 'GET' },
     'DeBankAPI',
   );
-  return extractArrayPayload<unknown>(payload)
-    .map(normalizeProtocol)
-    .filter((item): item is DeBankProtocolPosition => Boolean(item));
+  return {
+    positions: extractArrayPayload<unknown>(payload)
+      .map(normalizeProtocol)
+      .filter((item): item is DeBankProtocolPosition => Boolean(item)),
+    lastSyncedAt: extractLastSyncedAt(payload),
+  };
 };
 
 export const unlinkDeBankAddress = (address: string): Promise<{ message?: string }> => {

@@ -10,6 +10,8 @@ export interface FinanceEncryptedCache {
   investments: unknown[];
   apiAssetHistory: AssetHistoryPoint[];
   assetHistorySummary: AssetHistorySummary | null;
+  plaidLastSyncedAt?: string | null;
+  debankLastSyncedAt?: string | null;
 }
 
 interface EncryptedFinanceCacheRecord {

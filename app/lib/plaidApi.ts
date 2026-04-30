@@ -55,6 +55,7 @@ export interface PlaidFinanceSnapshot {
   transactions: PlaidTransactionPayload[];
   investmentAccounts: PlaidInvestmentAccountPayload[];
   investments: PlaidInvestmentPayload[];
+  lastSyncedAt?: string | null;
   _cacheSource?: string;
   _limitReached?: boolean;
 }

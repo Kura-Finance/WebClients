@@ -81,6 +81,7 @@ interface FinanceState {
   // API 資產歷史（由伺服器提供，供儀表板圖表使用）
   apiAssetHistory: AssetHistoryPoint[];
   assetHistorySummary: AssetHistorySummary | null;
+  plaidLastSyncedAt: string | null;
   isLoadingAssetHistory: boolean;
 
   // 載入與錯誤狀態
@@ -138,6 +139,7 @@ function buildEncryptedCachePayload(state: FinanceState): FinanceEncryptedCache 
     investments: state.investments,
     apiAssetHistory: state.apiAssetHistory,
     assetHistorySummary: state.assetHistorySummary,
+    plaidLastSyncedAt: state.plaidLastSyncedAt,
   };
 }
 
@@ -164,6 +166,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   plaidError: null,
   apiAssetHistory: [],
   assetHistorySummary: null,
+  plaidLastSyncedAt: null,
   isLoadingAssetHistory: false,
   
   // 基本 setter
@@ -200,6 +203,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       investments: cached.investments as Investment[],
       apiAssetHistory: cached.apiAssetHistory,
       assetHistorySummary: cached.assetHistorySummary,
+      plaidLastSyncedAt: cached.plaidLastSyncedAt ?? null,
     });
     console.info('[FinanceStore] Hydrated finance data from encrypted local cache');
     return true;
@@ -237,6 +241,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
           transactions: snapshot.transactions as Transaction[],
           investmentAccounts: [...snapshot.investmentAccounts, ...nonPlaidAccounts] as InvestmentAccount[],
           investments: [...snapshot.investments, ...nonPlaidInvestments] as Investment[],
+          plaidLastSyncedAt: snapshot.lastSyncedAt ?? null,
           isLoadingPlaidData: false,
         };
       });
@@ -271,6 +276,7 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         transactions: [],
         investmentAccounts: nonPlaidAccounts,
         investments: nonPlaidInvestments,
+        plaidLastSyncedAt: null,
         plaidError: null,
       };
     });

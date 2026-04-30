@@ -11,7 +11,6 @@ import { useAppStore } from '@/store/useAppStore';
 import { type Investment, useFinanceStore } from '@/store/useFinanceStore';
 import { fetchDeBankProtocolPositions, fetchDeBankTokenPositions } from '@/lib/debankApi';
 
-const LAST_SYNC_TIME_STORAGE_KEY = 'kura.last-sync-time';
 const SYNC_VISIBLE_ROUTES = ['/dashboard/accounts', '/dashboard/crypto', '/dashboard/defi-protocol'] as const;
 
 const CHAIN_NAME_BY_ID: Record<number, string> = {
@@ -27,10 +26,6 @@ function normalizeAddress(value: string | undefined): string | null {
 
 export default function TopNav() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return window.localStorage.getItem(LAST_SYNC_TIME_STORAGE_KEY);
-  });
   const [isSyncing, setIsSyncing] = useState(false);
   const avatarButtonRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname() || '';
@@ -43,6 +38,7 @@ export default function TopNav() {
   const hydratePlaidFinanceData = useFinanceStore((state) => state.hydratePlaidFinanceData);
   const syncConnectedWalletAssets = useFinanceStore((state) => state.syncConnectedWalletAssets);
   const hydrateAssetHistory = useFinanceStore((state) => state.hydrateAssetHistory);
+  const plaidLastSyncedAt = useFinanceStore((state) => state.plaidLastSyncedAt);
   const displayName = userProfile.displayName.trim();
   const avatarInitial = displayName ? displayName.slice(0, 1).toUpperCase() : '?';
   const shouldShowSync = useMemo(
@@ -101,11 +97,6 @@ export default function TopNav() {
 
       await hydrateAssetHistory(30);
 
-      const timestamp = new Date().toISOString();
-      setLastSyncTime(timestamp);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(LAST_SYNC_TIME_STORAGE_KEY, timestamp);
-      }
     } finally {
       setIsSyncing(false);
     }
@@ -124,8 +115,8 @@ export default function TopNav() {
             <>
               <span>
                 {`Last synced: ${
-                  lastSyncTime
-                    ? new Date(lastSyncTime).toLocaleString('en-US', {
+                  plaidLastSyncedAt
+                    ? new Date(plaidLastSyncedAt).toLocaleString('en-US', {
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
