@@ -13,20 +13,14 @@ function formatCurrency(value: number, mask: boolean): string {
   return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatTimestamp(value: string | null): string {
-  if (!value) return 'Never';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Unknown';
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function formatUnits(value: number): string {
   return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+}
+
+function formatShortAddress(value: string): string {
+  if (!value) return 'No Address';
+  if (value.length <= 9) return value;
+  return `${value.slice(0, 5)}...${value.slice(-4)}`;
 }
 
 function resolveProtocolIcon(name: string): string {
@@ -56,42 +50,58 @@ function ProtocolAvatar({ logo, name }: { logo?: string; name: string }) {
 }
 
 export default function DefiProtocolPage() {
-  const { address, isConnected } = useAccount();
+  const { address } = useAccount();
   const isBalanceHidden = useAppStore((state) => state.isBalanceHidden);
   const [positions, setPositions] = useState<DeBankProtocolPosition[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState('');
+  const [addressInput, setAddressInput] = useState('');
+  const [isAddressPickerOpen, setIsAddressPickerOpen] = useState(false);
 
-  const normalizedAddress = address?.toLowerCase() ?? null;
-
-  const loadProtocolPositions = React.useCallback(
-    async (refresh: boolean) => {
-      if (!normalizedAddress) {
-        setPositions([]);
-        setError(null);
-        return;
-      }
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetchDeBankProtocolPositions(normalizedAddress, refresh);
-        const sanitized = response.positions.filter((item) => item.usdValue > 0);
-        setPositions(sanitized);
-        setLastSyncedAt(response.lastSyncedAt);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to load DeFi protocol assets';
-        setError(message);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [normalizedAddress],
-  );
+  const normalizedConnectedAddress = address?.toLowerCase() ?? '';
 
   React.useEffect(() => {
-    void loadProtocolPositions(false);
-  }, [loadProtocolPositions]);
+    if (!normalizedConnectedAddress) return;
+    setSelectedAddress((prev) => prev || normalizedConnectedAddress);
+    setAddressInput((prev) => prev || normalizedConnectedAddress);
+  }, [normalizedConnectedAddress]);
+
+  const loadProtocolPositions = React.useCallback(async (targetAddress: string, refresh: boolean) => {
+    if (!targetAddress) {
+      setPositions([]);
+      setError(null);
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetchDeBankProtocolPositions(targetAddress, refresh);
+      const sanitized = response.positions.filter((item) => item.usdValue > 0);
+      setPositions(sanitized);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load DeFi protocol assets';
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadProtocolPositions(selectedAddress, false);
+  }, [loadProtocolPositions, selectedAddress]);
+
+  const applyAddress = React.useCallback(
+    (rawValue: string) => {
+      const normalized = rawValue.trim().toLowerCase();
+      if (!normalized) return;
+      setSelectedAddress(normalized);
+      setAddressInput(normalized);
+      setIsAddressPickerOpen(false);
+      void loadProtocolPositions(normalized, true);
+    },
+    [loadProtocolPositions],
+  );
 
   const { totalValue, sortedPositions } = useMemo(() => {
     const total = positions.reduce((sum, item) => sum + item.usdValue, 0);
@@ -115,14 +125,48 @@ export default function DefiProtocolPage() {
                 remain in Crypto.
               </CardDescription>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => void loadProtocolPositions(true)}
-              disabled={isLoading || !normalizedAddress}
-            >
-              {isLoading ? 'Syncing...' : 'Sync'}
-            </Button>
+            <div className="relative">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsAddressPickerOpen((prev) => !prev)}
+                disabled={isLoading}
+                className="min-w-28 justify-start"
+              >
+                {formatShortAddress(selectedAddress)}
+              </Button>
+              {isAddressPickerOpen ? (
+                <div className="absolute right-0 mt-2 w-80 rounded-xl border border-[var(--kura-border)] bg-[var(--kura-surface)] shadow-lg p-3 z-20">
+                  <p className="text-xs text-[var(--kura-text-secondary)] mb-2">Switch address</p>
+                  <input
+                    value={addressInput}
+                    onChange={(event) => setAddressInput(event.target.value)}
+                    placeholder="0x..."
+                    className="w-full rounded-lg border border-[var(--kura-border)] bg-[var(--kura-bg-light)] px-3 py-2 text-sm outline-none focus:border-[var(--kura-primary)]"
+                  />
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsAddressPickerOpen(false)}>
+                      Cancel
+                    </Button>
+                    <div className="flex items-center gap-2">
+                      {normalizedConnectedAddress ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => applyAddress(normalizedConnectedAddress)}
+                          className="text-xs"
+                        >
+                          Use connected
+                        </Button>
+                      ) : null}
+                      <Button type="button" onClick={() => applyAddress(addressInput)}>
+                        Apply
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -136,16 +180,10 @@ export default function DefiProtocolPage() {
               <p className="text-2xl font-semibold mt-1">{positions.length}</p>
             </div>
             <div className="rounded-xl border border-[var(--kura-border)] bg-[var(--kura-bg-light)] px-4 py-3">
-              <p className="text-xs text-[var(--kura-text-secondary)]">Last Synced</p>
-              <p className="text-sm font-medium mt-2">{formatTimestamp(lastSyncedAt)}</p>
+              <p className="text-xs text-[var(--kura-text-secondary)]">Current Address</p>
+              <p className="text-sm font-medium mt-2">{selectedAddress || 'No address selected'}</p>
             </div>
           </div>
-
-          {!isConnected || !normalizedAddress ? (
-            <div className="rounded-xl border border-dashed border-[var(--kura-border)] px-4 py-8 text-center text-sm text-[var(--kura-text-secondary)]">
-              Connect a wallet to view your DeFi protocol positions.
-            </div>
-          ) : null}
 
           {error ? (
             <div className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>
