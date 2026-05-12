@@ -215,10 +215,14 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     // 抽成內部 helper，供初次嘗試與 keypair retry 共用
     const applySnapshot = async () => {
       const snapshot = await fetchPlaidFinanceSnapshot();
+      const snapshotAccounts = snapshot.accounts ?? [];
+      const snapshotTransactions = snapshot.transactions ?? [];
+      const snapshotInvestmentAccounts = snapshot.investmentAccounts ?? [];
+      const snapshotInvestments = snapshot.investments ?? [];
       console.info('[FinanceStore] Plaid snapshot fetched successfully', {
-        accountsCount: snapshot.accounts.length,
-        transactionsCount: snapshot.transactions.length,
-        investmentAccountsCount: snapshot.investmentAccounts.length,
+        accountsCount: snapshotAccounts.length,
+        transactionsCount: snapshotTransactions.length,
+        investmentAccountsCount: snapshotInvestmentAccounts.length,
       });
       set((state) => {
         const nonPlaidAccounts = state.investmentAccounts.filter(
@@ -228,10 +232,10 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
           nonPlaidAccounts.some((account) => account.id === investment.accountId)
         );
         return {
-          accounts: snapshot.accounts as Account[],
-          transactions: snapshot.transactions as Transaction[],
-          investmentAccounts: [...snapshot.investmentAccounts, ...nonPlaidAccounts] as InvestmentAccount[],
-          investments: [...snapshot.investments, ...nonPlaidInvestments] as Investment[],
+          accounts: snapshotAccounts as Account[],
+          transactions: snapshotTransactions as Transaction[],
+          investmentAccounts: [...snapshotInvestmentAccounts, ...nonPlaidAccounts] as InvestmentAccount[],
+          investments: [...snapshotInvestments, ...nonPlaidInvestments] as Investment[],
           plaidLastSyncedAt: snapshot.lastSyncedAt ?? null,
           isLoadingPlaidData: false,
         };
