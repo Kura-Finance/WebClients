@@ -184,7 +184,8 @@ async function decryptHistory(
 export const fetchAssetHistory = async (days: number = 30): Promise<AssetHistoryResponse> => {
   const session = getCryptoSession();
   if (!session) {
-    console.warn('[AssetAPI] No crypto session — skipping asset history decryption');
+    // Expected on page reload — in-memory session key is gone. User must re-login.
+    console.debug('[AssetAPI] No crypto session — asset history unavailable until re-login');
     return EMPTY_RESPONSE;
   }
 

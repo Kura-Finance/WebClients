@@ -112,11 +112,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         preferences: { baseCurrency: 'USD', largeTransactionAlerts: false, weeklyAiSummary: false },
       });
 
+      const { hydratePlaidFinanceData, hydrateAssetHistory } = useFinanceStore.getState();
       try {
-        const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
         await hydratePlaidFinanceData();
       } catch (plaidError) {
         console.warn('[AppStore] Failed to auto-load Plaid data after login', plaidError);
+      }
+      // Decrypt asset history now that the crypto session is established
+      try {
+        await hydrateAssetHistory(30);
+      } catch (assetError) {
+        console.warn('[AppStore] Failed to load asset history after login', assetError);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
@@ -248,14 +254,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         },
       });
 
-      // 自動載入後端 Plaid 資料
+      const { hydratePlaidFinanceData: hydratePlaid2, hydrateAssetHistory: hydrateAsset2 } = useFinanceStore.getState();
       try {
         console.debug('[AppStore] Auto-loading Plaid finance data after registration confirmation');
-        const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
-        await hydratePlaidFinanceData();
+        await hydratePlaid2();
         console.info('[AppStore] Plaid finance data auto-loaded after registration confirmation');
       } catch (plaidError) {
         console.warn('[AppStore] Failed to auto-load Plaid data after registration confirmation', plaidError);
+      }
+      try {
+        await hydrateAsset2(30);
+      } catch (assetError) {
+        console.warn('[AppStore] Failed to load asset history after registration', assetError);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration confirmation failed';
