@@ -121,6 +121,12 @@ export async function requestJson<T>(
     logSuccess(data, url, apiName);
     return data;
   } catch (error) {
+    // ApiError was already constructed and thrown by the response-error path above;
+    // re-wrapping it via handleFetchError would reset status to 0 and lose the
+    // original HTTP status code. Re-throw as-is so callers can inspect .status.
+    if (error instanceof ApiError) {
+      throw error;
+    }
     const { error: apiError } = handleFetchError(error, url, apiName);
     throw apiError;
   }
