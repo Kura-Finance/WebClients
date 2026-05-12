@@ -321,15 +321,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           },
         });
 
-        // 自動載入後端 Plaid 資料
-        try {
-          console.debug('[AppStore] Auto-loading Plaid finance data');
-          const hydratePlaidFinanceData = useFinanceStore.getState().hydratePlaidFinanceData;
-          await hydratePlaidFinanceData();
-          console.info('[AppStore] Plaid finance data auto-loaded successfully');
-        } catch (plaidError) {
-          console.warn('[AppStore] Failed to auto-load Plaid data', plaidError);
-        }
+        // Phase 3 E2EE：頁面重載後 crypto session 已清除，無法解密 Plaid 資料。
+        // 等用戶重新輸入密碼後，login() 會再次呼叫 hydratePlaidFinanceData()。
+        console.debug('[AppStore] Page reload — skipping Plaid auto-load (no crypto session; re-login required to decrypt)');
       } catch {
         // 無有效 cookie 或 session
         console.info('[AppStore] No valid session found');
