@@ -199,12 +199,12 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
     }
 
     set({
-      accounts: cached.accounts as Account[],
-      transactions: cached.transactions as Transaction[],
-      investmentAccounts: cached.investmentAccounts as InvestmentAccount[],
-      investments: cached.investments as Investment[],
-      apiAssetHistory: cached.apiAssetHistory,
-      assetHistorySummary: cached.assetHistorySummary,
+      accounts: (cached.accounts ?? []) as Account[],
+      transactions: (cached.transactions ?? []) as Transaction[],
+      investmentAccounts: (cached.investmentAccounts ?? []) as InvestmentAccount[],
+      investments: (cached.investments ?? []) as Investment[],
+      apiAssetHistory: cached.apiAssetHistory ?? [],
+      assetHistorySummary: cached.assetHistorySummary ?? null,
       plaidLastSyncedAt: cached.plaidLastSyncedAt ?? null,
     });
     console.info('[FinanceStore] Hydrated finance data from encrypted local cache');
@@ -491,15 +491,15 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
       const response = await fetchAssetHistory(days);
 
       set({
-        apiAssetHistory: response.history,
-        assetHistorySummary: response.summary,
+        apiAssetHistory: response.history ?? [],
+        assetHistorySummary: response.summary ?? null,
         isLoadingAssetHistory: false,
       });
       void persistFinanceCache(get());
 
       console.info('[FinanceStore] Asset history hydrated', {
-        points: response.history.length,
-        change: response.summary.cashFlow?.changePercent ?? 0,
+        points: (response.history ?? []).length,
+        change: response.summary?.cashFlow?.changePercent ?? 0,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch asset history';
