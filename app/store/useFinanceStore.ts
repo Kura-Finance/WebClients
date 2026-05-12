@@ -1,7 +1,7 @@
 // finance store
 import { create } from 'zustand';
 import { fetchPlaidFinanceSnapshot } from '@/lib/plaidApi';
-import { fetchAssetHistory, AssetHistoryPoint, AssetHistorySummary } from '@/lib/assetApi';
+import { fetchAssetHistory, AssetHistoryPoint, AssetHistoryResponse, AssetHistorySummary } from '@/lib/assetApi';
 import { ensureKeyPairConfigured } from '@/lib/crypto/zkAuth';
 import { ApiError } from '@/lib/errorHandler';
 import {
@@ -484,23 +484,26 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   
   // API 資產歷史
   hydrateAssetHistory: async (days: number = 30) => {
-    try {
-      set({ isLoadingAssetHistory: true });
-      console.debug('[FinanceStore] Fetching asset history from API', { days });
-
-      const response = await fetchAssetHistory(days);
-
+    function applyResponse(response: AssetHistoryResponse) {
       set({
         apiAssetHistory: response.history ?? [],
         assetHistorySummary: response.summary ?? null,
         isLoadingAssetHistory: false,
       });
       void persistFinanceCache(get());
-
       console.info('[FinanceStore] Asset history hydrated', {
         points: (response.history ?? []).length,
         change: response.summary?.cashFlow?.changePercent ?? 0,
       });
+    }
+
+    try {
+      set({ isLoadingAssetHistory: true });
+      console.debug('[FinanceStore] Fetching asset history', { days });
+
+      // onUpdate: fires when background refresh finishes (cache-hit scenario)
+      const response = await fetchAssetHistory(days, applyResponse);
+      applyResponse(response);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch asset history';
       console.warn('[FinanceStore] Failed to hydrate asset history', { error: errorMessage });
