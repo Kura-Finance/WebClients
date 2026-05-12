@@ -1,4 +1,4 @@
-import { extractErrorMessage, handleFetchError, handleResponseError, logResponse, logSuccess } from './errorHandler';
+import { ApiError, extractErrorMessage, handleFetchError, handleResponseError, logResponse, logSuccess } from './errorHandler';
 
 interface ApiErrorBody {
   error?: string | { code?: string; message?: string; details?: unknown };
