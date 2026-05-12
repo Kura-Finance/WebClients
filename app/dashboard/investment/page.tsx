@@ -152,10 +152,12 @@ export default function InvestmentPage() {
   const isLoadingAssetHistory = useFinanceStore((state) => state.isLoadingAssetHistory);
   const hydrateAssetHistory = useFinanceStore((state) => state.hydrateAssetHistory);
   const isBalanceHidden = useAppStore((state) => state.isBalanceHidden);
+  const isDecryptionReady = useAppStore((state) => state.isDecryptionReady);
 
   useEffect(() => {
+    if (!isDecryptionReady) return;
     hydrateAssetHistory(30);
-  }, [hydrateAssetHistory]);
+  }, [hydrateAssetHistory, isDecryptionReady]);
 
   const { holdings, totalValue } = useMemo(() => {
     const equityHoldings = investments.filter(

@@ -29,6 +29,7 @@ export default function DashboardPage() {
   const assetHistorySummary = useFinanceStore((state) => state.assetHistorySummary);
   const isLoadingAssetHistory = useFinanceStore((state) => state.isLoadingAssetHistory);
   const hydrateAssetHistory = useFinanceStore((state) => state.hydrateAssetHistory);
+  const isDecryptionReady = useAppStore((state) => state.isDecryptionReady);
 
   const [isConnectModalOpen, setIsConnectModalOpen] = useState<boolean>(false);
 
@@ -54,8 +55,9 @@ export default function DashboardPage() {
   }, [transactions]);
 
   useEffect(() => {
+    if (!isDecryptionReady) return;
     hydrateAssetHistory(7);
-  }, [hydrateAssetHistory]);
+  }, [hydrateAssetHistory, isDecryptionReady]);
 
   const chartData = useMemo(() => {
     const toSafeNumber = (value: unknown): number => {

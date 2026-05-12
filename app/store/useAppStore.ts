@@ -38,6 +38,12 @@ export interface UserPreferences {
 
 interface AppState {
   authStatus: 'loading' | 'authenticated' | 'unauthenticated';
+  /**
+   * 是否擁有有效的 in-memory crypto session（X25519 私鑰已解開）。
+   * Page reload 後即使 cookie 有效，此值也是 false，直到用戶重新輸入密碼。
+   * 加密功能（asset history 解密）依賴此旗標。
+   */
+  isDecryptionReady: boolean;
   userProfile: UserProfile;
   preferences: UserPreferences;
   isBalanceHidden: boolean;
@@ -74,6 +80,7 @@ interface AppState {
 
 export const useAppStore = create<AppState>((set, get) => ({
   authStatus: 'loading',
+  isDecryptionReady: false,
   userProfile: {
     displayName: '',
     email: '',
@@ -102,6 +109,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         authToken: 'web-client',
         authStatus: 'authenticated',
+        isDecryptionReady: true,
         userProfile: {
           displayName: response.user.displayName,
           email: normalizedEmail,
@@ -141,6 +149,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         authToken: null,
         authStatus: 'unauthenticated',
+        isDecryptionReady: false,
         userProfile: { displayName: '', email: '', avatarUrl: '', membershipLabel: '' },
         plaidLinkToken: null,
         authError: null,
@@ -240,6 +249,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         authToken: 'web-client', // 標記為 web 客戶端（token 在 cookie 中）
         authStatus: 'authenticated',
+        isDecryptionReady: true,
         userProfile: {
           displayName: profile.user.displayName || response.user.displayName,
           email: profile.user.email || response.user.email,

@@ -499,7 +499,6 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
 
     try {
       set({ isLoadingAssetHistory: true });
-      console.debug('[FinanceStore] Fetching asset history', { days });
 
       // onUpdate: fires when background refresh finishes (cache-hit scenario)
       const response = await fetchAssetHistory(days, applyResponse);

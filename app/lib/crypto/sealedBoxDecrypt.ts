@@ -38,12 +38,31 @@ export async function unsealSEK(
 ): Promise<Uint8Array> {
   await ensureReady();
 
+  // Minimum sealed-box size: 32 (ephPk) + 16 (MAC) = 48 bytes overhead + plaintext
   const sealed = Uint8Array.from(atob(wrappedSekB64), (c) => c.charCodeAt(0));
+  console.debug('[SealedBox] unsealSEK', {
+    sealedBytes: sealed.length,          // expected: 48 + sekSize (80 for 32-byte SEK)
+    pubKeyBytes: recipientPublicKey.length,  // expected: 32
+    privKeyBytes: recipientPrivateKey.length, // expected: 32
+  });
+
+  if (recipientPublicKey.length !== 32 || recipientPrivateKey.length !== 32) {
+    throw new Error(
+      `unsealSEK: invalid key length (pub=${recipientPublicKey.length}, priv=${recipientPrivateKey.length}), expected 32 bytes each`,
+    );
+  }
+
   const sek = sodium.crypto_box_seal_open(sealed, recipientPublicKey, recipientPrivateKey);
 
   if (!sek) {
+    console.warn('[SealedBox] crypto_box_seal_open returned null — wrong key pair or corrupted sealed box', {
+      sealedBytes: sealed.length,
+      pubKeyPrefix: Array.from(recipientPublicKey.slice(0, 4)).map((b) => b.toString(16).padStart(2, '0')).join(''),
+    });
     throw new Error('Failed to unseal SEK: authentication failed or wrong key');
   }
+
+  console.debug('[SealedBox] unsealSEK success', { sekBytes: sek.length });
   return sek;
 }
 
@@ -63,8 +82,15 @@ export async function decryptPayloadCiphertext(
 
   const IV_BYTES = 12;
   const TAG_BYTES = 16;
+
+  console.debug('[SealedBox] decryptPayloadCiphertext', {
+    rawBytes: raw.length,
+    sekBytes: sek.length,
+    expectedMinBytes: IV_BYTES + TAG_BYTES,
+  });
+
   if (raw.length < IV_BYTES + TAG_BYTES) {
-    throw new Error('payloadCiphertext too short');
+    throw new Error(`payloadCiphertext too short: ${raw.length} bytes (min ${IV_BYTES + TAG_BYTES})`);
   }
 
   // Copy into a plain ArrayBuffer so WebCrypto is satisfied (no SharedArrayBuffer ambiguity)
