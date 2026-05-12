@@ -300,3 +300,32 @@ export async function decryptFromServerJson<T = unknown>(envelope: EncryptedEnve
   const bytes = await decryptFromServer(envelope);
   return JSON.parse(new TextDecoder().decode(bytes)) as T;
 }
+
+// ─────────────────────────────────────────
+// Keypair recovery（給非 auth 流程呼叫）
+// ─────────────────────────────────────────
+
+/**
+ * 確保目前 session 有可用的 X25519 keypair。
+ *
+ * 適用場景：存量用戶尚未呼叫 POST /auth/keys/setup，
+ * 後端回 409 KEY_PAIR_REQUIRED 時，由呼叫端（例如 useFinanceStore）
+ * 在 catch 裡觸發，對用戶完全透明。
+ *
+ * 內部委派給 obtainOrRepairKeyPair — 涵蓋「無紀錄→setup」與「解不開→rotate」兩條路徑。
+ * 完成後會更新 cryptoSession 的 keypair 欄位（dekWrapKey / localCacheKey 不變）。
+ */
+export async function ensureKeyPairConfigured(): Promise<void> {
+  if (!cryptoSession) {
+    throw new Error('No active crypto session. Please log in again.');
+  }
+  try {
+    const { x25519PrivateKey, x25519PublicKeyBase64 } = await obtainOrRepairKeyPair(cryptoSession.dekWrapKey);
+    cryptoSession = { ...cryptoSession, x25519PrivateKey, x25519PublicKeyBase64 };
+  } catch (error) {
+    if (isCryptoOperationError(error)) {
+      throw new Error(CRYPTO_OPERATION_ERROR_MESSAGE);
+    }
+    throw error;
+  }
+}

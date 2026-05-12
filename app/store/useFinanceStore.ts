@@ -2,6 +2,8 @@
 import { create } from 'zustand';
 import { fetchPlaidFinanceSnapshot } from '@/lib/plaidApi';
 import { fetchAssetHistory, AssetHistoryPoint, AssetHistorySummary } from '@/lib/assetApi';
+import { ensureKeyPairConfigured } from '@/lib/crypto/zkAuth';
+import { ApiError } from '@/lib/errorHandler';
 import {
   clearEncryptedFinanceCache,
   loadEncryptedFinanceCache,
@@ -210,32 +212,21 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   },
 
   hydratePlaidFinanceData: async () => {
-    try {
-      set({ isLoadingPlaidData: true, plaidError: null });
-      console.debug('[FinanceStore] Fetching Plaid finance snapshot');
-      
+    // 抽成內部 helper，供初次嘗試與 keypair retry 共用
+    const applySnapshot = async () => {
       const snapshot = await fetchPlaidFinanceSnapshot();
       console.info('[FinanceStore] Plaid snapshot fetched successfully', {
         accountsCount: snapshot.accounts.length,
         transactionsCount: snapshot.transactions.length,
         investmentAccountsCount: snapshot.investmentAccounts.length,
       });
-
       set((state) => {
-        // 保留 Web3 Wallet 與 Exchange 帳戶（非 Plaid 管理）
-        // Web3 Wallet Store 與 Exchange Store 現在獨立管理，但舊的混合資料需要保留
         const nonPlaidAccounts = state.investmentAccounts.filter(
           (account) => account.type === 'Web3 Wallet' || account.type === 'Exchange'
         );
         const nonPlaidInvestments = state.investments.filter((investment) =>
           nonPlaidAccounts.some((account) => account.id === investment.accountId)
         );
-
-        console.debug('[FinanceStore] Preserving non-Plaid data', {
-          nonPlaidAccountsCount: nonPlaidAccounts.length,
-          nonPlaidInvestmentsCount: nonPlaidInvestments.length,
-        });
-
         return {
           accounts: snapshot.accounts as Account[],
           transactions: snapshot.transactions as Transaction[],
@@ -246,6 +237,24 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         };
       });
       void persistFinanceCache(get());
+    };
+
+    try {
+      set({ isLoadingPlaidData: true, plaidError: null });
+      console.debug('[FinanceStore] Fetching Plaid finance snapshot');
+
+      try {
+        await applySnapshot();
+      } catch (firstError) {
+        // 存量用戶尚未建立 keypair → 靜默完成 setup 後重試一次，對用戶透明
+        if (firstError instanceof ApiError && firstError.status === 409) {
+          console.info('[FinanceStore] KEY_PAIR_REQUIRED — setting up keypair silently and retrying');
+          await ensureKeyPairConfigured();
+          await applySnapshot();
+        } else {
+          throw firstError;
+        }
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Plaid finance data';
       console.error('[FinanceStore] Failed to hydrate Plaid data', { error: errorMessage });
