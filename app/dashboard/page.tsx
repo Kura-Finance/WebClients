@@ -161,12 +161,13 @@ export default function DashboardPage() {
     };
   }, [apiAssetHistory]);
 
-  const formatAssetAmount = (amount: number): string => {
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatAssetAmount = (amount: number | undefined | null): string => {
+    return `$${(amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const formatChange = (changePercentValue: number): string => {
-    return `${changePercentValue >= 0 ? '+' : ''}${changePercentValue.toFixed(2)}%`;
+  const formatChange = (changePercentValue: number | undefined | null): string => {
+    const v = changePercentValue ?? 0;
+    return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
   };
 
   const miniCards = useMemo(

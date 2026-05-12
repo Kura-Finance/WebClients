@@ -32,16 +32,16 @@ type HoldingWithMetrics = Investment & {
   isEtf: boolean;
 };
 
-function formatCurrency(value: number): string {
-  return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function formatCurrency(value: number | undefined | null): string {
+  return `$${(value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function formatPercent(value: number): string {
-  return `${value.toFixed(2)}%`;
+function formatPercent(value: number | undefined | null): string {
+  return `${(value ?? 0).toFixed(2)}%`;
 }
 
-function formatUnits(value: number): string {
-  return value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
+function formatUnits(value: number | undefined | null): string {
+  return (value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 6 });
 }
 
 function isLikelyEtf(holding: Investment): boolean {
