@@ -12,7 +12,8 @@ type AmountDirection = 'any' | 'in' | 'out';
 
 const passthroughImageLoader = ({ src }: { src: string }) => src;
 
-function normalizeMerchantName(raw: string): string {
+function normalizeMerchantName(raw: string | undefined | null): string {
+  if (!raw) return 'Unknown Merchant';
   const normalized = raw.split(';')[0]?.trim();
   return normalized || raw.trim() || 'Unknown Merchant';
 }

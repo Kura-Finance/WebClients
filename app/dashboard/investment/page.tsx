@@ -48,8 +48,8 @@ function isLikelyEtf(holding: Investment): boolean {
   if (holding.type === 'etf') return true;
   if (holding.type !== 'stock') return false;
 
-  const symbol = holding.symbol.toUpperCase();
-  const name = holding.name.toUpperCase();
+  const symbol = (holding.symbol ?? '').toUpperCase();
+  const name = (holding.name ?? '').toUpperCase();
   return KNOWN_ETF_SYMBOLS.has(symbol) || /\bETF\b/.test(name) || /\bINDEX\b/.test(name);
 }
 
@@ -102,7 +102,7 @@ function HoldingSection({
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-xs font-semibold">{holding.symbol.slice(0, 2)}</span>
+                        <span className="text-xs font-semibold">{(holding.symbol ?? '??').slice(0, 2)}</span>
                       )}
                     </div>
                     <div className="min-w-0">

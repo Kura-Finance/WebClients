@@ -21,9 +21,10 @@ function getAccountDisplayName(name: string, mask?: string): string {
   return mask ? `${name} ••${mask}` : name;
 }
 
-function parseBankAccountName(rawName: string, mask?: string): { institutionName: string; accountLabel: string } {
-  const [institutionPart, accountPart] = rawName.split('·').map((part) => part.trim());
-  const institutionName = institutionPart || rawName;
+function parseBankAccountName(rawName: string | undefined | null, mask?: string): { institutionName: string; accountLabel: string } {
+  const safeName = rawName ?? '';
+  const [institutionPart, accountPart] = safeName.split('·').map((part) => part.trim());
+  const institutionName = institutionPart || safeName;
 
   let accountLabel = accountPart || institutionName;
   if (mask) {
@@ -34,9 +35,10 @@ function parseBankAccountName(rawName: string, mask?: string): { institutionName
   return { institutionName, accountLabel };
 }
 
-function parseInstitutionName(rawName: string): string {
-  const [institutionPart] = rawName.split('·').map((part) => part.trim());
-  return institutionPart || rawName;
+function parseInstitutionName(rawName: string | undefined | null): string {
+  const safeName = rawName ?? '';
+  const [institutionPart] = safeName.split('·').map((part) => part.trim());
+  return institutionPart || safeName;
 }
 
 function getAddressFromWalletAccountId(accountId: string): string | null {
