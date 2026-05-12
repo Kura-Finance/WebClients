@@ -41,7 +41,6 @@ export interface SRPChallengeResponse {
   srpSalt: string;
   serverB: string;
   kekSalt: string;
-  encryptedDataKey: string;
 }
 
 // ─────────────────────────────────────────
@@ -57,10 +56,6 @@ async function srpPost<T>(path: string, body: Record<string, string>): Promise<T
     },
     'SRPAPI',
   );
-}
-
-async function srpGet<T>(path: string): Promise<T> {
-  return requestJson<T>(path, { method: 'GET' }, 'SRPAPI');
 }
 
 // ─────────────────────────────────────────
@@ -87,7 +82,6 @@ export interface SRPLoginResult {
   serverM2: string;
   token: string;
   user: BackendUserProfile;
-  encryptedDataKey: string;
   kekSalt: string;
 }
 
@@ -130,7 +124,6 @@ export async function srpFullLogin(
 
   return {
     ...result,
-    encryptedDataKey: challenge.encryptedDataKey,
     kekSalt: challenge.kekSalt,
   };
 }
@@ -144,17 +137,4 @@ export async function getSRPSalts(email: string): Promise<{
   return srpPost('/api/auth/srp/salt', { email });
 }
 
-/** 設定 SRP（上傳 verifier + encryptedDataKey） */
-export async function setupSRP(payload: {
-  srpSalt: string;
-  srpVerifier: string;
-  encryptedDataKey: string;
-  kekSalt: string;
-}): Promise<void> {
-  await srpPost('/api/auth/srp/setup', payload);
-}
-
-/** 取得已登入用戶的 encryptedDataKey */
-export async function getEncryptedDataKey(): Promise<{ encryptedDataKey: string; kekSalt: string }> {
-  return srpGet('/api/auth/srp/data-key');
-}
+// X25519 keypair 相關的 API（setup / rotate / me）已搬到 @/lib/authApi。

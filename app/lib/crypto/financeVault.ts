@@ -1,6 +1,14 @@
 import { getCryptoSession } from './zkAuth';
 import type { AssetHistoryPoint, AssetHistorySummary } from '@/lib/assetApi';
 
+/**
+ * 本地加密快取
+ *
+ * 用 session 內的 localCacheKey（AES-GCM，HKDF(AMK) 派生）加密 localStorage 資料。
+ * 登出後 session 清空，但同一個密碼登入時可重新派生並解開原本的快取。
+ * 換密碼後 AMK 變、localCacheKey 也變，舊 cache 解不開 → 視為孤兒並丟棄。
+ */
+
 const FINANCE_CACHE_STORAGE_KEY = 'kura.finance.encrypted-cache.v1';
 
 export interface FinanceEncryptedCache {
@@ -20,14 +28,6 @@ interface EncryptedFinanceCacheRecord {
   ciphertext: string;
 }
 
-function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
-  const bytes = new Uint8Array(new ArrayBuffer(hex.length / 2));
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  }
-  return bytes;
-}
-
 function bytesToBase64(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes));
 }
@@ -36,31 +36,22 @@ function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0)) as Uint8Array<ArrayBuffer>;
 }
 
-async function getDataKeyCryptoKey(): Promise<CryptoKey | null> {
+function getLocalCacheKey(): CryptoKey | null {
   if (typeof window === 'undefined') return null;
-  const session = getCryptoSession();
-  if (!session?.dataKeyHex) return null;
-
-  return crypto.subtle.importKey(
-    'raw',
-    hexToBytes(session.dataKeyHex),
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt', 'decrypt'],
-  );
+  return getCryptoSession()?.localCacheKey ?? null;
 }
 
 export async function persistEncryptedFinanceCache(payload: FinanceEncryptedCache): Promise<boolean> {
   try {
     if (typeof window === 'undefined') return false;
-    const dataKey = await getDataKeyCryptoKey();
-    if (!dataKey) return false;
+    const cacheKey = getLocalCacheKey();
+    if (!cacheKey) return false;
 
     const plainBytes = new TextEncoder().encode(JSON.stringify(payload));
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const encrypted = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv },
-      dataKey,
+      cacheKey,
       plainBytes,
     );
 
@@ -86,12 +77,12 @@ export async function loadEncryptedFinanceCache(): Promise<FinanceEncryptedCache
     const parsed = JSON.parse(raw) as Partial<EncryptedFinanceCacheRecord>;
     if (parsed.version !== 1 || !parsed.iv || !parsed.ciphertext) return null;
 
-    const dataKey = await getDataKeyCryptoKey();
-    if (!dataKey) return null;
+    const cacheKey = getLocalCacheKey();
+    if (!cacheKey) return null;
 
     const plain = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: base64ToBytes(parsed.iv) },
-      dataKey,
+      cacheKey,
       base64ToBytes(parsed.ciphertext),
     );
 

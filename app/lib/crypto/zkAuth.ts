@@ -1,17 +1,31 @@
 /**
- * 零知識認證流程
+ * 零知識認證流程（Wrapped X25519 Keypair 版）
  *
- * 整合 keyDerivation + srpClient，提供完整的 ZK 登入/註冊流程。
- * 外部只需呼叫：
- *   - zkLogin(email, password)    → SRP 零知識登入
- *   - zkVerifyRegistration(...)   → 驗證碼註冊 + SRP 初始化
- *   - clearCryptoSession()        → 登出時清除 Data Key
+ * 概觀：
+ *   - SRP 用來證明用戶知道密碼，但密碼本身永不離開瀏覽器。
+ *   - X25519 keypair 是 random 生成、私鑰用 dekWrapKey 加密後存後端
+ *     （後端 /auth/keys/{setup,rotate,me}）。
+ *   - 換密碼只 re-wrap 同一把 privateKey，publicKey 不變 → 舊 wrappedSek 仍有效。
  *
- * Data Key 解密後存放於模組層級記憶體，
- * 頁面重整或登出後即消失（類似 Proton 的 session key）。
+ * 對外公開：
+ *   - zkLogin(email, password)            → SRP 登入 + 從 /keys/me 取回並解開 privateKey
+ *                                            （無法解開時自動 fresh 生成並走 /keys/rotate）
+ *   - zkVerifyRegistration(...)           → 驗證碼註冊 + /keys/setup 上傳新 keypair
+ *   - zkChangePassword(...)               → SRP rotate + /keys/rotate（保留同一把 keypair）
+ *   - zkResetPassword(...)                → SRP reset；keypair 失效，下次登入 lazy 重建
+ *   - decryptFromServer(envelope)         → 解開後端送來的 hybrid envelope
+ *   - clearCryptoSession()                → 登出清除
  */
 
-import { deriveKeysFromPassword, generateDataKeyHex, generateSalt, sealDataKey, unsealDataKey } from './keyDerivation';
+import {
+  deriveKeysFromPassword,
+  decryptServerEnvelope,
+  generateSalt,
+  generateX25519KeyPair,
+  wrapPrivateKey,
+  unwrapPrivateKey,
+} from './keyDerivation';
+import type { EncryptedEnvelope } from './keyDerivation';
 import {
   computeVerifier,
   srpFullLogin,
@@ -21,6 +35,10 @@ import {
   verifyRegistration as apiVerifyRegistration,
   resetPassword as apiResetPassword,
   changePassword as apiChangePassword,
+  getUserKeyPair,
+  setupUserKeyPair,
+  rotateUserKeyPair,
+  UserKeyPairNotFoundError,
 } from '@/lib/authApi';
 import type { BackendUserProfile } from '@/lib/authApi';
 
@@ -29,8 +47,14 @@ import type { BackendUserProfile } from '@/lib/authApi';
 // ─────────────────────────────────────────
 
 interface CryptoSession {
-  dataKeyHex: string; // 解密後的 Data Key（永遠不落地）
-  dekWrapKey: CryptoKey; // 由 AMK 派生的 DEK Wrap Key（Web Crypto，不可匯出）
+  /** X25519 私鑰（raw 32 bytes），解 hybrid envelope 用。 */
+  x25519PrivateKey: Uint8Array;
+  /** 對應的 X25519 公鑰（base64，44 chars）。 */
+  x25519PublicKeyBase64: string;
+  /** AES-GCM CryptoKey，用來 wrap/unwrap privateKey；換密碼時會被替換。 */
+  dekWrapKey: CryptoKey;
+  /** AES-GCM CryptoKey，給 financeVault 加密 localStorage 快取。 */
+  localCacheKey: CryptoKey;
 }
 
 let cryptoSession: CryptoSession | null = null;
@@ -42,6 +66,9 @@ export function getCryptoSession(): CryptoSession | null {
 }
 
 export function clearCryptoSession(): void {
+  if (cryptoSession) {
+    cryptoSession.x25519PrivateKey.fill(0);
+  }
   cryptoSession = null;
 }
 
@@ -55,28 +82,58 @@ function isCryptoOperationError(error: unknown): boolean {
   ].includes(error.name);
 }
 
-function assertDataKeyHex32(value: string): string {
-  const normalized = value.trim().toLowerCase();
-  if (!/^[a-f0-9]{64}$/.test(normalized)) {
-    throw new Error('Data Key must be a 32-byte hex string.');
-  }
-  return normalized;
-}
-
 // ─────────────────────────────────────────
-// ZK 登入（SRP 版）
+// 內部：取得 / 建立 / 修復 keypair（lazy recovery）
 // ─────────────────────────────────────────
 
 /**
- * SRP 零知識登入：
- * 1. 取得 salt → 推導 AMK 衍生金鑰（DEK Wrap Key + authKeyHex，password 不傳後端）
- * 2. SRP 握手驗證（M1/M2 互相確認）
- * 3. 解密 encryptedDataKey → 存入 cryptoSession
+ * 嘗試 GET /keys/me 並用目前 dekWrapKey 解開 encryptedPrivateKey。
+ * 若 server 沒紀錄（首次登入但 setup 沒成功）或解不開（換密碼/reset 後舊 wrap 失效），
+ * 都會自動 fresh 生成一組 keypair 並透過 setup/rotate 寫回，回傳結果與目前 dekWrapKey 一致。
  */
+async function obtainOrRepairKeyPair(dekWrapKey: CryptoKey): Promise<{
+  x25519PrivateKey: Uint8Array;
+  x25519PublicKeyBase64: string;
+}> {
+  let serverRecordExists = true;
+  try {
+    const record = await getUserKeyPair();
+    try {
+      const priv = await unwrapPrivateKey(record.encryptedPrivateKey, dekWrapKey);
+      return { x25519PrivateKey: priv, x25519PublicKeyBase64: record.publicKey };
+    } catch {
+      // 解不開 → 之前的 keypair 是用舊密碼派生的 dekWrapKey 包的，已失效
+      // 落到下面的 rotate 路徑
+    }
+  } catch (error) {
+    if (error instanceof UserKeyPairNotFoundError) {
+      serverRecordExists = false;
+    } else {
+      throw error;
+    }
+  }
+
+  // 走到這裡：server 沒紀錄、或舊紀錄已無法解開 → 生新的
+  const fresh = generateX25519KeyPair();
+  const encryptedPrivateKey = await wrapPrivateKey(fresh.privateKey, dekWrapKey);
+  if (serverRecordExists) {
+    await rotateUserKeyPair(fresh.publicKeyBase64, encryptedPrivateKey);
+  } else {
+    await setupUserKeyPair(fresh.publicKeyBase64, encryptedPrivateKey);
+  }
+  return {
+    x25519PrivateKey: fresh.privateKey,
+    x25519PublicKeyBase64: fresh.publicKeyBase64,
+  };
+}
+
+// ─────────────────────────────────────────
+// ZK 登入
+// ─────────────────────────────────────────
+
 export async function zkLogin(email: string, password: string): Promise<{ user: BackendUserProfile }> {
   const normalizedEmail = email.toLowerCase().trim();
 
-  // 步驟 1：取得 salt，並確認此帳號已啟用 SRP
   const salts = await getSRPSalts(normalizedEmail);
   if (!salts.srpEnabled) {
     throw new Error('Your account requires a security upgrade. Please reset your password to continue.');
@@ -84,19 +141,20 @@ export async function zkLogin(email: string, password: string): Promise<{ user: 
 
   const { srpSalt, kekSalt } = salts;
 
-  // 步驟 2：推導金鑰（純前端，password 不離開此函式）
-  const { dekWrapKey, authKeyHex } = await deriveKeysFromPassword(password, srpSalt, kekSalt);
-
-  // 步驟 3：執行完整 SRP 握手
-  const { user, encryptedDataKey } = await srpFullLogin(normalizedEmail, authKeyHex);
-  if (!encryptedDataKey?.trim()) {
-    throw new Error('Account crypto state is incomplete. Missing encryptedDataKey.');
-  }
-
   try {
-    // 步驟 4：解密 Data Key 並存入 session
-    const dataKeyHex = assertDataKeyHex32(await unsealDataKey(encryptedDataKey, dekWrapKey));
-    cryptoSession = { dataKeyHex, dekWrapKey };
+    const derived = await deriveKeysFromPassword(password, srpSalt, kekSalt);
+
+    // SRP 握手；成功後 cookie 已寫入，後面才能打 /keys/me
+    const { user } = await srpFullLogin(normalizedEmail, derived.authKeyHex);
+
+    const { x25519PrivateKey, x25519PublicKeyBase64 } = await obtainOrRepairKeyPair(derived.dekWrapKey);
+
+    cryptoSession = {
+      x25519PrivateKey,
+      x25519PublicKeyBase64,
+      dekWrapKey: derived.dekWrapKey,
+      localCacheKey: derived.localCacheKey,
+    };
     return { user };
   } catch (error) {
     if (isCryptoOperationError(error)) {
@@ -107,7 +165,7 @@ export async function zkLogin(email: string, password: string): Promise<{ user: 
 }
 
 // ─────────────────────────────────────────
-// 註冊確認（驗證碼 + SRP）
+// 註冊確認（驗證碼 + SRP + keypair setup）
 // ─────────────────────────────────────────
 
 export async function zkVerifyRegistration(
@@ -117,18 +175,31 @@ export async function zkVerifyRegistration(
 ): Promise<{ user: BackendUserProfile }> {
   const normalizedEmail = email.toLowerCase().trim();
   try {
-    const { srpSalt, srpVerifier, encryptedDataKey, kekSalt, plainDataKey, dekWrapKey } =
-      await buildRegistrationSrpPayload(normalizedEmail, password);
+    const srpSalt = generateSalt();
+    const kekSalt = generateSalt();
+    const derived = await deriveKeysFromPassword(password, srpSalt, kekSalt);
+    const { srpVerifier } = await computeVerifier(normalizedEmail, derived.authKeyHex, srpSalt);
+
+    // 1) SRP 註冊：建立帳號與 SRP 紀錄；成功後 cookie 已就緒
     const response = await apiVerifyRegistration(
       normalizedEmail,
       verificationCode,
       srpSalt,
       srpVerifier,
-      encryptedDataKey,
       kekSalt,
     );
 
-    cryptoSession = { dataKeyHex: plainDataKey, dekWrapKey };
+    // 2) 隨機產 keypair、用 dekWrapKey 包好上傳到 /keys/setup
+    const keyPair = generateX25519KeyPair();
+    const encryptedPrivateKey = await wrapPrivateKey(keyPair.privateKey, derived.dekWrapKey);
+    await setupUserKeyPair(keyPair.publicKeyBase64, encryptedPrivateKey);
+
+    cryptoSession = {
+      x25519PrivateKey: keyPair.privateKey,
+      x25519PublicKeyBase64: keyPair.publicKeyBase64,
+      dekWrapKey: derived.dekWrapKey,
+      localCacheKey: derived.localCacheKey,
+    };
     return { user: response.user };
   } catch (error) {
     if (isCryptoOperationError(error)) {
@@ -139,33 +210,65 @@ export async function zkVerifyRegistration(
 }
 
 // ─────────────────────────────────────────
-// ZK 密碼重設與變更
+// 變更密碼（已登入；保留同一把 keypair）
 // ─────────────────────────────────────────
 
 /**
- * ZK 忘記密碼 (Password Reset)：
- * 用戶輸入 email、驗證碼與新密碼。
- * 因為沒有舊密碼，無法解開舊的 Data Key。
- * 必須生成全新的 SRP Verifier 與全新的 Data Key。舊的加密資料將遺失。
+ * 步驟：
+ *   1. 用新密碼推導新的 dekWrapKey / authKey / localCacheKey。
+ *   2. SRP rotate（/password-reset/verify with preserveData=true）：覆蓋 srpVerifier。
+ *   3. 把 session 內現有的 privateKey 用新的 dekWrapKey 重新 wrap，POST /keys/rotate。
+ *   4. 更新 cryptoSession 的 dekWrapKey / localCacheKey；privateKey / publicKey 不變。
  */
+export async function zkChangePassword(email: string, resetCode: string, newPassword: string): Promise<void> {
+  if (!cryptoSession) {
+    throw new Error('No active crypto session. Please log in again.');
+  }
+  const session = cryptoSession;
+  const normalizedEmail = email.toLowerCase().trim();
+  const srpSalt = generateSalt();
+  const kekSalt = generateSalt();
+
+  try {
+    const derived = await deriveKeysFromPassword(newPassword, srpSalt, kekSalt);
+    const { srpVerifier } = await computeVerifier(normalizedEmail, derived.authKeyHex, srpSalt);
+
+    await apiChangePassword(normalizedEmail, resetCode, srpSalt, srpVerifier, kekSalt);
+
+    const newEncryptedPrivateKey = await wrapPrivateKey(session.x25519PrivateKey, derived.dekWrapKey);
+    await rotateUserKeyPair(session.x25519PublicKeyBase64, newEncryptedPrivateKey);
+
+    cryptoSession = {
+      x25519PrivateKey: session.x25519PrivateKey,
+      x25519PublicKeyBase64: session.x25519PublicKeyBase64,
+      dekWrapKey: derived.dekWrapKey,
+      localCacheKey: derived.localCacheKey,
+    };
+  } catch (error) {
+    if (isCryptoOperationError(error)) {
+      throw new Error(CRYPTO_OPERATION_ERROR_MESSAGE);
+    }
+    throw error;
+  }
+}
+
+// ─────────────────────────────────────────
+// 忘記密碼（未登入；keypair 失效，下次登入由 lazy recovery 重建）
+// ─────────────────────────────────────────
+
 export async function zkResetPassword(email: string, code: string, newPassword: string): Promise<void> {
   const normalizedEmail = email.toLowerCase().trim();
   const srpSalt = generateSalt();
   const kekSalt = generateSalt();
 
   try {
-    // 步驟 1：推導新金鑰
-    const { dekWrapKey, authKeyHex } = await deriveKeysFromPassword(newPassword, srpSalt, kekSalt);
-    const { srpVerifier } = await computeVerifier(normalizedEmail, authKeyHex, srpSalt);
+    const derived = await deriveKeysFromPassword(newPassword, srpSalt, kekSalt);
+    const { srpVerifier } = await computeVerifier(normalizedEmail, derived.authKeyHex, srpSalt);
 
-    // 步驟 2：生成全新 Data Key 並加密（完全在前端生成，後端無法看到明文）
-    const plainDataKey = assertDataKeyHex32(generateDataKeyHex(32));
-    const encryptedDataKey = await sealDataKey(plainDataKey, dekWrapKey);
+    await apiResetPassword(normalizedEmail, code, srpSalt, srpVerifier, kekSalt, false);
 
-    // 步驟 3：上傳至後端
-    await apiResetPassword(normalizedEmail, code, srpSalt, srpVerifier, encryptedDataKey, kekSalt, false);
-
-    // 步驟 4：重設密碼後，需重新登入以建立 session
+    // 舊 encryptedPrivateKey 是用舊 dekWrapKey 包的，這裡無法解；
+    // 下次 zkLogin 會偵測到解不開、自動透過 /keys/rotate 寫新的一份。
     clearCryptoSession();
   } catch (error) {
     if (isCryptoOperationError(error)) {
@@ -175,35 +278,16 @@ export async function zkResetPassword(email: string, code: string, newPassword: 
   }
 }
 
-/**
- * ZK 更改密碼 (Change Password)：
- * 用戶已登入，輸入新密碼。
- * 因為目前已登入，所以 cryptoSession 中有明文的 Data Key。
- * 重新推導新的 DEK Wrap Key，並將現有 Data Key 重新加密上傳，不遺失資料。
- */
-export async function zkChangePassword(email: string, resetCode: string, newPassword: string): Promise<void> {
+// ─────────────────────────────────────────
+// 對外：解密後端送來的 envelope
+// ─────────────────────────────────────────
+
+export async function decryptFromServer(envelope: EncryptedEnvelope): Promise<Uint8Array> {
   if (!cryptoSession) {
     throw new Error('No active crypto session. Please log in again.');
   }
-
-  const normalizedEmail = email.toLowerCase().trim();
-  const srpSalt = generateSalt();
-  const kekSalt = generateSalt();
-
   try {
-    // 步驟 1：推導新金鑰
-    const { dekWrapKey, authKeyHex } = await deriveKeysFromPassword(newPassword, srpSalt, kekSalt);
-    const { srpVerifier } = await computeVerifier(normalizedEmail, authKeyHex, srpSalt);
-
-    // 步驟 2：使用新的 DEK Wrap Key 重新加密現有明文 Data Key
-    const encryptedDataKey = await sealDataKey(assertDataKeyHex32(cryptoSession.dataKeyHex), dekWrapKey);
-
-    // 步驟 3：上傳至後端
-    // preserveData=true 是語意宣告；真正能否保留資料取決於此處是否提供了新 KEK re-wrap 後的 encryptedDataKey。
-    await apiChangePassword(normalizedEmail, resetCode, srpSalt, srpVerifier, encryptedDataKey, kekSalt);
-
-    // 步驟 4：更新記憶體中的 session DEK Wrap Key
-    cryptoSession.dekWrapKey = dekWrapKey;
+    return await decryptServerEnvelope(envelope, cryptoSession.x25519PrivateKey);
   } catch (error) {
     if (isCryptoOperationError(error)) {
       throw new Error(CRYPTO_OPERATION_ERROR_MESSAGE);
@@ -212,26 +296,7 @@ export async function zkChangePassword(email: string, resetCode: string, newPass
   }
 }
 
-// ─────────────────────────────────────────
-// 內部工具
-// ─────────────────────────────────────────
-
-async function buildRegistrationSrpPayload(email: string, password: string): Promise<{
-  srpSalt: string;
-  srpVerifier: string;
-  encryptedDataKey: string;
-  kekSalt: string;
-  plainDataKey: string;
-  dekWrapKey: CryptoKey;
-}> {
-  const srpSalt = generateSalt();
-  const kekSalt = generateSalt();
-  const { dekWrapKey, authKeyHex } = await deriveKeysFromPassword(password, srpSalt, kekSalt);
-  const { srpVerifier } = await computeVerifier(email, authKeyHex, srpSalt);
-  const plainDataKey = assertDataKeyHex32(generateDataKeyHex(32));
-  const encryptedDataKey = await sealDataKey(plainDataKey, dekWrapKey);
-
-  return { srpSalt, srpVerifier, encryptedDataKey, kekSalt, plainDataKey, dekWrapKey };
+export async function decryptFromServerJson<T = unknown>(envelope: EncryptedEnvelope): Promise<T> {
+  const bytes = await decryptFromServer(envelope);
+  return JSON.parse(new TextDecoder().decode(bytes)) as T;
 }
-
-
