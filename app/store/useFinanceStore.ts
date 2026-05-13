@@ -1,6 +1,6 @@
 // finance store
 import { create } from 'zustand';
-import { fetchPlaidFinanceSnapshot } from '@/lib/plaidApi';
+import { fetchPlaidFinanceSnapshot, PlaidFinanceSnapshot } from '@/lib/plaidApi';
 import { fetchAssetHistory, AssetHistoryPoint, AssetHistoryResponse, AssetHistorySummary } from '@/lib/assetApi';
 import { ensureKeyPairConfigured } from '@/lib/crypto/zkAuth';
 import { ApiError } from '@/lib/errorHandler';
@@ -212,17 +212,17 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
   },
 
   hydratePlaidFinanceData: async () => {
-    // 抽成內部 helper，供初次嘗試與 keypair retry 共用
-    const applySnapshot = async () => {
-      const snapshot = await fetchPlaidFinanceSnapshot();
+    function applyDecryptedSnapshot(snapshot: PlaidFinanceSnapshot) {
       const snapshotAccounts = snapshot.accounts ?? [];
       const snapshotTransactions = snapshot.transactions ?? [];
       const snapshotInvestmentAccounts = snapshot.investmentAccounts ?? [];
       const snapshotInvestments = snapshot.investments ?? [];
-      console.info('[FinanceStore] Plaid snapshot fetched successfully', {
+      console.info('[FinanceStore] Plaid snapshot applied', {
         accountsCount: snapshotAccounts.length,
         transactionsCount: snapshotTransactions.length,
         investmentAccountsCount: snapshotInvestmentAccounts.length,
+        investmentsCount: snapshotInvestments.length,
+        source: snapshot._cacheSource ?? 'API',
       });
       set((state) => {
         const nonPlaidAccounts = state.investmentAccounts.filter(
@@ -241,6 +241,13 @@ export const useFinanceStore = create<FinanceState>((set, get) => ({
         };
       });
       void persistFinanceCache(get());
+    }
+
+    // 抽成內部 helper，供初次嘗試與 keypair retry 共用
+    const applySnapshot = async () => {
+      // onUpdate: 背景 refresh 完成時更新 UI（cache-hit scenario）
+      const snapshot = await fetchPlaidFinanceSnapshot(applyDecryptedSnapshot);
+      applyDecryptedSnapshot(snapshot);
     };
 
     try {

@@ -11,12 +11,14 @@ import {
   zkLogin,
   zkVerifyRegistration,
   clearCryptoSession,
+  tryRestoreSessionFromStorage,
   zkChangePassword,
   zkResetPassword,
 } from '@/lib/crypto/zkAuth';
 import {
   createPlaidLinkToken,
   exchangePlaidPublicToken,
+  clearPlaidCache,
   disconnectPlaidAccount as disconnectPlaidAccountApi,
 } from '@/lib/plaidApi';
 import { useFinanceStore } from './useFinanceStore';
@@ -144,8 +146,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     try {
       console.info('[AppStore] Logging out');
       await logoutUser();
-      // 清除記憶體中的 Data Key（ZK 安全保證）
       clearCryptoSession();
+      clearPlaidCache();
       set({
         authToken: null,
         authStatus: 'unauthenticated',
@@ -298,15 +300,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       set({ isBalanceHidden: localStorage.getItem('kura-hide-balance') === '1' });
 
+      // 嘗試從 sessionStorage 還原 crypto session（page reload 後 x25519 keypair 仍在）
+      const sessionRestored = tryRestoreSessionFromStorage();
+
       // Web 客戶端：Token 在 HttpOnly Cookie 中，直接嘗試呼叫 API
       console.debug('[AppStore] Web client - attempting to fetch profile from cookie');
       try {
         const response = await fetchCurrentUserProfile();
 
-        console.info('[AppStore] Profile fetched successfully');
+        console.info('[AppStore] Profile fetched successfully', { sessionRestored });
         set({
-          authToken: 'web-client', // 標記為 web 客戶端（token 在 cookie 中）
+          authToken: 'web-client',
           authStatus: 'authenticated',
+          isDecryptionReady: sessionRestored,
           userProfile: {
             displayName: response.user.displayName,
             email: response.user.email,
@@ -321,11 +327,21 @@ export const useAppStore = create<AppState>((set, get) => ({
           },
         });
 
-        // Phase 3 E2EE：頁面重載後 crypto session 已清除，無法解密 Plaid 資料。
-        // 等用戶重新輸入密碼後，login() 會再次呼叫 hydratePlaidFinanceData()。
-        console.debug('[AppStore] Page reload — skipping Plaid auto-load (no crypto session; re-login required to decrypt)');
+        if (sessionRestored) {
+          // Session restored → decrypt from local cache immediately, no API call needed
+          console.debug('[AppStore] Session restored from sessionStorage — loading from encrypted cache');
+          try {
+            const { hydratePlaidFinanceData, hydrateAssetHistory } = useFinanceStore.getState();
+            await hydratePlaidFinanceData();
+            await hydrateAssetHistory(30);
+          } catch (cacheError) {
+            console.warn('[AppStore] Failed to load from encrypted cache after session restore', cacheError);
+          }
+        } else {
+          // No session in sessionStorage — user must log in again to decrypt
+          console.debug('[AppStore] No session in sessionStorage — re-login required to decrypt financial data');
+        }
       } catch {
-        // 無有效 cookie 或 session
         console.info('[AppStore] No valid session found');
         set({ authStatus: 'unauthenticated', authError: null, authToken: null });
       }

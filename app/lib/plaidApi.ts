@@ -4,6 +4,19 @@
  * 後端回傳 EncryptedFinanceSnapshot，前端用 X25519 私鑰解開 SEK，
  * 再用 SEK（AES-256-GCM）解密每個 account / transaction / investment。
  * 解密後再組成 PlaidFinanceSnapshot 交給 store。
+ *
+ * 本地 cache 策略（Stale-While-Revalidate + 原始加密 Cache）：
+ *
+ *   下載原始加密 response
+ *     ↓  解密 → 顯示資料 → 存 raw encrypted 進 localStorage
+ *     ↓  背景重新 fetch → 解密 → 覆蓋 cache → 更新 UI（onUpdate callback）
+ *
+ * 為什麼存「原始加密 response」而非「解密後再加密」：
+ *   - raw encrypted 本身即為 localStorage safe（無私鑰無法讀）
+ *   - 「解密後再加密」需要 localCacheKey（in-memory）→ page reload 即失效
+ *   - 存 raw → 登入後立刻從 cache 解密顯示，不需任何 API round-trip
+ *
+ * TTL：4 小時（Plaid 資料更新頻率低，但仍需定期 refresh）
  */
 
 import { requestJson } from './httpClient';
@@ -195,6 +208,51 @@ const EMPTY_SNAPSHOT: PlaidFinanceSnapshot = {
   investments: [],
 };
 
+// ============= 原始加密 Snapshot 的本地 cache =============
+// 後端加密 payload 可以直接存 localStorage：
+//   wrappedSek  = crypto_box_seal → 只有持有 X25519 私鑰的用戶才能解
+//   ciphertext  = AES-256-GCM → 只有解開 wrappedSek 才能讀
+// TTL 4 小時；過期後仍可用（stale）但觸發背景 refresh。
+
+const PLAID_CACHE_KEY = 'kura.plaid.encrypted-snapshot.v1';
+const PLAID_CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+interface PlaidCacheRecord {
+  fetchedAt: number;
+  data: EncryptedFinanceSnapshot;
+}
+
+function readPlaidCache(): PlaidCacheRecord | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(PLAID_CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PlaidCacheRecord;
+  } catch {
+    return null;
+  }
+}
+
+function writePlaidCache(data: EncryptedFinanceSnapshot): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const record: PlaidCacheRecord = { fetchedAt: Date.now(), data };
+    window.localStorage.setItem(PLAID_CACHE_KEY, JSON.stringify(record));
+  } catch {
+    // localStorage full or unavailable — silently skip
+  }
+}
+
+function isPlaidCacheFresh(record: PlaidCacheRecord): boolean {
+  return Date.now() - record.fetchedAt < PLAID_CACHE_TTL_MS;
+}
+
+/** 強制清除 Plaid 本地 cache（用戶登出時呼叫）。 */
+export function clearPlaidCache(): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(PLAID_CACHE_KEY);
+}
+
 async function decryptPlaidSnapshot(
   encrypted: EncryptedFinanceSnapshot,
   pubKey: Uint8Array,
@@ -384,29 +442,64 @@ export const exchangePlaidPublicToken = (
 /**
  * 取得財務快照並解密（Phase 3 Zero-Access E2EE）。
  *
- * 需要有效的 crypto session：
- *   - 登入後 → session 存在 → 完整解密回傳
- *   - Page reload → session 消失 → 回傳空陣列（等用戶重新登入）
+ * Cache 策略（Stale-While-Revalidate）：
+ *   1. localStorage 有 cache 且 session 存在 → 立刻解密 cache 回傳
+ *   2. 同時背景 fetch API → 拿到新資料更新 cache（不阻塞主流程）
+ *   3. Cache 過期（>4h） → 等待 API；失敗則 fallback 到 stale cache
+ *   4. 無 session → 回傳空陣列（需重新登入）
+ *
+ * @param onUpdate  背景 refresh 完成時的 callback（供 store 更新 UI）
  */
-export const fetchPlaidFinanceSnapshot = async (): Promise<PlaidFinanceSnapshot> => {
-  const raw = await plaidRequest<EncryptedFinanceSnapshot>(
-    '/api/plaid/finance-snapshot',
-    { method: 'GET' }
-  );
-
+export const fetchPlaidFinanceSnapshot = async (
+  onUpdate?: (result: PlaidFinanceSnapshot) => void,
+): Promise<PlaidFinanceSnapshot> => {
   const session = getCryptoSession();
   if (!session) {
-    console.debug('[PlaidAPI] No crypto session — cannot decrypt Plaid snapshot, returning empty');
-    return {
-      ...EMPTY_SNAPSHOT,
-      lastSyncedAt: raw.lastSyncedAt,
-      _cacheSource: raw._cacheSource,
-      partial: raw.partial,
-      failedItemIds: raw.failedItemIds,
-    };
+    console.debug('[PlaidAPI] No crypto session — cannot decrypt Plaid snapshot');
+    return EMPTY_SNAPSHOT;
   }
 
   const pubKey = Uint8Array.from(atob(session.x25519PublicKeyBase64), (c) => c.charCodeAt(0));
+
+  async function fetchAndCache(): Promise<EncryptedFinanceSnapshot> {
+    const raw = await plaidRequest<EncryptedFinanceSnapshot>(
+      '/api/plaid/finance-snapshot',
+      { method: 'GET' }
+    );
+    writePlaidCache(raw);
+    return raw;
+  }
+
+  const cached = readPlaidCache();
+
+  // Fresh cache → decrypt immediately, refresh in background
+  if (cached && isPlaidCacheFresh(cached)) {
+    console.debug('[PlaidAPI] Serving Plaid snapshot from local cache (fresh)');
+    void fetchAndCache().then((raw) => {
+      const currentSession = getCryptoSession();
+      if (!currentSession) return;
+      const pub = Uint8Array.from(atob(currentSession.x25519PublicKeyBase64), (c) => c.charCodeAt(0));
+      void decryptPlaidSnapshot(raw, pub, currentSession.x25519PrivateKey).then((result) => {
+        onUpdate?.(result);
+      });
+    }).catch(() => { /* background refresh failure is non-fatal */ });
+    return decryptPlaidSnapshot(cached.data, pubKey, session.x25519PrivateKey);
+  }
+
+  // Stale cache → fetch fresh, fall back to stale if fetch fails
+  if (cached) {
+    console.debug('[PlaidAPI] Plaid cache stale — fetching fresh snapshot');
+    try {
+      const raw = await fetchAndCache();
+      return decryptPlaidSnapshot(raw, pubKey, session.x25519PrivateKey);
+    } catch (err) {
+      console.warn('[PlaidAPI] Fetch failed, falling back to stale cache', String(err));
+      return decryptPlaidSnapshot(cached.data, pubKey, session.x25519PrivateKey);
+    }
+  }
+
+  // No cache → fetch from API
+  const raw = await fetchAndCache();
   return decryptPlaidSnapshot(raw, pubKey, session.x25519PrivateKey);
 };
 

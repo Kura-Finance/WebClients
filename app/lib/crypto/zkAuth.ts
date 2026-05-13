@@ -51,15 +51,84 @@ interface CryptoSession {
   x25519PrivateKey: Uint8Array;
   /** 對應的 X25519 公鑰（base64，44 chars）。 */
   x25519PublicKeyBase64: string;
-  /** AES-GCM CryptoKey，用來 wrap/unwrap privateKey；換密碼時會被替換。 */
-  dekWrapKey: CryptoKey;
-  /** AES-GCM CryptoKey，給 financeVault 加密 localStorage 快取。 */
-  localCacheKey: CryptoKey;
+  /**
+   * AES-GCM CryptoKey，用來 wrap/unwrap privateKey；換密碼時會被替換。
+   * null = sessionStorage 還原的部分 session，需完整登入才有此 key。
+   */
+  dekWrapKey: CryptoKey | null;
+  /**
+   * AES-GCM CryptoKey，給 financeVault 加密 localStorage 快取。
+   * null = sessionStorage 還原的部分 session。
+   */
+  localCacheKey: CryptoKey | null;
 }
 
 let cryptoSession: CryptoSession | null = null;
 const CRYPTO_OPERATION_ERROR_MESSAGE =
   'Account cryptography operation failed. Please retry with an updated browser.';
+
+// ─────────────────────────────────────────
+// SessionStorage 持久化（跨 page reload，關 tab 清除）
+// ─────────────────────────────────────────
+//
+// 只存 x25519 keypair（Uint8Array / string，可序列化）。
+// dekWrapKey / localCacheKey 是 extractable: false 的 CryptoKey，無法匯出，
+// 頁面重整後這兩個為 null，需完整重新登入才能恢復（key rotation / 密碼更換需要）。
+// 解密 Plaid / asset history 只需 x25519 keypair，重整後功能完全正常。
+
+const SESSION_STORAGE_KEY = 'kura.crypto.session.v1';
+
+interface PersistedSession {
+  privKeyB64: string;
+  pubKeyB64: string;
+}
+
+function persistSessionToStorage(privKey: Uint8Array, pubKeyBase64: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const privKeyB64 = btoa(String.fromCharCode(...privKey));
+    const record: PersistedSession = { privKeyB64, pubKeyB64: pubKeyBase64 };
+    window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(record));
+  } catch {
+    // sessionStorage 不可用（隱私瀏覽等）— 靜默跳過，降級為每次登入解密
+  }
+}
+
+function clearPersistedSession(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch { /* ignore */ }
+}
+
+/**
+ * 嘗試從 sessionStorage 還原 crypto session（x25519 keypair only）。
+ * 成功時回傳 true 並設好 cryptoSession，失敗時回傳 false。
+ *
+ * 還原的 session 已足夠解密所有 E2EE 資料（Plaid / asset history）；
+ * 若需要 dekWrapKey（key rotation / 密碼更換），需完整重新登入。
+ */
+export function tryRestoreSessionFromStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return false;
+    const record = JSON.parse(raw) as PersistedSession;
+    if (!record.privKeyB64 || !record.pubKeyB64) return false;
+    const privKey = Uint8Array.from(atob(record.privKeyB64), (c) => c.charCodeAt(0));
+    if (privKey.length !== 32) return false;
+    cryptoSession = {
+      x25519PrivateKey: privKey,
+      x25519PublicKeyBase64: record.pubKeyB64,
+      dekWrapKey: null,
+      localCacheKey: null,
+    };
+    console.debug('[CryptoSession] Session restored from sessionStorage');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export function getCryptoSession(): CryptoSession | null {
   return cryptoSession;
@@ -70,6 +139,7 @@ export function clearCryptoSession(): void {
     cryptoSession.x25519PrivateKey.fill(0);
   }
   cryptoSession = null;
+  clearPersistedSession();
 }
 
 function isCryptoOperationError(error: unknown): boolean {
@@ -155,6 +225,7 @@ export async function zkLogin(email: string, password: string): Promise<{ user: 
       dekWrapKey: derived.dekWrapKey,
       localCacheKey: derived.localCacheKey,
     };
+    persistSessionToStorage(x25519PrivateKey, x25519PublicKeyBase64);
     return { user };
   } catch (error) {
     if (isCryptoOperationError(error)) {
@@ -200,6 +271,7 @@ export async function zkVerifyRegistration(
       dekWrapKey: derived.dekWrapKey,
       localCacheKey: derived.localCacheKey,
     };
+    persistSessionToStorage(keyPair.privateKey, keyPair.publicKeyBase64);
     return { user: response.user };
   } catch (error) {
     if (isCryptoOperationError(error)) {
@@ -319,9 +391,15 @@ export async function ensureKeyPairConfigured(): Promise<void> {
   if (!cryptoSession) {
     throw new Error('No active crypto session. Please log in again.');
   }
+  if (!cryptoSession.dekWrapKey) {
+    // Session was restored from sessionStorage (page reload) — dekWrapKey not available.
+    // Key pair configuration requires a full login with password.
+    throw new Error('Encryption key setup requires a full login. Please log in again.');
+  }
   try {
     const { x25519PrivateKey, x25519PublicKeyBase64 } = await obtainOrRepairKeyPair(cryptoSession.dekWrapKey);
     cryptoSession = { ...cryptoSession, x25519PrivateKey, x25519PublicKeyBase64 };
+    persistSessionToStorage(x25519PrivateKey, x25519PublicKeyBase64);
   } catch (error) {
     if (isCryptoOperationError(error)) {
       throw new Error(CRYPTO_OPERATION_ERROR_MESSAGE);
