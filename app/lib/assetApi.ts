@@ -156,91 +156,58 @@ async function decryptHistory(
   pubKey: Uint8Array,
   privKey: Uint8Array,
 ): Promise<AssetHistoryResponse> {
-  console.debug('[AssetAPI] decryptHistory start', {
-    userId: encrypted.userId,
-    payloadKeys: encrypted.payloadKeys.length,
-    snapshots: encrypted.snapshots.length,
-    pubKeyBytes: pubKey.length,
-    privKeyBytes: privKey.length,
-  });
-
   // 1. Unseal all SEKs
   const sekMap = new Map<string, Uint8Array>();
   let sekFailCount = 0;
   for (const pk of encrypted.payloadKeys) {
     try {
-      const sek = await unsealSEK(pk.wrappedSek, pubKey, privKey);
-      sekMap.set(pk.id, sek);
-      console.debug('[AssetAPI] SEK unsealed', { id: pk.id, scope: pk.scope });
+      sekMap.set(pk.id, await unsealSEK(pk.wrappedSek, pubKey, privKey));
     } catch (err) {
       sekFailCount++;
-      console.warn('[AssetAPI] Failed to unseal SEK', { id: pk.id, scope: pk.scope, err: String(err) });
+      console.warn('[AssetAPI] Failed to unseal SEK', { scope: pk.scope, err: String(err) });
     }
   }
 
-  console.debug('[AssetAPI] SEK unseal results', {
-    success: sekMap.size,
-    failed: sekFailCount,
-    total: encrypted.payloadKeys.length,
-  });
-
   if (sekMap.size === 0 && encrypted.payloadKeys.length > 0) {
-    console.warn('[AssetAPI] All SEK unseal attempts failed — wrong key pair or corrupted data');
+    console.warn('[AssetAPI] All SEK unseal attempts failed — wrong key pair or corrupted data', {
+      keys: encrypted.payloadKeys.length,
+    });
     return { ...EMPTY_RESPONSE, userId: encrypted.userId };
   }
 
   // 2. Decrypt each snapshot, group by timestamp + base metric (sum sub-scopes)
   const groups = new Map<string, Partial<Record<AssetMetricBase, number>>>();
-  let snapDecryptOk = 0;
-  let snapNoKey = 0;
   let snapDecryptFail = 0;
-  let snapUnknownMetric = 0;
 
   for (const snap of encrypted.snapshots) {
     const sek = sekMap.get(snap.payloadKeyId);
-    if (!sek) {
-      snapNoKey++;
-      continue;
-    }
+    if (!sek) continue;
 
     const base = extractBaseMetric(snap.metric);
-    if (!base) {
-      snapUnknownMetric++;
-      continue;
-    }
+    if (!base) continue;
 
-    let value: number;
     try {
       const json = await decryptPayloadCiphertext(sek, snap.payloadCiphertext);
-      const parsed = JSON.parse(json) as { value?: number };
-      value = parsed.value ?? 0;
-      snapDecryptOk++;
+      const value = (JSON.parse(json) as { value?: number }).value ?? 0;
+      const existing = groups.get(snap.recordedAt) ?? {};
+      existing[base] = (existing[base] ?? 0) + value;
+      groups.set(snap.recordedAt, existing);
     } catch (err) {
       snapDecryptFail++;
-      console.warn('[AssetAPI] Failed to decrypt snapshot', { id: snap.id, metric: snap.metric, err: String(err) });
-      continue;
+      console.warn('[AssetAPI] Failed to decrypt snapshot', { metric: snap.metric, err: String(err) });
     }
-
-    const existing = groups.get(snap.recordedAt) ?? {};
-    existing[base] = (existing[base] ?? 0) + value;
-    groups.set(snap.recordedAt, existing);
   }
-
-  console.debug('[AssetAPI] Snapshot decrypt results', {
-    ok: snapDecryptOk,
-    noKey: snapNoKey,
-    failed: snapDecryptFail,
-    unknownMetric: snapUnknownMetric,
-    groups: groups.size,
-  });
 
   // Zeroize all SEKs after use
-  for (const sek of sekMap.values()) {
-    sek.fill(0);
-  }
+  for (const sek of sekMap.values()) sek.fill(0);
 
   if (groups.size === 0) {
-    console.warn('[AssetAPI] decryptHistory produced 0 groups — snapshot count:', encrypted.snapshots.length);
+    console.warn('[AssetAPI] Decryption produced 0 data points', {
+      keys: encrypted.payloadKeys.length,
+      snapshots: encrypted.snapshots.length,
+      seksFailed: sekFailCount,
+      decryptFailed: snapDecryptFail,
+    });
     return { ...EMPTY_RESPONSE, userId: encrypted.userId };
   }
 
@@ -290,16 +257,7 @@ export const fetchAssetHistory = async (
     return EMPTY_RESPONSE;
   }
 
-  // Validate key format before attempting any decryption
-  const pubKeyB64 = session.x25519PublicKeyBase64;
-  console.debug('[AssetAPI] Session key info', {
-    pubKeyB64Length: pubKeyB64.length,
-    privKeyBytes: session.x25519PrivateKey.length,
-    pubKeyFirst8: pubKeyB64.slice(0, 8),
-  });
-
-  const pubKeyBytes = Uint8Array.from(atob(pubKeyB64), (c) => c.charCodeAt(0));
-  console.debug('[AssetAPI] Decoded pub key', { bytes: pubKeyBytes.length });
+  const pubKeyBytes = Uint8Array.from(atob(session.x25519PublicKeyBase64), (c) => c.charCodeAt(0));
 
   async function fetchAndCache(): Promise<EncryptedAssetHistoryResponse> {
     const raw = await requestJson<EncryptedAssetHistoryResponse>(

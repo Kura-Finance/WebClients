@@ -258,41 +258,27 @@ async function decryptPlaidSnapshot(
   pubKey: Uint8Array,
   privKey: Uint8Array,
 ): Promise<PlaidFinanceSnapshot> {
-  console.debug('[PlaidAPI] decryptPlaidSnapshot start', {
-    payloadKeys: encrypted.payloadKeys.length,
-    accounts: encrypted.accounts.length,
-    transactions: encrypted.transactions.length,
-    investmentAccounts: encrypted.investmentAccounts.length,
-    investments: encrypted.investments.length,
-  });
-
   // 1. Unseal all SEKs
   const sekMap = new Map<string, Uint8Array>();
   let sekFail = 0;
   for (const pk of encrypted.payloadKeys) {
     try {
-      const sek = await unsealSEK(pk.wrappedSek, pubKey, privKey);
-      sekMap.set(pk.id, sek);
-      console.debug('[PlaidAPI] SEK unsealed', { id: pk.id, scope: pk.scope });
+      sekMap.set(pk.id, await unsealSEK(pk.wrappedSek, pubKey, privKey));
     } catch (err) {
       sekFail++;
-      console.warn('[PlaidAPI] Failed to unseal SEK', { id: pk.id, scope: pk.scope, err: String(err) });
+      console.warn('[PlaidAPI] Failed to unseal SEK', { scope: pk.scope, err: String(err) });
     }
   }
-  console.debug('[PlaidAPI] SEK unseal results', {
-    success: sekMap.size,
-    failed: sekFail,
-    total: encrypted.payloadKeys.length,
-  });
+
+  if (sekMap.size === 0 && encrypted.payloadKeys.length > 0) {
+    console.warn('[PlaidAPI] All SEK unseal attempts failed — wrong key pair or corrupted data');
+  }
 
   // 2. Decrypt accounts
   const accounts: PlaidAccountPayload[] = [];
   for (const row of encrypted.accounts) {
     const sek = sekMap.get(row.payloadKeyId);
-    if (!sek) {
-      console.warn('[PlaidAPI] No SEK for account', { accountId: row.accountId, payloadKeyId: row.payloadKeyId });
-      continue;
-    }
+    if (!sek) continue;
     try {
       const json = await decryptPayloadCiphertext(sek, row.payloadCiphertext);
       const s = JSON.parse(json) as AccountSensitive;
@@ -383,11 +369,12 @@ async function decryptPlaidSnapshot(
   // Zeroize all SEKs after use
   for (const sek of sekMap.values()) sek.fill(0);
 
-  console.debug('[PlaidAPI] Plaid snapshot decrypted', {
+  console.debug('[PlaidAPI] Snapshot decrypted', {
     accounts: accounts.length,
     transactions: transactions.length,
     investmentAccounts: investmentAccounts.length,
     investments: investments.length,
+    seksFailed: sekFail,
   });
 
   return {

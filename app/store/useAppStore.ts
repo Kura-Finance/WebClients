@@ -308,7 +308,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       try {
         const response = await fetchCurrentUserProfile();
 
-        console.info('[AppStore] Profile fetched successfully', { sessionRestored });
+        console.info('[AppStore] Profile fetched successfully');
         set({
           authToken: 'web-client',
           authStatus: 'authenticated',
@@ -328,18 +328,13 @@ export const useAppStore = create<AppState>((set, get) => ({
         });
 
         if (sessionRestored) {
-          // Session restored → decrypt from local cache immediately, no API call needed
-          console.debug('[AppStore] Session restored from sessionStorage — loading from encrypted cache');
           try {
             const { hydratePlaidFinanceData, hydrateAssetHistory } = useFinanceStore.getState();
             await hydratePlaidFinanceData();
             await hydrateAssetHistory(30);
           } catch (cacheError) {
-            console.warn('[AppStore] Failed to load from encrypted cache after session restore', cacheError);
+            console.warn('[AppStore] Failed to load financial data after session restore', cacheError);
           }
-        } else {
-          // No session in sessionStorage — user must log in again to decrypt
-          console.debug('[AppStore] No session in sessionStorage — re-login required to decrypt financial data');
         }
       } catch {
         console.info('[AppStore] No valid session found');
