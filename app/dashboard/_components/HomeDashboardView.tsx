@@ -18,6 +18,7 @@ import { HOME_STABLECOINS } from "@/lib/baseChain";
 import { cryptoLogoUrl } from "@/lib/assetLogos";
 import { isPrivyConfigured } from "@/config/env";
 import PrivyEoaSync from "@/components/wallet/PrivyEoaSync";
+import HomeStableSwapPanel from "@/components/wallet/HomeStableSwapPanel";
 import WalletHistorySection from "@/components/wallet/WalletHistorySection";
 import AssetIcon from "@/components/ui/AssetIcon";
 import { Button } from "@/components/ui/button";
@@ -71,15 +72,14 @@ export default function HomeDashboardView() {
   const { activities, loading: activityLoading, error: activityError, refresh: refreshActivity } =
     useWalletActivity(wallet.scaAddress);
 
-  const cashRows = useMemo(() => {
-    const rows = HOME_STABLECOINS.map((token) => ({
-      token,
-      amount: wallet.stableBalances[token.symbol] ?? 0,
-    }));
-    const withBalance = rows.filter((r) => r.amount > 0);
-    if (withBalance.length > 0) return withBalance;
-    return rows.filter((r) => r.token.symbol === "USDC");
-  }, [wallet.stableBalances]);
+  const cashRows = useMemo(
+    () =>
+      HOME_STABLECOINS.map((token) => ({
+        token,
+        amount: wallet.stableBalances[token.symbol] ?? 0,
+      })),
+    [wallet.stableBalances],
+  );
 
   const refreshing = wallet.loading || summary.loading || activityLoading;
 
@@ -98,7 +98,7 @@ export default function HomeDashboardView() {
       <PageHeader
         eyebrow="Home"
         title={`Welcome, ${firstName}`}
-        description="Cash, investments, and recent activity."
+        description="Cash, stablecoin swaps, and recent activity."
         actions={
           <>
             <Button asChild size="sm" className="rounded-full">
@@ -185,12 +185,12 @@ export default function HomeDashboardView() {
         </div>
       </section>
 
-      {/* Cash + History */}
-      <section className="grid gap-4 lg:grid-cols-2">
+      {/* Cash + Swap */}
+      <section className="mb-4 grid gap-4 lg:grid-cols-2 lg:items-start">
         <Panel padding="md">
           <PanelHeader
             title="Cash"
-            description="Stablecoins on Base"
+            description="USDC · DAI · EURC · XSGD · AUDD · MXNe · BRZ"
             action={
               <Link
                 href="/dashboard/add-money"
@@ -203,8 +203,8 @@ export default function HomeDashboardView() {
 
           {wallet.loading || wallet.stablesLoading ? (
             <div className="space-y-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-12 animate-pulse rounded-xl bg-[var(--kura-bg-lighter)]" />
+              {HOME_STABLECOINS.map((token) => (
+                <div key={token.symbol} className="h-12 animate-pulse rounded-xl bg-[var(--kura-bg-lighter)]" />
               ))}
             </div>
           ) : wallet.provisioning ? (
@@ -241,15 +241,25 @@ export default function HomeDashboardView() {
           )}
         </Panel>
 
-        <div className="min-w-0 [&_section]:mt-0">
-          <WalletHistorySection
-            activities={activities}
-            loading={activityLoading}
-            error={activityError}
-            hidden={isBalanceHidden}
-            hasWallet={!!wallet.scaAddress}
-          />
-        </div>
+        <HomeStableSwapPanel
+          scaAddress={wallet.scaAddress}
+          balances={wallet.stableBalances}
+          balancesLoading={wallet.loading || wallet.stablesLoading}
+          onSwapped={() => {
+            void wallet.refresh();
+            void refreshActivity();
+          }}
+        />
+      </section>
+
+      <section className="min-w-0 [&_section]:mt-0">
+        <WalletHistorySection
+          activities={activities}
+          loading={activityLoading}
+          error={activityError}
+          hidden={isBalanceHidden}
+          hasWallet={!!wallet.scaAddress}
+        />
       </section>
     </DashboardPage>
   );

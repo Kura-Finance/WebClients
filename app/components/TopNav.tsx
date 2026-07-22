@@ -3,14 +3,12 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAccount, useChainId } from 'wagmi';
 import { Button } from '@/components/ui/button';
 import UserSettingsDrawer from './UserSettingsDrawer';
 import { useAppStore } from '@/store/useAppStore';
 import { type Investment, useFinanceStore } from '@/store/useFinanceStore';
-import { useNotificationStore } from '@/store/useNotificationStore';
 import { fetchDeBankProtocolPositions, fetchDeBankTokenPositions } from '@/lib/debankApi';
 
 const SYNC_VISIBLE_ROUTES = ['/dashboard/accounts', '/dashboard/crypto', '/dashboard/defi-protocol'] as const;
@@ -41,7 +39,6 @@ export default function TopNav() {
   const syncConnectedWalletAssets = useFinanceStore((state) => state.syncConnectedWalletAssets);
   const hydrateAssetHistory = useFinanceStore((state) => state.hydrateAssetHistory);
   const plaidLastSyncedAt = useFinanceStore((state) => state.plaidLastSyncedAt);
-  const unreadCount = useNotificationStore((state) => state.notifications.filter((n) => !n.read).length);
   const displayName = userProfile.displayName.trim();
   const avatarInitial = displayName ? displayName.slice(0, 1).toUpperCase() : '?';
   const shouldShowSync = useMemo(
@@ -158,25 +155,6 @@ export default function TopNav() {
           ) : null}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            asChild
-            variant="ghost"
-            size="icon"
-            aria-label="Notifications"
-            className="relative w-9 h-9 rounded-full text-[var(--kura-text-secondary)] hover:text-[var(--kura-text)] hover:bg-[var(--kura-bg-light)]"
-          >
-            <Link href="/dashboard/notifications">
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 01-3.46 0" />
-              </svg>
-              {unreadCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--kura-error)] px-1 text-[9px] font-bold text-white">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Link>
-          </Button>
           <Button
             type="button"
             variant="ghost"

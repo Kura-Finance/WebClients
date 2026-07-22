@@ -139,9 +139,6 @@ export default function UserSettingsDrawer({ isOpen, onClose, anchorRef }: UserS
                   <Button variant="ghost" className="justify-start" onClick={() => handleMenuClick(() => router.push('/settings/profile'))}>
                     Profile
                   </Button>
-                  <Button variant="ghost" className="justify-start" onClick={() => handleMenuClick(() => router.push('/dashboard'))}>
-                    Notifications
-                  </Button>
                   <Button variant="ghost" className="justify-start" onClick={() => handleMenuClick(() => router.push('/settings/security'))}>
                     Security
                   </Button>

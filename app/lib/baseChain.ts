@@ -36,16 +36,16 @@ export const HOME_STABLECOINS: readonly StablecoinToken[] = [
     decimals: 6,
   },
   {
-    symbol: "EURC",
-    name: "Euro Coin",
-    address: "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
-    decimals: 6,
-  },
-  {
     symbol: "DAI",
     name: "Dai Stablecoin",
     address: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
     decimals: 18,
+  },
+  {
+    symbol: "EURC",
+    name: "Euro Coin",
+    address: "0x60a3E35Cc302bFA44Cb288Bc5a4F316Fdb1adb42",
+    decimals: 6,
   },
   {
     symbol: "XSGD",
@@ -60,16 +60,16 @@ export const HOME_STABLECOINS: readonly StablecoinToken[] = [
     decimals: 6,
   },
   {
-    symbol: "BRZ",
-    name: "Brazilian Digital Token",
-    address: "0xE9185Ee218cae427aF7B9764A011bb89FeA761B4",
-    decimals: 18,
-  },
-  {
     symbol: "MXNe",
     name: "Real MXN",
     address: "0x269cae7dc59803e5c596c95756faeebb6030e0af",
     decimals: 6,
+  },
+  {
+    symbol: "BRZ",
+    name: "Brazilian Digital Token",
+    address: "0xE9185Ee218cae427aF7B9764A011bb89FeA761B4",
+    decimals: 18,
   },
 ] as const;
 
