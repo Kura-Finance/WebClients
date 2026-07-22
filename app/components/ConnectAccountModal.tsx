@@ -317,13 +317,22 @@ function ConnectAccountModalContent({
                         : 'border-[var(--kura-border)] bg-[var(--kura-bg-light)] hover:border-[var(--kura-primary)]/50 hover:bg-[var(--kura-bg-lighter)]'
                     }`}
                   >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--kura-surface)]">
+                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                      <Image
+                        src="/icon_background.webp"
+                        alt=""
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                        aria-hidden
+                        unoptimized
+                      />
                       <Image
                         src="https://www.google.com/s2/favicons?domain=plaid.com&sz=128"
                         alt="Plaid"
                         width={28}
                         height={28}
-                        className="object-contain opacity-80"
+                        className="relative z-[1] object-contain opacity-90"
                       />
                     </div>
                     <div className="flex-1">

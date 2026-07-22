@@ -1,5 +1,5 @@
 import React from 'react';
-import Image from 'next/image';
+import AssetIcon from '@/components/ui/AssetIcon';
 import { AccountListItem } from './types';
 
 interface AccountSectionProps {
@@ -33,13 +33,7 @@ export default function AccountSection({
             className="flex items-center justify-between rounded-xl border border-[var(--kura-border)] bg-[var(--kura-bg-light)] p-4"
           >
             <div className="flex min-w-0 items-center gap-3">
-              <Image
-                src={acc.logo}
-                alt={acc.name}
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full bg-[var(--kura-surface)] object-contain p-1"
-              />
+              <AssetIcon src={acc.logo} label={acc.name} color="#6366F1" size={32} />
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-[var(--kura-text)]">{acc.name}</div>
                 <div className="text-xs text-[var(--kura-text-secondary)]">{acc.subtitle}</div>

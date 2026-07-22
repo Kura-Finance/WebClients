@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ICON_BACKGROUND_SRC } from "@/components/ui/AssetIcon";
 import {
   fetchDeBankProtocolPositions,
   fetchLinkedDeBankAddresses,
@@ -51,15 +53,24 @@ function resolveProtocolIcon(name: string): string {
 function ProtocolAvatar({ logo, name }: { logo?: string; name: string }) {
   const firstChar = name.slice(0, 1).toUpperCase();
   return (
-    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--kura-border)] bg-[var(--kura-bg-lighter)]">
+    <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--kura-border)]">
+      <Image
+        src={ICON_BACKGROUND_SRC}
+        alt=""
+        fill
+        sizes="36px"
+        className="object-cover"
+        aria-hidden
+        unoptimized
+      />
       {logo ? (
         <div
-          className="h-full w-full bg-cover bg-center"
+          className="relative z-[1] h-full w-full bg-cover bg-center"
           style={{ backgroundImage: `url("${logo}")` }}
           aria-hidden="true"
         />
       ) : (
-        <span className="text-xs font-semibold text-[var(--kura-text-secondary)]">
+        <span className="relative z-[1] text-xs font-semibold text-white">
           {firstChar || "?"}
         </span>
       )}

@@ -2,9 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import { MoreHorizontal, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import AssetIcon from "@/components/ui/AssetIcon";
 import { useFinanceStore } from "@/store/useFinanceStore";
 import { useAppStore } from "@/store/useAppStore";
 import { PlaidApiError, disconnectPlaidItem } from "@/lib/plaidApi";
@@ -246,21 +246,12 @@ export default function AccountsPage() {
                 className="flex items-center justify-between gap-3 px-5 py-3.5"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
-                    {row.logo ? (
-                      <Image
-                        src={row.logo}
-                        alt={row.displayName}
-                        width={36}
-                        height={36}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs font-semibold text-[var(--kura-text)]">
-                        {row.displayName.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
+                  <AssetIcon
+                    src={row.logo}
+                    label={row.displayName}
+                    color="#6366F1"
+                    size={36}
+                  />
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-[var(--kura-text)]">
                       {row.displayName}

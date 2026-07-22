@@ -2,7 +2,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
 import {
   Cell,
   Pie,
@@ -17,6 +16,7 @@ import {
 import { Plus, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import AssetIcon from "@/components/ui/AssetIcon";
 import { useFinanceStore, type Investment } from "@/store/useFinanceStore";
 import { useAppStore } from "@/store/useAppStore";
 import {
@@ -417,21 +417,12 @@ export default function InvestmentPage() {
                 <li key={holding.id} className="px-5 py-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white">
-                        {holding.logo ? (
-                          <Image
-                            src={holding.logo}
-                            alt={holding.symbol}
-                            width={36}
-                            height={36}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xs font-semibold">
-                            {(holding.symbol ?? "??").slice(0, 2)}
-                          </span>
-                        )}
-                      </div>
+                      <AssetIcon
+                        src={holding.logo}
+                        label={holding.symbol}
+                        color="#6366F1"
+                        size={36}
+                      />
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="truncate text-sm font-semibold text-[var(--kura-text)]">

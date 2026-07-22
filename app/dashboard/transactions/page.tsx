@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ICON_BACKGROUND_SRC } from '@/components/ui/AssetIcon';
 import { useFinanceStore } from '@/store/useFinanceStore';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -356,9 +357,18 @@ export default function TransactionsPage() {
               >
                 <div className="text-[var(--kura-text-secondary)]">{formatDate(transaction.date)}</div>
                 <div className="min-w-0 flex items-center gap-2">
-                  <div className="relative w-8 h-8 rounded-full bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <div className="relative flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full">
+                    <Image
+                      src={ICON_BACKGROUND_SRC}
+                      alt=""
+                      fill
+                      sizes="32px"
+                      className="object-cover"
+                      aria-hidden
+                      unoptimized
+                    />
                     <span
-                      className={`text-xs font-semibold text-[#111827] ${hasValidMerchantLogo ? 'hidden' : ''}`}
+                      className={`relative z-[1] text-xs font-semibold text-white ${hasValidMerchantLogo ? 'hidden' : ''}`}
                     >
                       {displayMerchant.charAt(0).toUpperCase()}
                     </span>
@@ -370,7 +380,7 @@ export default function TransactionsPage() {
                         alt={displayMerchant}
                         fill
                         sizes="32px"
-                        className="absolute inset-0 rounded-full object-cover bg-white"
+                        className="absolute inset-0 z-[1] rounded-full object-cover"
                         referrerPolicy="no-referrer"
                         onError={(event) => {
                           const fallbackInitial = event.currentTarget.previousElementSibling;
