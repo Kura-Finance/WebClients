@@ -127,4 +127,4 @@ export function getTxSubtitle(tx: WalletActivity): { primary: string; secondary?
 }
 
 /** Home preview row count — matches mobile HOME_PREVIEW_LIMIT. */
-export const HOME_TX_PREVIEW_LIMIT = 3;
+export const HOME_TX_PREVIEW_LIMIT = 5;

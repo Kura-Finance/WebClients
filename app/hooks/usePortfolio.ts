@@ -13,6 +13,11 @@ import {
   type PortfolioTokenMeta,
 } from "@/lib/portfolioTokens";
 import { hasBackendUrl } from "@/config/env";
+import { isHexAddress } from "@/lib/formatDisplay";
+import {
+  sumBorrowDebtsUsd,
+  sumEarnPositionsUsd,
+} from "@/lib/morphoPositions";
 
 export interface PortfolioHolding {
   token: PortfolioTokenMeta;
@@ -51,6 +56,8 @@ export function usePortfolio() {
   const [scaAddress, setScaAddress] = useState<string | null>(null);
   const [balances, setBalances] = useState<Record<string, number>>({});
   const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
+  const [earnUsd, setEarnUsd] = useState(0);
+  const [loanUsd, setLoanUsd] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +111,23 @@ export function usePortfolio() {
       });
 
       setHoldings(next);
+
+      if (isHexAddress(sca)) {
+        try {
+          const [earn, loan] = await Promise.all([
+            sumEarnPositionsUsd(sca),
+            sumBorrowDebtsUsd(sca),
+          ]);
+          setEarnUsd(earn);
+          setLoanUsd(loan);
+        } catch {
+          setEarnUsd(0);
+          setLoanUsd(0);
+        }
+      } else {
+        setEarnUsd(0);
+        setLoanUsd(0);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load portfolio");
     } finally {
@@ -135,6 +159,14 @@ export function usePortfolio() {
     const crypto = holdings.filter((h) => h.group === "crypto");
     return { cash, crypto };
   }, [holdings]);
+
+  const investUsd = useMemo(
+    () => groups.crypto.reduce((s, h) => s + Math.max(0, h.value), 0),
+    [groups.crypto],
+  );
+
+  /** Invest KPI on Portfolio = crypto/tokenized stocks + Earn. */
+  const portfolioInvestUsd = investUsd + earnUsd;
 
   const allocation = useMemo((): AllocationSlice[] => {
     const cashValue = groups.cash.reduce((s, h) => s + h.value, 0);
@@ -174,6 +206,10 @@ export function usePortfolio() {
     pnl,
     groups,
     allocation,
+    investUsd,
+    portfolioInvestUsd,
+    earnUsd,
+    loanUsd,
     visibleByGroup,
     loading,
     refreshing,

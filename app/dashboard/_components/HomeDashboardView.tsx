@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Briefcase,
   HandCoins,
+  LineChart,
   RefreshCw,
   TrendingUp,
 } from "lucide-react";
@@ -130,38 +131,60 @@ export default function HomeDashboardView() {
 
       {wallet.error ? <PageAlert variant="warning">{wallet.error}</PageAlert> : null}
 
-      {/* Net worth + breakdown */}
-      <section className="mb-6 grid gap-3 lg:grid-cols-[1.2fr_1fr]">
-        <Link
-          href="/dashboard/crypto"
-          className="rounded-2xl border border-[var(--kura-border)] bg-[var(--kura-surface)] p-6 transition-colors hover:bg-[var(--kura-bg-light)]/30"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--kura-text-secondary)]">
-            Net Worth
-          </p>
-          {summary.loading ? (
-            <div className="mt-3 h-10 w-48 animate-pulse rounded-lg bg-[var(--kura-bg-lighter)]" />
-          ) : (
-            <p className="mt-2 text-4xl font-semibold tracking-tight tabular-nums text-[var(--kura-text)]">
-              {isBalanceHidden ? "••••••" : formatUsd(summary.netWorth)}
+      {/* Net worth + TrackFi, then Invest / Loan / Earn */}
+      <section className="mb-6 space-y-3">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            href="/dashboard/crypto"
+            className="rounded-2xl border border-[var(--kura-border)] bg-[var(--kura-surface)] p-6 transition-colors hover:bg-[var(--kura-bg-light)]/30"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--kura-text-secondary)]">
+              Net Worth
             </p>
-          )}
-          <p className="mt-2 text-xs text-[var(--kura-text-secondary)]">
-            Cash · Investments · Earn − Loans
-            {wallet.scaAddress ? (
-              <>
-                {" · "}
-                <span className="font-mono">{truncate(wallet.scaAddress)}</span>
-              </>
-            ) : null}
-          </p>
-        </Link>
+            {summary.loading ? (
+              <div className="mt-3 h-10 w-40 animate-pulse rounded-lg bg-[var(--kura-bg-lighter)]" />
+            ) : (
+              <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-[var(--kura-text)] sm:text-4xl">
+                {isBalanceHidden ? "••••••" : formatUsd(summary.netWorth)}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-[var(--kura-text-secondary)]">
+              Cash · Invest · TrackFi · Earn − Loans
+              {wallet.scaAddress ? (
+                <>
+                  {" · "}
+                  <span className="font-mono">{truncate(wallet.scaAddress)}</span>
+                </>
+              ) : null}
+            </p>
+          </Link>
+
+          <Link
+            href="/dashboard/investment"
+            className="rounded-2xl border border-[var(--kura-border)] bg-[var(--kura-surface)] p-6 transition-colors hover:bg-[var(--kura-bg-light)]/30"
+          >
+            <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-[var(--kura-text-secondary)]">
+              <LineChart className="h-3.5 w-3.5" />
+              TrackFi
+            </p>
+            {summary.loading ? (
+              <div className="mt-3 h-10 w-40 animate-pulse rounded-lg bg-[var(--kura-bg-lighter)]" />
+            ) : (
+              <p className="mt-2 text-3xl font-semibold tracking-tight tabular-nums text-[var(--kura-text)] sm:text-4xl">
+                {isBalanceHidden ? "••••••" : formatUsd(summary.trackFiUsd)}
+              </p>
+            )}
+            <p className="mt-2 text-xs text-[var(--kura-text-secondary)]">
+              Banks · Brokers · CEX
+            </p>
+          </Link>
+        </div>
 
         <div className="grid grid-cols-3 gap-3">
           <MetricCard
-            href="/dashboard/investment"
-            label="Investment"
-            value={summary.investmentUsd}
+            href="/dashboard/crypto"
+            label="Invest"
+            value={summary.investUsd}
             loading={summary.loading}
             hidden={isBalanceHidden}
             icon={<Briefcase className="h-3.5 w-3.5" />}
@@ -186,8 +209,8 @@ export default function HomeDashboardView() {
       </section>
 
       {/* Cash + Swap */}
-      <section className="mb-4 grid gap-4 lg:grid-cols-2 lg:items-start">
-        <Panel padding="md">
+      <section className="mb-4 grid gap-4 lg:grid-cols-2 lg:items-stretch">
+        <Panel padding="md" className="flex h-full flex-col">
           <PanelHeader
             title="Cash"
             description="USDC · DAI · EURC · XSGD · AUDD · MXNe · BRZ"
@@ -202,22 +225,22 @@ export default function HomeDashboardView() {
           />
 
           {wallet.loading || wallet.stablesLoading ? (
-            <div className="space-y-3">
+            <div className="flex flex-1 flex-col justify-center space-y-3">
               {HOME_STABLECOINS.map((token) => (
                 <div key={token.symbol} className="h-12 animate-pulse rounded-xl bg-[var(--kura-bg-lighter)]" />
               ))}
             </div>
           ) : wallet.provisioning ? (
-            <p className="py-6 text-center text-sm text-[var(--kura-text-secondary)]">
+            <p className="flex flex-1 items-center justify-center py-6 text-center text-sm text-[var(--kura-text-secondary)]">
               Setting up your Smart Wallet…
             </p>
           ) : !wallet.scaAddress ? (
-            <p className="py-6 text-center text-sm text-[var(--kura-text-secondary)]">
+            <p className="flex flex-1 items-center justify-center py-6 text-center text-sm text-[var(--kura-text-secondary)]">
               Connect with Privy to create your Smart Wallet address. You can fund it before the first
               on-chain transaction.
             </p>
           ) : (
-            <ul className="divide-y divide-[var(--kura-border)]">
+            <ul className="flex flex-1 flex-col justify-center divide-y divide-[var(--kura-border)]">
               {cashRows.map(({ token, amount }) => (
                 <li key={token.symbol} className="flex items-center gap-3 py-3">
                   <AssetIcon
@@ -252,15 +275,14 @@ export default function HomeDashboardView() {
         />
       </section>
 
-      <section className="min-w-0 [&_section]:mt-0">
-        <WalletHistorySection
-          activities={activities}
-          loading={activityLoading}
-          error={activityError}
-          hidden={isBalanceHidden}
-          hasWallet={!!wallet.scaAddress}
-        />
-      </section>
+      <WalletHistorySection
+        activities={activities}
+        loading={activityLoading}
+        error={activityError}
+        hidden={isBalanceHidden}
+        hasWallet={!!wallet.scaAddress}
+        previewLimit={5}
+      />
     </DashboardPage>
   );
 }

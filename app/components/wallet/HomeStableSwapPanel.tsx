@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowDownUp, Loader2 } from "lucide-react";
+import { ArrowDownUp, ChevronDown, Loader2 } from "lucide-react";
 import { useWallets } from "@privy-io/react-auth";
 import { HOME_STABLECOINS, type StablecoinBalances, type StablecoinToken } from "@/lib/baseChain";
 import {
@@ -16,6 +16,7 @@ import { cryptoLogoUrl } from "@/lib/assetLogos";
 import AssetIcon from "@/components/ui/AssetIcon";
 import { Button } from "@/components/ui/button";
 import { Panel, PanelHeader } from "@/components/dashboard/PageShell";
+import StablecoinPickerModal from "@/components/wallet/StablecoinPickerModal";
 
 const STABLE_COLORS: Record<string, string> = {
   USDC: "#2775CA",
@@ -46,7 +47,7 @@ interface HomeStableSwapPanelProps {
 export default function HomeStableSwapPanel(props: HomeStableSwapPanelProps) {
   if (!isPrivyConfigured) {
     return (
-      <Panel padding="md">
+      <Panel padding="md" className="flex h-full flex-col">
         <PanelHeader title="Swap" description="Stablecoins on Base · Li.Fi" />
         <p className="py-6 text-center text-sm text-[var(--kura-text-secondary)]">
           Privy is not configured — stablecoin swaps are unavailable.
@@ -181,10 +182,10 @@ function HomeStableSwapPanelInner({
   };
 
   return (
-    <Panel padding="md">
+    <Panel padding="md" className="flex h-full flex-col">
       <PanelHeader title="Swap" description="Stablecoins on Base · Li.Fi" />
 
-      <div className="space-y-3">
+      <div className="flex flex-1 flex-col justify-center space-y-3">
         <SwapLeg
           label="You pay"
           symbol={fromSymbol}
@@ -192,6 +193,8 @@ function HomeStableSwapPanelInner({
           editable
           available={available}
           loading={balancesLoading}
+          balances={balances}
+          excludeSymbol={toSymbol}
           onAmountChange={setAmount}
           onSymbolChange={(symbol) => {
             setFromSymbol(symbol);
@@ -223,6 +226,8 @@ function HomeStableSwapPanelInner({
           editable={false}
           available={balances[toToken.symbol] ?? 0}
           loading={balancesLoading}
+          balances={balances}
+          excludeSymbol={fromSymbol}
           onSymbolChange={(symbol) => {
             setToSymbol(symbol);
             if (symbol === fromSymbol) {
@@ -269,7 +274,7 @@ function HomeStableSwapPanelInner({
           type="button"
           disabled={!canSwap}
           onClick={() => void handleSwap()}
-          className="h-11 w-full rounded-xl text-sm font-bold"
+          className="mt-auto h-11 w-full rounded-xl text-sm font-bold"
         >
           {isSending ? (
             <>
@@ -292,6 +297,8 @@ function SwapLeg({
   editable,
   available,
   loading,
+  balances,
+  excludeSymbol,
   onAmountChange,
   onSymbolChange,
   onMax,
@@ -302,10 +309,14 @@ function SwapLeg({
   editable: boolean;
   available: number;
   loading?: boolean;
+  balances?: StablecoinBalances;
+  excludeSymbol?: string;
   onAmountChange?: (value: string) => void;
   onSymbolChange: (symbol: string) => void;
   onMax?: () => void;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   return (
     <div className="rounded-xl border border-[var(--kura-border)] p-3">
       <div className="mb-1.5 flex items-center justify-between text-[11px] text-[var(--kura-text-secondary)]">
@@ -343,26 +354,21 @@ function SwapLeg({
             {amount || "—"}
           </p>
         )}
-        <label className="relative flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--kura-border)] bg-[var(--kura-bg-light)] py-1 pl-1.5 pr-2">
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--kura-border)] bg-[var(--kura-bg-light)] py-1 pl-1.5 pr-2 transition-colors hover:bg-[var(--kura-surface)]"
+          aria-label={`${label} token`}
+        >
           <AssetIcon
             src={cryptoLogoUrl(symbol)}
             label={symbol}
             color={STABLE_COLORS[symbol] ?? "#64748B"}
             size={22}
           />
-          <select
-            value={symbol}
-            onChange={(e) => onSymbolChange(e.target.value)}
-            className="cursor-pointer appearance-none bg-transparent pr-1 text-xs font-semibold text-[var(--kura-text)] outline-none"
-            aria-label={`${label} token`}
-          >
-            {HOME_STABLECOINS.map((token) => (
-              <option key={token.symbol} value={token.symbol}>
-                {token.symbol}
-              </option>
-            ))}
-          </select>
-        </label>
+          <span className="text-xs font-semibold text-[var(--kura-text)]">{symbol}</span>
+          <ChevronDown className="h-3.5 w-3.5 text-[var(--kura-text-secondary)]" />
+        </button>
       </div>
       {editable ? (
         <p className="mt-1.5 text-[11px] text-[var(--kura-text-secondary)]">
@@ -373,6 +379,16 @@ function SwapLeg({
           {symbol}
         </p>
       ) : null}
+
+      <StablecoinPickerModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={editable ? "Pay with" : "Receive"}
+        selectedSymbol={symbol}
+        excludedSymbol={excludeSymbol}
+        balances={balances}
+        onSelect={(token) => onSymbolChange(token.symbol)}
+      />
     </div>
   );
 }

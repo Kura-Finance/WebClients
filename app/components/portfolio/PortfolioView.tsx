@@ -8,13 +8,13 @@ import {
   RefreshCw,
   TrendingUp,
   TrendingDown,
+  HandCoins,
   Wallet,
-  Coins,
+  Briefcase,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { useAppStore } from "@/store/useAppStore";
 import { usePortfolio, type PortfolioHolding } from "@/hooks/usePortfolio";
-import type { PortfolioDisplayGroup } from "@/lib/portfolioTokens";
 import { cryptoLogoUrl } from "@/lib/assetLogos";
 import { marketSlug } from "@/lib/tradingViewSymbols";
 import { Button } from "@/components/ui/button";
@@ -25,13 +25,13 @@ import {
   PageHeader,
 } from "@/components/dashboard/PageShell";
 
-type FilterTab = "all" | PortfolioDisplayGroup;
+type FilterTab = "all" | "invest" | "loan";
 type SortKey = "value" | "change" | "name";
 
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "cash", label: "Cash" },
-  { key: "crypto", label: "Crypto" },
+  { key: "invest", label: "Invest" },
+  { key: "loan", label: "Loan" },
 ];
 
 function formatUsd(value: number): string {
@@ -92,7 +92,7 @@ function HoldingRow({
           <p className="truncate text-xs text-[var(--kura-text-secondary)]">
             {item.token.name}
             <span className="ml-1.5 rounded bg-[var(--kura-bg-lighter)] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-              {item.group === "cash" ? "Stable" : "Base"}
+              {item.group === "cash" ? "Stable" : "Invest"}
             </span>
           </p>
         </div>
@@ -176,7 +176,8 @@ export default function PortfolioView() {
     scaAddress,
     totalValue,
     pnl,
-    allocation,
+    portfolioInvestUsd,
+    loanUsd,
     visibleByGroup,
     loading,
     refreshing,
@@ -185,15 +186,15 @@ export default function PortfolioView() {
   } = usePortfolio();
 
   const cashItems = visibleByGroup("cash", hideSmall);
-  const cryptoItems = visibleByGroup("crypto", hideSmall);
+  const investItems = visibleByGroup("crypto", hideSmall);
   const allItems = useMemo(
-    () => [...cashItems, ...cryptoItems],
-    [cashItems, cryptoItems],
+    () => [...cashItems, ...investItems],
+    [cashItems, investItems],
   );
 
   const filtered = useMemo(() => {
-    const base =
-      filter === "all" ? allItems : filter === "cash" ? cashItems : cryptoItems;
+    if (filter === "loan") return [];
+    const base = filter === "all" ? allItems : investItems;
     const list = [...base];
     switch (sort) {
       case "name":
@@ -208,15 +209,22 @@ export default function PortfolioView() {
         break;
     }
     return list;
-  }, [allItems, cashItems, cryptoItems, filter, sort]);
+  }, [allItems, investItems, filter, sort]);
 
-  const cashValue = allocation.find((s) => s.key === "cash")?.value ?? 0;
-  const cryptoValue = allocation.find((s) => s.key === "crypto")?.value ?? 0;
+  const investValue = portfolioInvestUsd;
+  const loanValue = loanUsd;
+  const allocationTotal = investValue + loanValue;
   const up = pnl.todayChangeUsd >= 0;
-  const pieData = allocation
-    .filter((s) => s.value > 0)
-    .map((s) => ({ name: s.label, value: s.value, color: s.color, pct: s.pct }));
+  const pieData = [
+    investValue > 0
+      ? { name: "Invest", value: investValue, color: "#8B5CF6", pct: allocationTotal > 0 ? (investValue / allocationTotal) * 100 : 0 }
+      : null,
+    loanValue > 0
+      ? { name: "Loan", value: loanValue, color: "#F59E0B", pct: allocationTotal > 0 ? (loanValue / allocationTotal) * 100 : 0 }
+      : null,
+  ].filter((s): s is { name: string; value: number; color: string; pct: number } => s != null);
   const short = shortAddress(scaAddress);
+  const kpiLoading = loading;
 
   return (
     <DashboardPage>
@@ -294,18 +302,18 @@ export default function PortfolioView() {
           }
         />
         <KpiCard
-          label="Cash"
-          loading={loading}
-          value={isBalanceHidden ? "••••••" : formatUsd(cashValue)}
-          hint={`${allocation.find((s) => s.key === "cash")?.pct.toFixed(0) ?? 0}% of portfolio`}
-          icon={<Wallet className="h-4 w-4" />}
+          label="Invest"
+          loading={kpiLoading}
+          value={isBalanceHidden ? "••••••" : formatUsd(investValue)}
+          hint="Crypto · Stocks · Earn"
+          icon={<Briefcase className="h-4 w-4" />}
         />
         <KpiCard
-          label="Crypto"
-          loading={loading}
-          value={isBalanceHidden ? "••••••" : formatUsd(cryptoValue)}
-          hint={`${allocation.find((s) => s.key === "crypto")?.pct.toFixed(0) ?? 0}% of portfolio`}
-          icon={<Coins className="h-4 w-4" />}
+          label="Loan"
+          loading={kpiLoading}
+          value={isBalanceHidden ? "••••••" : formatUsd(loanValue)}
+          hint="Morpho borrow debt"
+          icon={<HandCoins className="h-4 w-4" />}
         />
       </div>
 
@@ -330,9 +338,11 @@ export default function PortfolioView() {
                   <span className="ml-1 opacity-60">
                     {tab.key === "all"
                       ? allItems.length
-                      : tab.key === "cash"
-                        ? cashItems.length
-                        : cryptoItems.length}
+                      : tab.key === "invest"
+                        ? investItems.length
+                        : loanValue > 0
+                          ? 1
+                          : 0}
                   </span>
                 </Chip>
               ))}
@@ -391,6 +401,35 @@ export default function PortfolioView() {
                   </div>
                 ))}
               </div>
+            ) : filter === "loan" ? (
+              loanValue > 0 ? (
+                <Link
+                  href="/dashboard/borrow"
+                  className="flex items-center justify-between gap-3 px-4 py-5 transition-colors hover:bg-[var(--kura-bg-light)]/40"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
+                      <HandCoins className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--kura-text)]">Open loans</p>
+                      <p className="text-xs text-[var(--kura-text-secondary)]">
+                        Morpho borrow on Base
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-semibold tabular-nums text-[var(--kura-text)]">
+                    {isBalanceHidden ? "••••••" : formatUsd(loanValue)}
+                  </p>
+                </Link>
+              ) : (
+                <p className="px-6 py-16 text-center text-sm text-[var(--kura-text-secondary)]">
+                  No open loans.{" "}
+                  <Link href="/dashboard/borrow" className="font-semibold text-[var(--kura-primary)] hover:underline">
+                    Browse markets
+                  </Link>
+                </p>
+              )
             ) : filtered.length === 0 ? (
               <p className="px-6 py-16 text-center text-sm text-[var(--kura-text-secondary)]">
                 {allItems.length === 0
@@ -417,7 +456,7 @@ export default function PortfolioView() {
           <div className="rounded-2xl border border-[var(--kura-border)] bg-[var(--kura-surface)] p-5">
             <p className="text-sm font-semibold text-[var(--kura-text)]">Allocation</p>
             <p className="mt-0.5 text-xs text-[var(--kura-text-secondary)]">
-              Cash vs crypto weight
+              Invest vs loan weight
             </p>
 
             {loading ? (
@@ -464,7 +503,9 @@ export default function PortfolioView() {
                       Total
                     </p>
                     <p className="text-sm font-semibold tabular-nums text-[var(--kura-text)]">
-                      {isBalanceHidden ? "••••" : formatUsd(totalValue)}
+                      {isBalanceHidden
+                        ? "••••"
+                        : formatUsd(allocationTotal > 0 ? allocationTotal : totalValue)}
                     </p>
                   </div>
                 </div>
@@ -472,15 +513,15 @@ export default function PortfolioView() {
             )}
 
             <div className="mt-4 space-y-3">
-              {allocation.map((slice) => (
-                <div key={slice.key} className="flex items-center justify-between gap-3">
+              {pieData.map((slice) => (
+                <div key={slice.name} className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: slice.color }}
                     />
                     <span className="text-sm font-medium text-[var(--kura-text)]">
-                      {slice.label}
+                      {slice.name}
                     </span>
                   </div>
                   <div className="text-right">
@@ -498,7 +539,7 @@ export default function PortfolioView() {
 
           <div className="rounded-2xl border border-[var(--kura-border)] bg-[var(--kura-surface)] p-4">
             <p className="text-xs leading-relaxed text-[var(--kura-text-secondary)]">
-              Prices via CoinGecko · Self-custody Safe on Base. Crypto rows open the
+              Prices via CoinGecko · Self-custody Safe on Base. Invest rows open the
               market chart.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
