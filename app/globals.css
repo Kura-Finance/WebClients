@@ -1,0 +1,139 @@
+@import "tailwindcss";
+
+/* Theme toggle uses html.dark class — not prefers-color-scheme alone */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+  --kura-bg: #f4f5f8;
+  --kura-bg-light: #eceef3;
+  --kura-bg-lighter: #e2e5ee;
+  --kura-surface: #ffffff;
+  --kura-surface-strong: #f0f2f7;
+  --kura-border: #d8dce6;
+  --kura-border-light: #e8ebf2;
+  --kura-text: #12131a;
+  --kura-text-secondary: #4a4e63;
+  --kura-primary: #8b5cf6;
+  --kura-primary-dark: #7c3aed;
+  --kura-primary-light: #7c3aed;
+  --kura-on-primary: #ffffff;
+  --kura-secondary: #5266eb;
+  --kura-success: #059669;
+  --kura-warning: #d97706;
+  --kura-error: #dc2626;
+  --kura-success-bg: rgb(16 185 129 / 0.12);
+  --kura-success-border: rgb(16 185 129 / 0.35);
+  --kura-success-fg: #047857;
+  --kura-warning-bg: rgb(245 158 11 / 0.12);
+  --kura-warning-border: rgb(245 158 11 / 0.35);
+  --kura-warning-fg: #b45309;
+  --kura-error-bg: rgb(239 68 68 / 0.1);
+  --kura-error-border: rgb(239 68 68 / 0.35);
+  --kura-error-fg: #b91c1c;
+}
+
+html.dark {
+  color-scheme: dark;
+  --kura-bg: #0b0b0f;
+  --kura-bg-light: #111118;
+  --kura-bg-lighter: #1a1a24;
+  --kura-surface: #1a1a24;
+  --kura-surface-strong: #232332;
+  --kura-border: rgba(255, 255, 255, 0.12);
+  --kura-border-light: rgba(255, 255, 255, 0.06);
+  --kura-text: #f4f4f5;
+  --kura-text-secondary: #a1a1aa;
+  --kura-primary: #8b5cf6;
+  --kura-primary-dark: #7c3aed;
+  --kura-primary-light: #c4b5fd;
+  --kura-on-primary: #ffffff;
+  --kura-secondary: #60a5fa;
+  --kura-success: #34d399;
+  --kura-warning: #fbbf24;
+  --kura-error: #f87171;
+  --kura-success-bg: rgb(52 211 153 / 0.12);
+  --kura-success-border: rgb(52 211 153 / 0.35);
+  --kura-success-fg: #6ee7b7;
+  --kura-warning-bg: rgb(251 191 36 / 0.12);
+  --kura-warning-border: rgb(251 191 36 / 0.35);
+  --kura-warning-fg: #fcd34d;
+  --kura-error-bg: rgb(248 113 113 / 0.12);
+  --kura-error-border: rgb(248 113 113 / 0.35);
+  --kura-error-fg: #fca5a5;
+}
+
+@theme inline {
+  --color-background: var(--kura-bg);
+  --color-foreground: var(--kura-text);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-newsreader);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body {
+  background: var(--kura-bg);
+  color: var(--kura-text);
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-newsreader), Newsreader, Georgia, serif;
+}
+
+/* Public marketing pages stay light (Mercury / kura-finance.com) */
+.marketing-site {
+  color-scheme: light;
+  --kura-bg: #f4f5f8;
+  --kura-bg-light: #eceef3;
+  --kura-bg-lighter: #e2e5ee;
+  --kura-surface: #ffffff;
+  --kura-surface-strong: #f0f2f7;
+  --kura-border: #d8dce6;
+  --kura-border-light: #e8ebf2;
+  --kura-text: #12131a;
+  --kura-text-secondary: #4a4e63;
+  --kura-primary: #8b5cf6;
+  --kura-primary-dark: #7c3aed;
+  --kura-primary-light: #7c3aed;
+  --kura-on-primary: #ffffff;
+  --kura-secondary: #5266eb;
+  --kura-success: #059669;
+  --kura-warning: #d97706;
+  --kura-error: #dc2626;
+  --kura-success-bg: rgb(16 185 129 / 0.12);
+  --kura-success-border: rgb(16 185 129 / 0.35);
+  --kura-success-fg: #047857;
+  --kura-warning-bg: rgb(245 158 11 / 0.12);
+  --kura-warning-border: rgb(245 158 11 / 0.35);
+  --kura-warning-fg: #b45309;
+  --kura-error-bg: rgb(239 68 68 / 0.1);
+  --kura-error-border: rgb(239 68 68 / 0.35);
+  --kura-error-fg: #b91c1c;
+  background: var(--kura-bg);
+  color: var(--kura-text);
+}
+
+/* Marketing site helpers */
+.marketing-container {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .marketing-container {
+    padding-inline: 2rem;
+  }
+}
+
+/* Hide scrollbars while preserving scroll behavior across browsers. */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

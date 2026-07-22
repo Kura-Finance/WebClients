@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.next/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Local HTTPS certs (npm run cert:gen)
+.certs/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+*/.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
