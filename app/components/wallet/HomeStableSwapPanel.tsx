@@ -357,7 +357,7 @@ function SwapLeg({
         <button
           type="button"
           onClick={() => setPickerOpen(true)}
-          className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--kura-border)] bg-[var(--kura-bg-light)] py-1 pl-1.5 pr-2 transition-colors hover:bg-[var(--kura-surface)]"
+          className="group flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--kura-border)] bg-[var(--kura-bg-light)] py-1 pl-1.5 pr-2 transition-all hover:border-[var(--kura-primary)]/40 hover:bg-[var(--kura-primary)]/10 hover:shadow-sm"
           aria-label={`${label} token`}
         >
           <AssetIcon
@@ -367,7 +367,7 @@ function SwapLeg({
             size={22}
           />
           <span className="text-xs font-semibold text-[var(--kura-text)]">{symbol}</span>
-          <ChevronDown className="h-3.5 w-3.5 text-[var(--kura-text-secondary)]" />
+          <ChevronDown className="h-3.5 w-3.5 text-[var(--kura-text-secondary)] transition-colors group-hover:text-[var(--kura-text)]" />
         </button>
       </div>
       {editable ? (

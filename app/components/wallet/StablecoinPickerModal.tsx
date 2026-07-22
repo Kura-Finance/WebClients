@@ -56,8 +56,8 @@ export default function StablecoinPickerModal({
                   disabled
                     ? "cursor-not-allowed opacity-40"
                     : selected
-                      ? "bg-[var(--kura-primary)]/10"
-                      : "hover:bg-[var(--kura-bg-light)]"
+                      ? "cursor-pointer bg-[var(--kura-primary)]/10 hover:bg-[var(--kura-primary)]/15"
+                      : "cursor-pointer hover:bg-[var(--kura-bg-light)]"
                 }`}
               >
                 <AssetIcon
