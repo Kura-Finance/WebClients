@@ -18,7 +18,7 @@ Out of scope unless separately arranged:
 
 ## How to report
 
-Email **security@kura-finance.com** with:
+issue:
 
 1. Affected URL / build / version if known
 2. Step-by-step reproduction
