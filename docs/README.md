@@ -1,49 +1,40 @@
-# 01 — Data Room Index
+# Documentation
 
-> **CONFIDENTIAL — Kura Finance LLC**  
-> Commercial diligence materials for the **Kura Web Client**.  
-> Document control: proprietary · not for public distribution.
+Operator and architecture notes for the **Kura Web Client**. Start with local run and production deploy, then the product and trust surfaces.
 
-## Purpose of this folder
+This software is proprietary ([LICENSE](../LICENSE)). These docs are the public runbook — not a contributor guide and not an invitation to redistribute.
 
-This Data Room describes the **web dashboard codebase** buyers and advisors need for technical, security, and operational diligence. It is written for:
+## Start here
 
-- Corporate development / M&A  
-- Enterprise / white-label licensing  
-- Security & compliance reviewers under NDA  
+| Doc | Use |
+|-----|-----|
+| [../README.md](../README.md) | Product summary and local quick start |
+| [deploy.md](deploy.md) | Local, Docker, Cloud Run, env, secrets, checklist |
 
-It is **not** an open-source contributor guide.
+## Product and design
 
-## Document map
+| Doc | Use |
+|-----|-----|
+| [product-overview.md](product-overview.md) | Capability matrix and product boundaries |
+| [architecture.md](architecture.md) | Stack, routes, modules, execution paths |
+| [third-party-dependencies.md](third-party-dependencies.md) | Vendors and data flows |
+| [trust-model.md](trust-model.md) | Trust boundaries |
+| [threat-model.md](threat-model.md) | Assets, adversaries, mitigations |
 
-| Doc | File | Audience |
-|-----|------|----------|
-| Product overview | [product-overview.md](product-overview.md) | Product, BD, eng leads |
-| Architecture | [architecture.md](architecture.md) | Engineering diligence |
-| Trust model | [trust-model.md](trust-model.md) | Security / risk |
-| Threat model | [threat-model.md](threat-model.md) | Security / risk |
-| Third-party dependencies | [third-party-dependencies.md](third-party-dependencies.md) | Legal / security / ops |
-| Deployment & operations | [deployment-operations.md](deployment-operations.md) | Platform / DevOps |
-| Environment & secrets | [environment-secrets.md](environment-secrets.md) | Platform / security |
-| Vulnerability disclosure | [../SECURITY.md](../SECURITY.md) | Security contacts |
-| License | [../LICENSE](../LICENSE) | Legal |
+## Policy
 
-## Classification
+| Doc | Use |
+|-----|-----|
+| [../SECURITY.md](../SECURITY.md) | Vulnerability disclosure |
+| [../LICENSE](../LICENSE) | IP terms |
 
-| Label | Meaning |
-|-------|---------|
-| **CONFIDENTIAL** | Share only under NDA or signed LOI / license process |
-| **Internal** | Kura engineering / ops only (not in this room) |
+Production secrets, GCP keys, and customer data are never stored in this repository.
 
-Production secrets, GCP keys, and customer data are **never** included in this repository or Data Room pack.
+## Related systems (separate repos)
 
-## Related products (separate diligence)
+| Product | Role |
+|---------|------|
+| Kura API (`backendserver`) | Auth, Treasuries, TrackFi, Stripe, passkeys, Dinari |
+| Kura Mobile | React Native wallet |
 
-| Product | Notes |
-|---------|-------|
-| Kura API (`backendserver`) | Required for TrackFi, Treasuries persistence, auth, Stripe |
-| Kura Mobile | Separate React Native application |
-
-## Contact
-
-**security@kura-finance.com** — licensing, diligence Q&A, security reports.
+Contact: **security@kura-finance.com**

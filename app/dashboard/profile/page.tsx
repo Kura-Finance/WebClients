@@ -25,7 +25,6 @@ export default function ProfilePage() {
   const handleProfilePictureUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    console.log('Profile picture upload:', file);
   };
 
   const handleSave = async () => {

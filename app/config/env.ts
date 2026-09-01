@@ -2,7 +2,7 @@
  * Centralised environment configuration for the web client.
  *
  * All NEXT_PUBLIC_* variables should be read here (or via helpers exported
- * from this module). See docs/environment-secrets.md and docs/third-party-dependencies.md.
+ * from this module). See docs/deploy.md and docs/third-party-dependencies.md.
  */
 
 function trimEnv(value: string | undefined): string {

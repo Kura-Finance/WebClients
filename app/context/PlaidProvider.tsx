@@ -16,7 +16,6 @@ export function PlaidProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // 檢查 Plaid 是否已可用
     if (typeof window !== 'undefined' && window.Plaid) {
-      console.log('[PlaidProvider] Plaid SDK already available');
       setIsPlaidReady(true);
       return;
     }
@@ -24,7 +23,6 @@ export function PlaidProvider({ children }: { children: ReactNode }) {
     // 監聽 script 載入事件（比輪詢更可靠）
     const handlePlaidReady = () => {
       if (window.Plaid) {
-        console.log('[PlaidProvider] Plaid SDK loaded via DOMContentLoaded');
         setIsPlaidReady(true);
       }
     };
@@ -37,7 +35,6 @@ export function PlaidProvider({ children }: { children: ReactNode }) {
       attempts++;
       
       if (window.Plaid) {
-        console.log('[PlaidProvider] Plaid SDK detected after', attempts, 'attempts');
         setIsPlaidReady(true);
         clearInterval(checkInterval);
         return;

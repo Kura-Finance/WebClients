@@ -10,7 +10,8 @@
     "build:standalone": "BUILD_MODE=standalone next build && du -sh .next/standalone",
     "start": "next start",
     "start:standalone": "node .next/standalone/server.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@noble/curves": "^1.8.0",
@@ -27,6 +28,7 @@
     "framer-motion": "^12.38.0",
     "hash-wasm": "^4.12.0",
     "libsodium-wrappers": "^0.8.4",
+    "lucide-react": "^0.554.0",
     "next": "16.2.2",
     "permissionless": "^0.3.7",
     "react": "19.2.4",

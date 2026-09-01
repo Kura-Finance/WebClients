@@ -1,3 +1,7 @@
+# Deploy to Cloud Run (official Kura production only).
+# Forks and other remotes skip this job — copy the file and change the
+# repository guard if you are self-hosting. See docs/deploy.md.
+
 name: Deploy Web to GCP
 
 on:
@@ -5,6 +9,7 @@ on:
     branches:
       - main
       - master
+  workflow_dispatch:
 
 concurrency:
   group: deploy-app-${{ github.ref }}
@@ -18,6 +23,7 @@ env:
 
 jobs:
   deploy:
+    if: github.repository == 'Kura-Finance/WebClients'
     runs-on: ubuntu-latest
     permissions:
       contents: read

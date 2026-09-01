@@ -46,8 +46,8 @@ const nextConfig: NextConfig = {
   },
   
   async headers() {
-    // CSP is now handled by middleware (middleware.ts) for dynamic origin support
-    // This keeps other security headers
+    // CSP is handled by proxy.ts for dynamic origin support.
+    // This keeps other security headers.
     return [
       {
         source: '/(.*)',
@@ -76,7 +76,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "www.google.com", // 💡 換成 Google Favicon API 網域      
+        hostname: "www.google.com", 
       },
       {
         protocol: "https",

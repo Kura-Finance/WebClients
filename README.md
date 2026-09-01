@@ -1,62 +1,70 @@
-# Kura Web Client — Commercial Data Room
+# Kura Web Client
 
-> **CONFIDENTIAL — Kura Finance LLC**  
-> For authorized commercial diligence, licensing, and acquisition review only.  
-> Not an open-source project. Unauthorized redistribution is prohibited.
+Next.js dashboard for [app.kura-finance.com](https://app.kura-finance.com): personal Smart Wallet, organization Treasuries, TrackFi, and on-chain Earn / Borrow / Markets on Base.
 
 | | |
 |---|---|
-| **Product** | Kura Web Dashboard (`app.kura-finance.com`) |
-| **Artifact** | Proprietary Next.js application (this repository) |
-| **License** | [LICENSE](LICENSE) — All Rights Reserved |
-| **Commercial contact** | **security@kura-finance.com** |
+| **License** | [LICENSE](LICENSE) — All Rights Reserved (not open source) |
+| **Deploy** | [docs/deploy.md](docs/deploy.md) |
+| **Security** | [SECURITY.md](SECURITY.md) — **security@kura-finance.com** |
+
+The hosted **API** and **mobile wallet** are separate products. This repository is the browser app only.
 
 ---
 
-## What buyers are reviewing
-
-The **Kura Web Client** is the browser application for:
+## What it does
 
 - Personal **Smart Wallet** on Base (Transfer, Add Money)
 - Organization **Treasury** Safes (multi-owner cash + holdings)
 - **Approvals** (propose → sign → execute Safe transactions)
+- **Team** (Safe owners / threshold) and **Report** (treasury activity)
 - **Earn / Borrow** (Morpho on Base)
-- **Markets** (spot crypto / Li.Fi)
-- **TrackFi** (Plaid banks & brokerages, CEX, DeBank — via Kura backend + passkey E2EE)
+- **Markets** (spot crypto / Li.Fi) with TradingView charts
+- **Tokenized stocks** (Dinari dShares on Base, via the Kura API)
+- **Card** waitlist (metal / virtual)
+- **TrackFi** — Bank (Plaid), Broker, DeFi (DeBank), CEX — via the Kura backend and passkey E2EE
 - **Billing** (Stripe subscription UI)
 
-The hosted **API** and **mobile wallet** are separate proprietary products. This Data Room covers the **web client** only, with explicit dependencies on backend and third parties.
+---
+
+## Quick start
+
+```bash
+npm install
+cp .env.example .env.local
+# Set NEXT_PUBLIC_BACKEND_URL, NEXT_PUBLIC_PRIVY_APP_ID, NEXT_PUBLIC_REOWN_PROJECT_ID
+npm run dev
+```
+
+Minimum env to see login: backend URL, app URL, Privy app ID, Reown project ID. Smart Wallet paths also need Pimlico and a Base RPC. Full list and production Cloud Run steps: **[docs/deploy.md](docs/deploy.md)**.
+
+```bash
+npm run lint
+npx tsc --noEmit
+npm run build
+```
 
 ---
 
-## Data Room index
+## Docs
 
-| # | Document | Diligence use |
-|---|----------|----------------|
-| 01 | [docs/README.md](docs/README.md) | Index & document control |
-| 02 | [docs/product-overview.md](docs/product-overview.md) | Capability matrix & product boundaries |
-| 03 | [docs/architecture.md](docs/architecture.md) | System design & module map |
-| 04 | [docs/trust-model.md](docs/trust-model.md) | Trust boundaries & residual third parties |
-| 05 | [docs/threat-model.md](docs/threat-model.md) | Assets, adversaries, mitigations, non-goals |
-| 06 | [docs/third-party-dependencies.md](docs/third-party-dependencies.md) | Vendor matrix & data flows |
-| 07 | [docs/deployment-operations.md](docs/deployment-operations.md) | Production build, CI/CD, Cloud Run |
-| 08 | [docs/environment-secrets.md](docs/environment-secrets.md) | Config surface & key hygiene |
-| 09 | [SECURITY.md](SECURITY.md) | Vulnerability disclosure (licensed parties) |
-| — | [LICENSE](LICENSE) | IP & licensing terms |
+| Document | Contents |
+|----------|----------|
+| [docs/deploy.md](docs/deploy.md) | Local, Docker, GitHub Actions, Cloud Run, secrets |
+| [docs/product-overview.md](docs/product-overview.md) | Capability matrix |
+| [docs/architecture.md](docs/architecture.md) | System design and route map |
+| [docs/trust-model.md](docs/trust-model.md) | Trust boundaries |
+| [docs/threat-model.md](docs/threat-model.md) | Threat model |
+| [docs/third-party-dependencies.md](docs/third-party-dependencies.md) | Vendor matrix |
+| [docs/README.md](docs/README.md) | Doc index |
 
 ---
 
-## Related proprietary systems (out of this repo)
+## Related systems
 
 | System | Role |
 |--------|------|
-| **backendserver** | API (`api.kura-finance.com`) — auth, Treasuries, TrackFi, Stripe, passkeys |
+| **backendserver** | API (`api.kura-finance.com`) — auth, Treasuries, TrackFi, Stripe, passkeys, Dinari |
 | **mobile-app** | React Native wallet (iOS / Android) |
 
----
-
-## Engagement
-
-White-label, source license, acquisition, or technical diligence scheduling:
-
-**security@kura-finance.com**
+Licensing or security: **security@kura-finance.com**

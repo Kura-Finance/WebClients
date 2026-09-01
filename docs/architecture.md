@@ -1,6 +1,4 @@
-# 03 — Architecture
-
-> **CONFIDENTIAL — Kura Finance LLC Data Room**
+# Architecture
 
 ## Stack
 
@@ -13,6 +11,8 @@
 | DeFi data | Morpho GraphQL |
 | Multisig queue | Safe Transaction Service (Base) |
 | Swaps / bridge | Li.Fi |
+| Tokenized stocks | Dinari (via Kura API) |
+| Charts | TradingView widgets |
 | TrackFi | Plaid Link + backend E2EE snapshots |
 | Billing | Stripe (server-created sessions) |
 | Deploy | Docker standalone → Google Cloud Run |
@@ -30,22 +30,33 @@
                 ▼                            ▼
      Kura API (backendserver)      Public / SaaS endpoints
      auth · treasuries · plaid     Privy · Morpho · Safe TX
-     stripe · passkeys · …         Pimlico · Li.Fi · Alchemy
+     stripe · passkeys · dinari    Pimlico · Li.Fi · Alchemy
+     waitlist                      TradingView
 ```
 
-## Route map (product surfaces)
+## Route map
 
 | Area | Primary routes |
 |------|----------------|
 | Home / cash | `/dashboard` |
 | Transfer / Add Money | `/dashboard/payment`, `/dashboard/add-money` |
+| Card waitlist | `/dashboard/card` |
+| Portfolio | `/dashboard/crypto` |
 | Treasury | `/dashboard/treasury` |
 | Approvals | `/dashboard/approvals` |
+| Team | `/dashboard/team` |
+| Report | `/dashboard/report` |
 | Earn | `/dashboard/earn`, `/dashboard/earn/[address]` |
 | Borrow | `/dashboard/borrow`, `/dashboard/borrow/[marketId]` |
 | Markets | `/dashboard/markets`, `/dashboard/markets/[symbol]` |
-| TrackFi | Bank / Broker / settings accounts |
-| Billing | Plan / billing routes |
+| Tokenized stocks | `/dashboard/rwa`, `/dashboard/rwa/[symbol]` |
+| TrackFi Bank | `/dashboard/accounts` |
+| TrackFi Broker | `/dashboard/investment` |
+| TrackFi DeFi | `/dashboard/defi-protocol` |
+| CEX | `/dashboard/exchange` |
+| Wallet history | `/dashboard/history`, `/dashboard/transactions` |
+| Billing | `/dashboard/plan-billing`, `/settings/plan-billing` |
+| Settings | `/settings/profile`, `/settings/security` |
 
 ## Backend domain alignment
 
@@ -59,6 +70,8 @@ Same API family as mobile. Representative modules:
 | `exchange` | `useExchangeStore.ts` | CEX credentials (encrypted) |
 | `debank` | `app/lib/debankApi.ts` | DeFi portfolio proxy |
 | `asset` | `app/lib/assetApi.ts` | Aggregated history |
+| `dinari` | `app/lib/dinariApi.ts` | Tokenized stock KYC / orders |
+| `waitlist` | `app/lib/waitlistApi.ts` | Card waitlists |
 | `stripe` | `app/lib/stripeApi.ts` | Checkout / portal |
 
 HTTP: cookie session (`credentials: 'include'`), envelope `{ success, data, error }` via `httpClient.ts`.  
@@ -73,6 +86,7 @@ Production: Next rewrites `/api/*` → backend (`next.config.ts`).
 | Morpho Earn | ERC-4626 (+ fee wrapper map) | `app/lib/morphoEarn.ts`, `morphoApi.ts` |
 | Morpho Borrow | Morpho Blue | `app/lib/morphoBlue.ts` |
 | Shared submit | Smart execute **or** Treasury propose | `app/lib/submitTradingCalls.ts` |
+| Dinari | Backend + signed typed data | `app/lib/dinariApi.ts` |
 
 ## Security-relevant client layers
 
@@ -87,11 +101,11 @@ Production: Next rewrites `/api/*` → backend (`next.config.ts`).
 
 ```
 app/                 App Router, components, lib, store, config
-proxy.ts             CSP middleware
+proxy.ts             CSP (Next.js proxy)
 Dockerfile           Standalone Node server (port 8080)
-.github/workflows/   Production deploy to Cloud Run
-docs/                This Data Room
+.github/workflows/   ci.yml (lint) · deploy.yml (Cloud Run, official repo only)
+docs/                Operator and architecture guides
 .env.example         Placeholder config only (no secrets)
 ```
 
-There is **no** `scripts/` deploy helper; production shipping is **CI-only** (see [deployment-operations.md](deployment-operations.md)).
+How to ship: [deploy.md](deploy.md).
