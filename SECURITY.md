@@ -41,7 +41,7 @@ Good-faith testing that:
 - Stops at proof of concept without lateral movement
 - Reports privately as above
 
-…will not be pursued as a legal matter by Kura Finance LLC, to the extent permitted by law. This is not a bug bounty unless separately contracted.
+…will not be pursued as a legal matter by Prism Capital LLC, to the extent permitted by law. This is not a bug bounty unless separately contracted.
 
 ## Audits and questionnaires
 

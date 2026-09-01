@@ -57,6 +57,6 @@ Personal Smart Wallet ≠ Treasury. Fiat KYC (including Dinari) attaches to the 
 
 ## License and packaging
 
-- Source and branding are **proprietary** ([LICENSE](../LICENSE)).
-- White-label, source license, or acquisition: **security@kura-finance.com**.
+- This web client is **MIT** licensed, Copyright (c) 2026 **Prism Capital LLC** ([LICENSE](../LICENSE)).
+- Security reports: **security@kura-finance.com**.
 - This repo alone cannot run full TrackFi, Treasuries persistence, billing, or Dinari without a **backendserver** deployment.

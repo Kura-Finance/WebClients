@@ -12,7 +12,7 @@ export default function MarketingFooter() {
             region and eligibility.
           </p>
           <p className="text-xs text-[var(--kura-text-secondary)]">
-            © {new Date().getFullYear()} Kura Finance LLC. All rights reserved.
+            © {new Date().getFullYear()} Prism Capital LLC. MIT License.
           </p>
         </div>
 

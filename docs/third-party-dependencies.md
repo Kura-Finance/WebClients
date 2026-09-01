@@ -58,4 +58,4 @@ Hosted production pins **`0.25` (25%)** in the deploy workflow. Set your own sha
 | Card / billing PII | Stripe + Kura API (as configured) |
 | Chart market data | TradingView |
 
-Map this to your DPA / subprocessors schedule before a licensed or acquired deployment.
+Map this to your DPA / subprocessors schedule before a production deployment.

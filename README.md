@@ -4,7 +4,7 @@ Next.js dashboard for [app.kura-finance.com](https://app.kura-finance.com): pers
 
 | | |
 |---|---|
-| **License** | [LICENSE](LICENSE) — All Rights Reserved (not open source) |
+| **License** | [MIT](LICENSE) — Copyright (c) 2026 Prism Capital LLC |
 | **Deploy** | [docs/deploy.md](docs/deploy.md) |
 | **Security** | [SECURITY.md](SECURITY.md) — **security@kura-finance.com** |
 
@@ -67,4 +67,4 @@ npm run build
 | **backendserver** | API (`api.kura-finance.com`) — auth, Treasuries, TrackFi, Stripe, passkeys, Dinari |
 | **mobile-app** | React Native wallet (iOS / Android) |
 
-Licensing or security: **security@kura-finance.com**
+Security reports: **security@kura-finance.com**

@@ -7,7 +7,7 @@
 | **Clear boundaries** | Browser client vs Kura API vs third-party SaaS are separate. |
 | **Honest residual trust** | DeFi / auth / banking vendors cannot be eliminated by client code alone. |
 | **E2EE for TrackFi** | Bank/CEX plaintext is intended to exist in browser memory only after passkey unlock. |
-| **Proprietary product** | Redistribution requires a written license ([LICENSE](../LICENSE)). |
+| **MIT source** | This client is MIT-licensed ([LICENSE](../LICENSE)); hosted API and vendor keys remain outside the repo. |
 
 ## In this repository
 
