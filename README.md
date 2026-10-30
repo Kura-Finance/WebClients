@@ -4,7 +4,7 @@ Next.js dashboard for [app.kura-finance.com](https://app.kura-finance.com): pers
 
 | | |
 |---|---|
-| **License** | [MIT](LICENSE) — Copyright (c) 2026 Prism Capital LLC |
+| **License** | [MIT](LICENSE) — Copyright (c) 2026 Rick Weng |
 | **Deploy** | [docs/deploy.md](docs/deploy.md) |
 | **Security** | [SECURITY.md](SECURITY.md) — **security@kura-finance.com** |
 

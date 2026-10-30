@@ -2,7 +2,7 @@
 
 Operator and architecture notes for the **Kura Web Client**. Start with local run and production deploy, then the product and trust surfaces.
 
-Licensed under the [MIT License](../LICENSE), Copyright (c) 2026 Prism Capital LLC.
+Licensed under the [MIT License](../LICENSE), Copyright (c) 2026 Rick Weng.
 
 ## Start here
 
