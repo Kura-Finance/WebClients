@@ -15,9 +15,12 @@ concurrency:
   group: deploy-app-${{ github.ref }}
   cancel-in-progress: true
 
+# Infra config comes from GitHub Variables so the project can be relocated
+# (see BackendServer/infra/gcp-migration). `vars.X || secrets.X` keeps the
+# legacy Secret working until it is moved to a Variable.
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_REGION: us-central1
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID || secrets.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'us-central1' }}
   SERVICE_NAME: app
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 

@@ -134,7 +134,7 @@ The deploy workflow **does not run on forks**. It only runs when `github.reposit
 
 | Secret | Purpose |
 |--------|---------|
-| `GCP_PROJECT_ID` | GCP project |
+| `GCP_PROJECT_ID` | GCP project (prefer the **Variable** `GCP_PROJECT_ID`; the Secret is a legacy fallback) |
 | `GCP_SERVICE_ACCOUNT_KEY` | Deploy auth (JSON) |
 | `NEXT_PUBLIC_BACKEND_URL` | API origin baked into the bundle |
 | `NEXT_PUBLIC_APP_URL` | Web origin |
@@ -148,6 +148,8 @@ The deploy workflow **does not run on forks**. It only runs when `github.reposit
 | `NEXT_PUBLIC_PAY_GAS_IN_USDC` | Optional |
 | `NEXT_PUBLIC_LIFI_API_KEY` | Optional |
 | `NEXT_PUBLIC_STRIPE_PRICE_*` | Optional billing UI |
+
+`GCP_REGION` is a GitHub **Variable** (default `us-central1`). Moving the service to another GCP project only needs `GCP_PROJECT_ID`, `GCP_REGION` and `GCP_SERVICE_ACCOUNT_KEY` updated — the backup/rebuild scripts live in `BackendServer/infra/gcp-migration/`.
 
 Hosted production also pins Li.Fi integrator `kura` and fee `0.25` in the workflow. Override those build-args if you are not Kura.
 
